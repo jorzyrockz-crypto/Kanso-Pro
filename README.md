@@ -2,7 +2,7 @@
 
 A little structure. A lot of possibility.
 
-An iPad-first, local-first workspace for events, personal tasks, project milestones, and journal reflections. A persistent, reach-friendly **bottom navigation bar** connects five workspace pages; the slim top header keeps branding, New card, and a working Firebase account area. Every view — including card creation and account settings — has its own URL and uses normal document scrolling, not a modal overlay.
+An iPad-first, local-first workspace for events, personal tasks, project milestones, and journal reflections. A persistent, reach-friendly **bottom navigation bar** connects five workspace pages; the slim top header keeps branding, New card, and a **Profile** disclosure for account access and Settings. Every view — including card creation, account management, and Settings — has its own URL and uses normal document scrolling, not a modal overlay.
 
 ## Run locally
 
@@ -36,6 +36,7 @@ The browser tests use an npm-packaged Chromium on Linux x64, so they do not need
 | New card | `/new` | `/new?type=project&date=2026-11-14` |
 | Sign in | `/sign-in` | `/sign-in?mode=create` or `/sign-in?mode=reset` |
 | My workspace / Account | `/account` | Signed-in profile and device workspace |
+| Settings | `/settings` | `/settings#appearance` or `/settings#workspace` |
 
 - The fixed workspace bottom bar keeps all five labeled page links within easy reach, with an active-page indicator and navigation touch targets at least 44 × 44 CSS pixels. The top header no longer duplicates the page links.
 - Bottom and side safe-area insets are respected. Measured bar height reserves space for the last content, footer, keyboard focus scrolling, and toast messages so they do not disappear behind navigation.
@@ -43,7 +44,7 @@ The browser tests use an npm-packaged Chromium on Linux x64, so they do not need
 - Calendar selection is reflected in `?month=2026-12` or `?date=2026-11-11`; individual task lists, projects, and journal entries use card-specific paths.
 - The app retains shared state while switching pages, restores scroll on Back/Forward, updates browser titles, and focuses page content for keyboard/screen-reader navigation.
 - Unknown paths and missing/wrong-type cards have recovery pages rather than silently opening a different item.
-- **My workspace** in the header opens `/sign-in` for guests and `/account` for signed-in users, including on a phone (avatar button). The dedicated sign-in screen has its own quiet brand/back header, without planning tabs or New card; these return when entering the workspace. Old signed-out `/account?mode=…` links are replaced with their `/sign-in` equivalent.
+- The header’s **Profile menu** (avatar/name button) opens account navigation and **Settings**. Guests get Sign in and Create account; signed-in users get Profile & account and a separate Sign out action. It supports touch, Enter/Space, normal Tab order, Escape, and outside dismissal. The dedicated sign-in screen keeps its quiet brand/back header, without a redundant Profile menu, planning tabs, or New card. Old signed-out `/account?mode=…` links are replaced with their `/sign-in` equivalent.
 - **New card** opens a creation page with contextual defaults. Cancel returns to the originating page; successfully creating a card returns to and highlights it on the timeline.
 
 ## Included
@@ -62,13 +63,14 @@ The browser tests use an npm-packaged Chromium on Linux x64, so they do not need
 - Reload persistence, same-browser cross-tab updates, schema validation, and a warning when device storage is unavailable.
 - Firebase email/password account creation and sign-in, optional Google sign-in, profile name editing, verification, password recovery, and sign-out without changing local cards.
 - Guest access, clear sign-in loading/error states, and a JSON device-workspace export with no account credentials.
+- A dedicated **Profile → Settings** page for account access, the shared Tablet frame preference, workspace counts/backups, privacy/storage guidance, version, and help. Settings works without sign-in or a working Firebase connection.
 - Keyboard-operable navigation, a skip link, one main landmark per page, reduced-motion support, and literal-text rendering through React. No HTML injection or modal focus traps.
 
 ## Account access with Firebase
 
-The header’s **My workspace** link opens the dedicated **`/sign-in`** page for guests. It has a responsive seasonal welcome panel, a clear sign-in card, signup and recovery links, and a **Continue as guest** option. There is no modal, duplicate workspace toolbar, or fixed bottom bar on this entry screen. Device counts and JSON export remain accessible in the collapsed **Your device workspace & backup** section.
+Choose **Profile menu → Sign in** in the header to open the dedicated **`/sign-in`** page. **Create account** in that menu opens registration directly; Settings also provides both links for guests. The sign-in page has a responsive seasonal welcome panel, a clear sign-in card, signup and recovery links, and a **Continue as guest** option. There is no modal, duplicate workspace toolbar, or fixed bottom bar on this entry screen. Device counts and JSON export remain accessible in the collapsed **Your device workspace & backup** section.
 
-After sign-in, `/account` shows profile details, verification, password reset, and sign-out, with the normal five-destination workspace navigation. Signed-in users see their name/initials in the header. A signed-in visit to `/sign-in` returns to `/account`; a signed-out visit to an older `/account` URL goes to the appropriate sign-in mode. These use replacement navigation, not an extra Back-history step.
+After sign-in, `/account` shows profile details, verification, password reset, and sign-out, with the normal five-destination workspace navigation. Signed-in users see their name/initials in the header; **Profile menu → Profile & account** opens this page. A signed-in visit to `/sign-in` returns to `/account`; a signed-out visit to an older `/account` URL goes to the appropriate sign-in mode. These use replacement navigation, not an extra Back-history step.
 
 The supplied **`russapps-kanso-pro`** Firebase web configuration is included; optional `VITE_FIREBASE_*` overrides are listed in `.env.example`. **The project owner must still enable Email/Password in Firebase Authentication.** For the optional Google button, enable Google as well and authorize the exact trusted preview/production hostnames in Authentication settings. A web API key alone cannot configure or verify those settings. See [Firebase Console setup and verification](docs/firebase-setup.md) for the complete steps, browser-popup restrictions, and a manual checklist.
 
@@ -154,10 +156,14 @@ src/
   layout.css                App header, bottom bar, full-page/responsive layouts
   occasions.css             Illustrated event surfaces, text scrims, theme picker
   months.css                Subtle month backdrops and calendar hero watermarks
-  account.css               Account forms, device summary, reachable phone badge
+  account.css               Account forms, identity, and shared device summary
   sign-in.css               Dedicated entry layout and responsive seasonal welcome
+  settings.css              Profile disclosure, Settings sections/index, accessible switch
   components/
-    AppHeader.tsx           Branding, New card, and reactive account-page link
+    AppHeader.tsx           Branding, New card, and the Profile disclosure
+    ProfileMenu.tsx         Account-aware navigation, dismissal, focus, and sign-out
+    SettingsPage.tsx        Device preferences, backup, privacy, version, and help
+    DeviceWorkspace.tsx     Shared live counts/save status and account/entry backup panel
     AccountPage.tsx         Profile, auth feedback, legacy URL handling, local backup
     SignInPage.tsx          Branded entry header, login/signup/recovery forms, monthly art
     BottomNavigation.tsx    Reach-friendly active page links and safe-area bar
@@ -174,7 +180,8 @@ src/
     account.ts              Validated auth inputs, safe identity/error presentation
     firebase.ts             Modular Firebase Auth adapter and public web config
     useAccount.ts           Shared auth observer, loading state, action protection
-    navigation.ts           Page paths, deep links, validated creation options
+    navigation.ts           Page paths, Settings anchors, deep links, creation options
+    workspaceBackup.ts      Workspace-only JSON, dated downloads, object-URL cleanup
     journey.ts              Timezone-safe dates, grouping, progress, creation
     occasions.ts            Theme choices, title suggestions, manual overrides
     months.ts               Month palettes, shared calendar period, reading position
@@ -189,16 +196,28 @@ tests/occasions.spec.ts      Background creation/editing, sync, layout, keyboard
 tests/months.spec.ts         Twelve scenes, month/scroll/history sync, layout, contrast
 tests/account.spec.ts        Auth flows, persistence, privacy, backup, layout, axe
 tests/sign-in.spec.ts        All monthly scenes, clock/timezones, live rollover, responsive/axe
+tests/settings.spec.ts       Profile/Settings links, focus/touch, auth/storage faults, backup, axe
 tests/helpers/firebase.ts    Test-only REST interception; no production auth bypass
 docs/firebase-setup.md       Provider/domain setup, data boundary, manual verification
+docs/settings-plan.md        Implemented Settings specification and acceptance results
 ```
 
-## Planned: Settings through Profile
+## Settings through Profile
 
-A follow-up will introduce **Profile → Settings** as a dedicated `/settings` page, keeping the five-destination bottom bar and existing account/sign-in routes. The proposed sections are Profile & account, Appearance, Device workspace & backup, Privacy & storage, and About & help. See the [reference-informed Settings plan](docs/settings-plan.md) for menu behavior, implementation phases, data boundaries, and acceptance checks. **This is a plan only; the Profile menu and Settings page are not implemented in this change.**
+Open the header’s **Profile menu → Settings**, or visit **`/settings`** directly. Settings is a normal full page, not a modal or a sixth bottom destination. Its section index is beside the content on larger screens and wraps above it on phones; each section has a shareable anchor:
+
+- **Profile & account** (`#account`): identity/status and a link to the existing account/security page, or sign-in/create links for guests. No duplicate authentication forms.
+- **Appearance** (`#appearance`): **Tablet frame**, using exactly the same saved preference as the Timeline toolbar. Changes apply immediately, survive reload, and synchronize across same-origin tabs. A decorative preview explains automatic artwork and follows the actual device-local month; it does not add a fixed-month or theme setting.
+- **Device workspace & backup** (`#workspace`): live card counts, storage status, and JSON export for guests and signed-in users. A download contains workspace data only and is not cloud sync or a verified off-device backup. Download errors leave the workspace unchanged.
+- **Privacy & storage** (`#privacy`): browser-profile/origin scope, shared-device access, blocked-storage/session-only behavior, and the separate account session. Another device or host has its own workspace.
+- **About & help** (`#about`): the version from `package.json`, a brief usage guide, and real source/setup documentation links. Build-time source links follow the current Git branch (or Vercel’s commit-ref metadata), with `main` as the archive fallback.
+
+The page stays usable when authentication or device persistence is unavailable. The version-one journey schema and storage key are unchanged; no identity is added to cards or exports. The sign-in page’s existing guest backup remains available too. Restore/import/reset, dark/system themes, cloud sync, and integrations are deliberately **not** included.
+
+The [implemented Settings specification](docs/settings-plan.md) records the reference review, interaction contract, acceptance checks, and verification scope.
 
 ## Deploy to Vercel later
 
 The app builds to a static `dist/` directory. `vercel.json` supplies Vite build settings and an SPA fallback to `index.html`, so refreshing a URL such as `/projects/proj-reading` loads the app instead of a hosting 404. Vercel serves existing static assets before the fallback.
 
-Guest/local planning requires no backend. Account access uses the supplied Firebase project and requires its Authentication provider/domain setup; no environment variables are required unless overriding the default web configuration. Authorize the exact production hostname for Google sign-in when it is assigned. Other static hosts can also publish `dist/`, but must rewrite non-file page requests (including `/sign-in` and `/account`) to `index.html`. There is no deployment included in this repository change.
+Guest/local planning requires no backend. Account access uses the supplied Firebase project and requires its Authentication provider/domain setup; no environment variables are required unless overriding the default web configuration. Authorize the exact production hostname for Google sign-in when it is assigned. Other static hosts can also publish `dist/`, but must rewrite non-file page requests (including `/sign-in`, `/account`, and `/settings`) to `index.html`. There is no deployment included in this repository change.

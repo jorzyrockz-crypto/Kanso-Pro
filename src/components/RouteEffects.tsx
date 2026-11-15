@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
-import { pageForPath } from '../lib/navigation'
+import { pageForPath, SETTINGS_SECTIONS } from '../lib/navigation'
 
 /** Full-page navigation: meaningful titles, focus, and Back/Forward scroll restoration. */
 export function RouteEffects() {
@@ -36,20 +36,29 @@ export function RouteEffects() {
     const last = previous.current
     const pathChanged = last !== null && last.path !== location.pathname
     const onlyHashChanged = last && last.path === location.pathname && last.search === location.search && last.hash !== location.hash
-    const savedPosition = positions.current.get(location.key) ?? 0
+    const savedPosition = positions.current.get(location.key)
+    const settingsPage = /^\/settings\/?$/i.test(location.pathname)
+    const sectionId = settingsPage ? SETTINGS_SECTIONS.find(({ id }) => location.hash === `#${id}`)?.id : undefined
     activeLocation.current = location
 
     const frame = requestAnimationFrame(() => {
-      if (!onlyHashChanged) {
+      const section = sectionId ? document.getElementById(sectionId) : null
+      if (section) {
+        // Real section URLs work on refresh/new tabs too. Focus without a second
+        // browser scroll; CSS scroll margins keep headings below sticky chrome.
+        section.focus({ preventScroll: true })
+        if (navigationType === 'POP' && savedPosition !== undefined) window.scrollTo({ top: savedPosition, behavior: 'instant' })
+        else section.scrollIntoView({ block: 'start', behavior: 'instant' })
+      } else if (!onlyHashChanged || (settingsPage && navigationType === 'POP')) {
         // The timeline handles explicit card targets after expanding quiet buffers.
         if ((navigationType === 'POP' || !location.state?.focusCardId) && (pathChanged || navigationType === 'POP')) {
-          window.scrollTo({ top: navigationType === 'POP' ? savedPosition : 0, behavior: 'instant' })
+          window.scrollTo({ top: navigationType === 'POP' ? savedPosition ?? 0 : 0, behavior: 'instant' })
         }
         // Keep the browser's natural initial focus so the first Tab reaches the skip link.
         // The creation page may opt in to focusing its title field on a direct visit.
-        if (pathChanged || !last) {
+        if (pathChanged || !last || (settingsPage && onlyHashChanged)) {
           const target = document.querySelector<HTMLElement>('[data-page-focus]')
-            ?? (pathChanged ? document.querySelector<HTMLElement>('main') : null)
+            ?? (pathChanged || onlyHashChanged ? document.querySelector<HTMLElement>('main') : null)
           target?.focus({ preventScroll: true })
         }
       }

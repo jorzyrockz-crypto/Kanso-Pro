@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Clock3, Crosshair, Link2, Tablet, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Link2, Tablet, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
@@ -7,6 +7,8 @@ import { buildTimeline, focusCard, formatDate } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useAccount } from './lib/useAccount'
+import { accountError } from './lib/account'
+import { SettingsPage } from './components/SettingsPage'
 import { AccountPage } from './components/AccountPage'
 import { SignInHeader } from './components/SignInPage'
 import { calendarPeriod, monthAtPosition } from './lib/months'
@@ -85,7 +87,7 @@ export default function App() {
   const [visibleTimelineMonth, setVisibleTimelineMonth] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [openGaps, setOpenGaps] = useState<string[]>([])
-  const [toast, setToast] = useState<{ message: string; id: number } | null>(null)
+  const [toast, setToast] = useState<{ message: string; id: number; kind?: 'error' } | null>(null)
   const [pendingScroll, setPendingScroll] = useState<string | null>(null)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const handledFocusKey = useRef<string | null>(null)
@@ -164,9 +166,19 @@ export default function App() {
 
   useEffect(() => {
     if (!toast) return
-    const timer = window.setTimeout(() => setToast(null), 4200)
+    const timer = window.setTimeout(() => setToast(null), toast.kind === 'error' ? 8000 : 4200)
     return () => window.clearTimeout(timer)
   }, [toast])
+
+  const signOutFromProfile = async () => {
+    if (!account.user || account.phase !== 'ready' || account.busy !== null) return
+    try {
+      await account.signOut()
+      setToast({ message: 'You’re signed out. Your device plans are still here.', id: Date.now() })
+    } catch (error) {
+      setToast({ message: accountError(error), kind: 'error', id: Date.now() })
+    }
+  }
 
   const openDestination = (destination: Destination) => navigate(destinationPath(destination))
   const openComposer = (options: ComposerOptions = {}) => {
@@ -198,7 +210,7 @@ export default function App() {
   return <div className={`application ${signInLayout ? 'application-auth' : ''}`}>
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
-    {signInLayout ? <SignInHeader /> : <><AppHeader account={account} onCompose={() => openComposer()} /><BottomNavigation /></>}
+    {signInLayout ? <SignInHeader /> : <><AppHeader account={account} storageAvailable={storageAvailable} onCompose={() => openComposer()} onSignOut={signOutFromProfile} /><BottomNavigation /></>}
     {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size={15} /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
     <div className="page-outlet">
       <Routes>
@@ -208,6 +220,7 @@ export default function App() {
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
           element={<WorkspacePage page={page} cards={state.cards} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
+        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} onToggleFrame={() => dispatch({ type: 'toggle-bezel' })} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
         <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />
@@ -216,6 +229,6 @@ export default function App() {
     </div>
     <AppFooter />
     <RouteEffects />
-    <div className="toast-region" role="status" aria-live="polite">{toast && <div className="toast" key={toast.id}><span className="toast-icon"><Check size={16} /></span><span>{toast.message}</span><button className="icon-button" aria-label="Dismiss notification" onClick={() => setToast(null)}><X size={14} /></button></div>}</div>
+    <div className="toast-region" role={toast?.kind === 'error' ? 'alert' : 'status'} aria-live={toast?.kind === 'error' ? 'assertive' : 'polite'}>{toast && <div className={`toast ${toast.kind === 'error' ? 'is-error' : ''}`} key={toast.id}><span className="toast-icon">{toast.kind === 'error' ? <AlertCircle size={16} /> : <Check size={16} />}</span><span>{toast.message}</span><button className="icon-button" aria-label="Dismiss notification" onClick={() => setToast(null)}><X size={14} /></button></div>}</div>
   </div>
 }

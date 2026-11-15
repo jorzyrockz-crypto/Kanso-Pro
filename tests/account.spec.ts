@@ -38,8 +38,11 @@ test.afterEach(() => {
 
 test('the workspace badge opens a normal, refreshable account page and guests can keep planning', async ({ page }) => {
   await page.goto('/')
-  await expect(accountLink(page)).toHaveAttribute('href', '/sign-in')
+  await expect(accountLink(page)).toHaveAttribute('aria-expanded', 'false')
   await accountLink(page).click()
+  const signInLink = page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true })
+  await expect(signInLink).toHaveAttribute('href', '/sign-in')
+  await signInLink.click()
   await expect(page).toHaveURL('/sign-in')
   await expect(page).toHaveTitle('Sign in · Kanso Pro')
   await expect(page.getByRole('main')).toBeFocused()
@@ -75,6 +78,7 @@ test('email sign-in persists after refresh and never changes or uploads the loca
   await page.getByRole('textbox', { name: 'Your reflection', exact: true }).fill('My private, locally stored planning note.')
   const before = await localState(page)
   await accountLink(page).click()
+  await page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true }).click()
   await signIn(page)
   await expect(accountLink(page)).toContainText('Ada Reyes')
   await expect(accountLink(page).locator('.workspace-avatar')).toHaveText('AR')

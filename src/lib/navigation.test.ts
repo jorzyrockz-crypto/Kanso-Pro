@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { composerOptions, composerPath, destinationPath, pageForPath } from './navigation'
+import { composerOptions, composerPath, destinationPath, pageForPath, PAGE_LINKS, SETTINGS_SECTIONS } from './navigation'
 
 describe('page navigation', () => {
   it('gives all four workspaces their own readable URLs', () => {
@@ -43,8 +43,15 @@ describe('page navigation', () => {
     expect(pageForPath('/sign-in', '?mode=reset').label).toBe('Reset password')
     expect(pageForPath('/sign-in', '?mode=unknown&month=2029-03').label).toBe('Sign in')
   })
+  it('names Settings without adding another bottom destination', () => {
+    expect(pageForPath('/settings')).toEqual({ label: 'Settings', page: 'settings' })
+    expect(pageForPath('/SETTINGS/').label).toBe('Settings')
+    expect(PAGE_LINKS).toHaveLength(5)
+    expect(PAGE_LINKS.map(({ path }) => path)).not.toContain('/settings')
+    expect(SETTINGS_SECTIONS.map(({ id }) => id)).toEqual(['account', 'appearance', 'workspace', 'privacy', 'about'])
+  })
   it('identifies unknown paths instead of claiming they are workspaces', () => {
-    for (const path of ['/missing', '/new/card', '/projects/a/b', '/calendarish', '/account/unknown', '/sign-in/unknown']) {
+    for (const path of ['/missing', '/new/card', '/projects/a/b', '/calendarish', '/account/unknown', '/sign-in/unknown', '/settings/unknown', '/settings/appearance']) {
       expect(pageForPath(path).page).toBe('not-found')
     }
   })

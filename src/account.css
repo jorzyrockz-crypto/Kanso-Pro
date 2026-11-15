@@ -1,5 +1,5 @@
 @layer layout {
-  /* The account affordance is a real page link at every screen width. */
+  /* Shared account identity, forms, and device workspace surfaces. */
   .personal-workspace { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; border-radius: 10px; color: #35576e; text-decoration: none; }
   .personal-workspace:hover { background: #eaf4fa; }
   .personal-workspace.is-active { background: #deeffb; }

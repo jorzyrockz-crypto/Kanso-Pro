@@ -1,10 +1,11 @@
-import { ArrowRight, BadgeCheck, Check, Download, HardDrive, KeyRound, LoaderCircle, LogOut, Mail, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
+import { BadgeCheck, Check, KeyRound, LoaderCircle, LogOut, Mail, RefreshCw, UserRound } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import type { JourneyState } from '../types'
 import { accountError, accountInitials, accountMode, accountName } from '../lib/account'
 import type { AccountController } from '../lib/useAccount'
-import { SaveIndicator } from './Common'
+import { BACKUP_FAILED, BACKUP_READY, downloadWorkspaceBackup } from '../lib/workspaceBackup'
+import { DeviceWorkspacePanel } from './DeviceWorkspace'
 import { PageHeader } from './PageHeader'
 import { SignInPage } from './SignInPage'
 
@@ -49,17 +50,10 @@ export function AccountPage({ account, state, storageAvailable }: { account: Acc
   }
   const exportWorkspace = () => {
     try {
-      const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }))
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `kanso-pro-journey-${new Date().toISOString().slice(0, 10)}.json`
-      document.body.append(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-      setFeedback({ kind: 'success', message: 'Your device workspace backup is ready. Keep the downloaded file somewhere private.' })
+      downloadWorkspaceBackup(state)
+      setFeedback({ kind: 'success', message: BACKUP_READY })
     } catch {
-      setFeedback({ kind: 'error', message: 'We could not download the backup in this browser. Your workspace is unchanged.' })
+      setFeedback({ kind: 'error', message: BACKUP_FAILED })
     }
   }
   const notices = <>
@@ -67,16 +61,7 @@ export function AccountPage({ account, state, storageAvailable }: { account: Acc
     {account.phase === 'error' && <div className="account-connection-error" role="alert"><p>{account.initializationError}</p><button className="button button-soft" onClick={account.retry}>Retry connection<RefreshCw size={14} /></button></div>}
     {feedback && <p ref={feedbackRef} tabIndex={-1} className={`account-feedback ${feedback.kind === 'error' ? 'is-error' : ''}`} role={feedback.kind === 'error' ? 'alert' : 'status'}>{feedback.kind === 'success' && <Check size={15} />}{feedback.message}</p>}
   </>
-  const deviceWorkspace = <aside className="account-device-panel" aria-labelledby="device-workspace-title">
-    <span className="account-device-icon"><HardDrive size={23} /></span><span className="eyebrow">Your device workspace</span><h2 id="device-workspace-title">A little room for your plans.</h2>
-    <p>These cards live in this browser, whether you’re a guest or signed in.</p>
-    <div className="account-device-stats">{([['event', 'Events'], ['task', 'Task lists'], ['project', 'Projects'], ['note', 'Notes']] as const).map(([type, label]) => <div key={type}><strong>{state.cards.filter((card) => card.type === type).length}</strong><span>{label}</span></div>)}</div>
-    <div className="account-device-save"><SaveIndicator available={storageAvailable} /><span>{state.cards.length} cards in this browser</span></div>
-    <div className="account-local-notice"><ShieldCheck size={17} /><div><strong>Sign-in is not cloud sync.</strong><p>Signing in or out does not upload, transfer, hide, or delete these cards. Anyone using this browser profile can access them. Use a separate browser profile on shared devices.</p></div></div>
-    <button className="button account-export" onClick={exportWorkspace}><Download size={15} />Export device backup</button>
-    <p className="account-backup-note">A JSON copy of all card content. Keep the file private. It does not contain your sign-in tokens or password.</p>
-    {user && <Link className="button button-soft account-continue" to="/">Back to your timeline<ArrowRight size={14} /></Link>}
-  </aside>
+  const deviceWorkspace = <DeviceWorkspacePanel state={state} storageAvailable={storageAvailable} onExport={exportWorkspace} showReturnLink={!!user} />
 
   if (!user) return <SignInPage account={account} mode={mode} notices={notices} deviceWorkspace={deviceWorkspace} onAction={perform} />
 

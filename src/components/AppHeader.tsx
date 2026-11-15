@@ -1,8 +1,8 @@
 import { Plus } from 'lucide-react'
-import { Link, NavLink } from 'react-router-dom'
-import { accountInitials, accountName } from '../lib/account'
+import { Link } from 'react-router-dom'
 import type { AccountController } from '../lib/useAccount'
 import { useChromeHeight } from '../lib/useChromeHeight'
+import { ProfileMenu } from './ProfileMenu'
 
 export function KansoMark({ size = 24 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -11,7 +11,7 @@ export function KansoMark({ size = 24 }: { size?: number }) {
   </svg>
 }
 
-export function AppHeader({ account, onCompose }: { account: Pick<AccountController, 'user' | 'phase'>; onCompose: () => void }) {
+export function AppHeader({ account, storageAvailable, onCompose, onSignOut }: { account: AccountController; storageAvailable: boolean; onCompose: () => void; onSignOut: () => Promise<void> }) {
   const ref = useChromeHeight<HTMLElement>('--topbar-height')
 
   return <header ref={ref} className="topbar">
@@ -22,10 +22,7 @@ export function AppHeader({ account, onCompose }: { account: Pick<AccountControl
       </Link>
       <div className="topbar-actions">
         <button className="button button-dark global-create" onClick={onCompose}><Plus size={16} /><span>New card</span></button>
-        <NavLink to={account.user ? '/account' : '/sign-in'} className={({ isActive }) => `personal-workspace ${isActive ? 'is-active' : ''}`} aria-label={account.user ? `Open ${accountName(account.user)}’s account` : 'Open my workspace and account'} title="Account settings · plans stay in this browser">
-          <span className="workspace-avatar" aria-hidden="true">{accountInitials(account.user)}</span>
-          <span className="workspace-account"><strong>{accountName(account.user)}</strong><small>{account.user ? 'Personal · Signed in' : account.phase === 'loading' ? 'Checking account…' : account.phase === 'error' ? 'Sign-in unavailable' : 'Personal · Guest'}</small></span>
-        </NavLink>
+        <ProfileMenu account={account} storageAvailable={storageAvailable} onSignOut={onSignOut} />
       </div>
     </div>
   </header>

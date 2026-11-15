@@ -20,6 +20,14 @@ export const PAGE_LINKS = [
   { path: '/journal', label: 'Journal', page: 'journal' },
 ] as const
 
+export const SETTINGS_SECTIONS = [
+  { id: 'account', label: 'Profile & account' },
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'workspace', label: 'Workspace & backup' },
+  { id: 'privacy', label: 'Privacy & storage' },
+  { id: 'about', label: 'About & help' },
+] as const
+
 export function destinationPath(destination: Destination): string {
   const base = WORKSPACE_PATHS[destination.page]
   return destination.cardId ? `${base}/${encodeURIComponent(destination.cardId)}` : base
@@ -45,6 +53,7 @@ export function composerOptions(search: string): ComposerOptions {
 export function pageForPath(path: string, search = '') {
   const pathname = path.replace(/\/+$/, '').toLowerCase() || '/'
   if (pathname === '/new') return { label: 'New card', page: 'new' as const }
+  if (pathname === '/settings') return { label: 'Settings', page: 'settings' as const }
   if (pathname === '/account') return { label: 'My workspace', page: 'account' as const }
   if (pathname === '/sign-in') {
     const mode = new URLSearchParams(search).get('mode')

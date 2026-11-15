@@ -1,6 +1,6 @@
 # Dedicated Settings through the Profile menu
 
-**Status: proposed follow-up, not implemented in this pull request.** The current header still opens `/account` or `/sign-in` directly. This document plans a Profile menu and a dedicated `/settings` page without changing existing runtime behavior.
+**Status: implemented and verified on 2026-11-14.** The header now opens an accessible Profile disclosure, and **Profile → Settings** leads to the dedicated `/settings` page. This document preserves the approved scope and records the implementation and acceptance results.
 
 ## Goal and constraints
 
@@ -26,7 +26,7 @@ Borrow the grouping, clear identity/status, and device-scoped explanations. Do *
 
 ## 1. Profile menu
 
-Replace the header account link with an accessible Profile disclosure button. Keep the existing avatar/initials and visible name/status; on narrow screens, use a clearly named avatar button with at least a 44 × 44 CSS-pixel target.
+The header account link is now an accessible Profile disclosure button. It retains the existing avatar/initials and visible name/status; on narrow screens, the clearly named avatar button has at least a 44 × 44 CSS-pixel target.
 
 | State | Identity summary | Navigation and actions |
 | --- | --- | --- |
@@ -67,25 +67,39 @@ Keep the existing sign-in guest backup accessible. Settings should be an additio
 - Apply local preferences immediately, persist through the existing validated store, synchronize across same-origin tabs, and retain the existing in-memory fallback and warning when storage fails.
 - Do not label an export as safely saved on disk: the app can initiate a download, but cannot verify where the user kept it.
 
-## 3. Implementation sequence
+## 3. Completed implementation
 
-1. **Profile navigation:** add `src/components/ProfileMenu.tsx`, integrate with AppHeader, and test signed-in/guest/loading/error states and dismissal/focus behavior. Actual destinations remain real links with useful hrefs.
-2. **Settings page:** add `src/components/SettingsPage.tsx` and `src/settings.css`; wire `/settings` into App, navigation title metadata, and RouteEffects. Keep all existing account URLs and five bottom links.
-3. **Reuse existing controls:** share workspace summary/export behavior; connect the Tablet frame setting to the existing reducer. Do not add a second auth subscription or export account credentials.
-4. **Regression and documentation:** add Settings/Profile browser coverage, update account-entry test helpers that currently assume `.personal-workspace` is a direct link, and document the new entry point. Preserve direct-link, refresh, history, new-tab, and guest coverage rather than removing those assertions.
+1. **Profile navigation:** added `src/components/ProfileMenu.tsx` and integrated it with AppHeader and the existing account controller. Signed-in/guest/loading/error states, dismissal, pending actions, and focus are tested. Actual destinations remain real links with useful hrefs. Focus is remembered before cross-tab sign-out removes a signed-in-only link; navigation still delegates destination focus to RouteEffects.
+2. **Settings page:** added `src/components/SettingsPage.tsx` and `src/settings.css`, with `/settings` routing/title metadata and section focus/history handling in RouteEffects. The responsive section index becomes non-sticky in short windows. All existing account URLs and five bottom links remain intact.
+3. **Reuse existing controls:** extracted `DeviceWorkspace.tsx` and `lib/workspaceBackup.ts` for Account/sign-in/Settings. The download helper explicitly exports version/cards/bezel only and cleans up its anchor/object URL on failure too. Tablet frame dispatches the existing reducer action. No extra auth controller, storage key, or schema change was added. About reads the package version and public build-time source ref.
+4. **Regression and documentation:** added 22 Settings/Profile browser tests, 8 backup unit tests, and a Settings navigation unit test; updated old account-entry tests to select disclosure links and documented the new entry point. Direct-link, refresh, history, native new-tab, guest, monthly sign-in, and existing planner coverage are preserved.
 
-## Acceptance checklist for that implementation
+## Acceptance results
 
-- [ ] Profile → Settings works with mouse, keyboard, and touch, both signed in and as a guest.
-- [ ] `/settings` works on direct load, refresh, Back/Forward, and in a new tab; unknown routes still show recovery pages.
-- [ ] Settings is a page, not a modal. Bottom navigation stays fixed, reachable, and limited to its existing five destinations.
-- [ ] Escape/outside dismissal and route navigation leave focus in the correct place; no hidden disclosure items remain in the tab order.
-- [ ] Phone, split-width tablet, portrait/landscape, safe-area, and keyboard-height layouts have no horizontal overflow or obscured final controls; targets stay at least 44 × 44 px.
-- [ ] Profile/security flows, legacy redirects, and sign-out/cross-tab sessions continue to work. Offline or misconfigured auth never blocks local settings or guest plans.
-- [ ] The Tablet frame setting and Timeline quick toggle stay synchronized after reload and across tabs without changing card content.
-- [ ] Guest/signed-in exports contain only valid workspace JSON; download errors and blocked/corrupt storage are handled without data loss.
-- [ ] Monthly sign-in still follows the actual device-local month across midnight/year boundaries and tab restoration without losing typed fields.
-- [ ] Automated WCAG A/AA checks, reduced motion, forced colors, contrast, and print behavior pass; rerun the complete existing unit/browser suite.
+- [x] Profile → Settings works with mouse, keyboard, and touch, both signed in and as a guest.
+- [x] `/settings` works on direct load, refresh, Back/Forward, and in a new tab; unknown routes still show recovery pages.
+- [x] Settings is a page, not a modal. Bottom navigation stays fixed, reachable, and limited to its existing five destinations.
+- [x] Escape/outside dismissal and route navigation leave focus in the correct place; no hidden disclosure items remain in the tab order.
+- [x] Phone, split-width tablet, portrait/landscape, safe-area, and keyboard-height layouts have no horizontal overflow or obscured final controls; targets stay at least 44 × 44 px.
+- [x] Profile/security flows, legacy redirects, and sign-out/cross-tab sessions continue to work. Offline or misconfigured auth never blocks local settings or guest plans.
+- [x] The Tablet frame setting and Timeline quick toggle stay synchronized after reload and across tabs without changing card content.
+- [x] Guest/signed-in exports contain only valid workspace JSON; download errors and blocked/corrupt storage are handled without data loss.
+- [x] Monthly sign-in still follows the actual device-local month across midnight/year boundaries and tab restoration without losing typed fields.
+- [x] Automated WCAG A/AA checks, reduced motion, forced colors, contrast, and print behavior pass; rerun the complete existing unit/browser suite.
+
+## Verification scope
+
+Final full regression run for the implementation:
+
+- `npm run build` — strict TypeScript and production build pass (1,745 modules).
+- `npm test` — **127 tests pass across 9 files**.
+- `npm run test:e2e` — **99 browser tests pass**, including all 22 Profile/Settings tests, existing authentication flows, the actual-clock monthly sign-in tests, and the complete planner suite. No retries or app-side new-tab workarounds.
+- `npm audit` — **0 vulnerabilities**; no dependency changes were required for Settings.
+- `git diff --check` — clean.
+
+Browser coverage includes 320/375 px phones, 600/760 px split widths, 834 px portrait tablet, 1194 px landscape/tablet, and 1440 px desktop. Short 375 × 420 and 812 × 320 windows, touch, keyboard, simulated side/bottom safe areas, long literal identity text, native modified-click tabs, blocked/corrupt/empty storage, pending/failed auth, cross-tab sessions/preferences, private JSON downloads, and download failures are exercised. Representative phone/tablet/desktop/landscape and forced-color captures were visually reviewed.
+
+Axe WCAG A/AA checks include every monthly Settings-preview palette and expanded guest/signed-in Profile disclosures. Reduced-motion, increased-contrast, forced-color, and print styles are checked. These are automated/browser-emulated checks, **not** certification or a substitute for physical iPad/Safari, assistive-technology, and real on-screen-keyboard testing. Authentication uses test-only SDK faults and intercepted REST responses; no live accounts/emails or Console configuration were used or verified.
 
 ## Deferred decisions, not part of the initial Settings release
 

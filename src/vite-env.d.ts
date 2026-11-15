@@ -9,3 +9,6 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID?: string
   readonly VITE_FIREBASE_MEASUREMENT_ID?: string
 }
+
+/** Public source branch for About/help links, supplied at build time. */
+declare const __APP_SOURCE_REF__: string
