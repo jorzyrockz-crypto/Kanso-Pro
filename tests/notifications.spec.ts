@@ -6,6 +6,10 @@ import { mockFirebase } from './helpers/firebase'
 test.use({ timezoneId: 'Asia/Manila' })
 
 const bell = (page: import('@playwright/test').Page) => page.getByRole('link', { name: /^Notifications(?:,|$)/ })
+const openNewCard = async (page: import('@playwright/test').Page) => {
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('button', { name: 'New card', exact: true }).click()
+}
 
 test('no initial flood or permission prompt; due reminders group, badge, link and mark read', async ({ page, context }) => {
   await context.grantPermissions([])
@@ -25,7 +29,7 @@ test('no initial flood or permission prompt; due reminders group, badge, link an
   await expect(page.getByRole('heading', { name: 'A little breathing room.' })).toBeVisible()
   await expect(bell(page)).toHaveAttribute('aria-label', 'Notifications')
   await expect(page.locator('html')).not.toHaveAttribute('data-permission-asked')
-  await page.getByRole('button', { name: 'New card', exact: true }).click()
+  await openNewCard(page)
   await page.locator('#card-title').fill('Unfinished reminder-time draft')
   await page.clock.fastForward(60_001)
   await expect(page.locator('.toast')).toContainText('11 new planner notifications')
@@ -62,7 +66,9 @@ test.describe('touch notification preferences', () => {
     await page.goto('/notifications')
     await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+    await page.getByRole('button', { name: 'More', exact: true }).click()
     await expect(page.getByRole('button', { name: 'New card', exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
     const bounds = await bell(page).boundingBox()
     expect(bounds!.width).toBeGreaterThanOrEqual(44)
     expect(bounds!.height).toBeGreaterThanOrEqual(44)

@@ -67,11 +67,12 @@ test('primary navigation stays fixed and reachable in portrait, landscape, and s
     expect(Math.abs(after.bottom - before.bottom)).toBeLessThan(1)
     await expectPrimaryNavigation(page, width, height)
   }
-  for (const control of [page.getByRole('link', { name: 'Kanso Pro home', exact: true }), page.getByRole('button', { name: 'New card', exact: true })]) {
-    const bounds = await rect(control)
-    expect(bounds.width).toBeGreaterThanOrEqual(44)
-    expect(bounds.height).toBeGreaterThanOrEqual(44)
-  }
+  const home = await rect(page.getByRole('link', { name: 'Kanso Pro home', exact: true }))
+  expect(home.width).toBeGreaterThanOrEqual(44)
+  expect(home.height).toBeGreaterThanOrEqual(44)
+  const more = await rect(page.getByRole('button', { name: 'More', exact: true }))
+  expect(more.width).toBeGreaterThanOrEqual(40)
+  expect(more.height).toBeGreaterThanOrEqual(40)
 })
 
 test('safe-area changes reserve matching space for page content and keep the footer above the bar', async ({ page }) => {

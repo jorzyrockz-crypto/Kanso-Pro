@@ -6,7 +6,16 @@ import { STORAGE_KEY } from '../src/data'
 import { mockFirebase } from './helpers/firebase'
 import type { FirebaseHarness } from './helpers/firebase'
 
-const accountLink = (page: Page) => page.locator('.personal-workspace')
+const accountLink = (page: Page) => page.getByRole('button', { name: 'More', exact: true })
+const more = (page: Page) => page.getByRole('navigation', { name: 'More', exact: true })
+async function openMore(page: Page) {
+  await accountLink(page).click()
+  await expect(more(page)).toBeVisible()
+}
+async function expectMoreIdentity(page: Page, name: string) {
+  await openMore(page)
+  await expect(more(page)).toContainText(name)
+}
 const email = (page: Page) => page.getByLabel('Email address', { exact: true })
 const password = (page: Page) => page.getByLabel('Password', { exact: true })
 const navigation = (page: Page) => page.getByRole('navigation', { name: 'Main navigation' })
@@ -44,8 +53,8 @@ test('the workspace badge opens a normal, refreshable account page and guests ca
   await page.goto('/')
   await expect(accountLink(page)).toHaveAttribute('aria-expanded', 'false')
   await expect(accountLink(page)).not.toContainText('Checking account')
-  await accountLink(page).click()
-  const signInLink = page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true })
+  await openMore(page)
+  const signInLink = page.getByRole('navigation', { name: 'More', exact: true }).getByRole('link', { name: 'Sign in', exact: true })
   await expect(signInLink).toHaveAttribute('href', '/sign-in')
   await signInLink.click()
   await expect(page).toHaveURL('/sign-in')
@@ -83,11 +92,11 @@ test('email sign-in persists after refresh and never changes or uploads the loca
   await page.getByRole('textbox', { name: 'Your reflection', exact: true }).fill('My private, locally stored planning note.')
   const before = await localState(page)
   await expect(accountLink(page)).not.toContainText('Checking account')
-  await accountLink(page).click()
-  await page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true }).click()
+  await openMore(page)
+  await page.getByRole('navigation', { name: 'More', exact: true }).getByRole('link', { name: 'Sign in', exact: true }).click()
   await signIn(page)
-  await expect(accountLink(page)).toContainText('Ada Reyes')
-  await expect(accountLink(page).locator('.workspace-avatar')).toHaveText('AR')
+  await expectMoreIdentity(page, 'Ada Reyes')
+  await expect(more(page).locator('.workspace-avatar')).toHaveText('AR')
   await expect(page.locator('.account-identity')).toContainText('ada@example.test')
   expect(await localState(page)).toBe(before)
   expect(firebase.requests.filter(({ endpoint }) => endpoint === 'signInWithPassword')).toHaveLength(1)
@@ -95,7 +104,7 @@ test('email sign-in persists after refresh and never changes or uploads the loca
   expect(before).not.toMatch(/test-passphrase|idToken|refreshToken/)
   await page.reload()
   await expect(page.getByRole('form', { name: 'Profile details' })).toBeVisible()
-  await expect(accountLink(page)).toContainText('Ada Reyes')
+  await expectMoreIdentity(page, 'Ada Reyes')
   expect(firebase.requests.filter(({ endpoint }) => endpoint === 'signInWithPassword')).toHaveLength(1)
   expect(await localState(page)).toBe(before)
 })
@@ -108,7 +117,7 @@ test('account creation saves identity, verification is explicit, and profile upd
   await password(page).fill('test-passphrase-2026')
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await expect(page.getByRole('form', { name: 'Profile details' })).toBeVisible()
-  await expect(accountLink(page)).toContainText('Mia Santos')
+  await expectMoreIdentity(page, 'Mia Santos')
   await expect(page.locator('.account-identity')).toContainText('mia@example.test')
   expect(firebase.requests.filter(({ endpoint }) => endpoint === 'signUp')).toHaveLength(1)
   expect(firebase.requests.filter(({ endpoint }) => endpoint === 'sendOobCode')).toHaveLength(0)
@@ -123,9 +132,10 @@ test('account creation saves identity, verification is explicit, and profile upd
   await page.getByRole('textbox', { name: 'Display name', exact: true }).fill(name)
   await page.getByRole('button', { name: 'Save profile', exact: true }).click()
   await expect(feedback(page)).toContainText('display name has been saved')
-  await expect(accountLink(page).locator('strong')).toHaveText(name)
+  await openMore(page)
+  await expect(more(page).locator('.profile-panel-identity strong')).toHaveText(name)
   await expect(page.locator('.account-identity strong')).toHaveText(name)
-  await expect(page.locator('.account-card img, .personal-workspace img')).toHaveCount(0)
+  await expect(page.locator('.account-card img, .more-panel img')).toHaveCount(0)
   expect(await localState(page)).toBe(before)
   await page.reload()
   await expect(page.getByRole('textbox', { name: 'Display name', exact: true })).toHaveValue(name)
@@ -139,7 +149,7 @@ test('sign-in and sign-out synchronize across tabs without clearing the shared d
   await expect(email(other)).toBeEnabled()
   await signIn(page)
   await expect(other.getByRole('form', { name: 'Profile details' })).toBeVisible()
-  await expect(accountLink(other)).toContainText('Ada Reyes')
+  await expectMoreIdentity(other, 'Ada Reyes')
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(feedback(page)).toContainText('You’re signed out')
   await expect(email(page)).toBeEnabled()
@@ -230,7 +240,7 @@ test('a failed name save after signup keeps the created account recoverable', as
   delete firebase.failures.update
   await page.getByRole('textbox', { name: 'Display name', exact: true }).fill('Ada Reyes')
   await page.getByRole('button', { name: 'Save profile', exact: true }).click()
-  await expect(accountLink(page)).toContainText('Ada Reyes')
+  await expectMoreIdentity(page, 'Ada Reyes')
 })
 
 test('pending actions prevent duplicate requests but never trap the user on the account page', async ({ page }) => {
@@ -252,7 +262,7 @@ test('pending actions prevent duplicate requests but never trap the user on the 
   await page.getByRole('link', { name: 'Continue as guest', exact: true }).click()
   await expect(page).toHaveURL('/')
   release()
-  await expect(accountLink(page)).toContainText('Ada Reyes')
+  await expectMoreIdentity(page, 'Ada Reyes')
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
