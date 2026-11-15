@@ -1,0 +1,21 @@
+[
+  {
+    "version": "1.1.0",
+    "date": "2026-11-14",
+    "title": "Thoughtful reminders. Smoother updates.",
+    "changes": [
+      "A local notification inbox for event, task, and project reminders, with quiet hours and optional phone notifications.",
+      "Clear update checks, safe restarts, and release notes without touching your saved plans.",
+      "Touch-aware tablet scaling, adaptive navigation, Light/Dark/Auto, and offline installation."
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-11-14",
+    "title": "A little structure. A lot of possibility.",
+    "changes": [
+      "Connected Timeline, Calendar, Tasks, Projects, and Journal pages with local browser persistence.",
+      "Monthly artwork, account access, Profile Settings, and credential-free workspace exports."
+    ]
+  }
+]
