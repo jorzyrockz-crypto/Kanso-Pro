@@ -99,6 +99,11 @@
     :root[data-theme='dark'] .sign-in-hero-art { opacity: .68; }
     :root[data-theme='dark'] .ipad-frame-active { border-color: #455d75; }
     :root[data-theme='dark'] input:is(:autofill, :-webkit-autofill) { -webkit-text-fill-color: #e6eff8; box-shadow: 0 0 0 1000px #19364c inset; caret-color: #e6eff8; }
+    :root[data-theme='dark'] .calendar-source-event { border-color: #3e5875; background: linear-gradient(135deg, #1b2d43, #162537); }
+    :root[data-theme='dark'] .calendar-source-event-meta > span:first-child, :root[data-theme='dark'] .calendar-source-event h4 { color: #c8e1f8; }
+    :root[data-theme='dark'] .calendar-source-event-meta > .badge { border-color: #4a6684; background: #223d59; color: #c9e3fa; }
+    :root[data-theme='dark'] .calendar-source-event p, :root[data-theme='dark'] .calendar-source-event-note { color: #b8c9db; }
+    :root[data-theme='dark'] .calendar-source-event-note { border-color: #3a526d; }
   }
   @media (max-width: 960px) and (min-width: 761px), (max-width: 420px) {
     .appearance-options { gap: 0.5rem; }

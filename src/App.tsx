@@ -6,6 +6,8 @@ import type { ComposerOptions, Destination, Filter, JourneyCard, Workspace } fro
 import { buildTimeline, focusCard, formatDate } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
+import { useCalendarSources } from './lib/calendarSources'
+import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
 import { useAccount } from './lib/useAccount'
 import { useAppearance } from './lib/useAppearance'
 import { usePwa } from './lib/usePwa'
@@ -80,6 +82,7 @@ function NewCardPage({ cards, onCancel, onCreate }: {
 
 export default function App() {
   const { state, dispatch, storageAvailable } = useJourneyStore()
+  const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES)
   const account = useAccount()
   const appearance = useAppearance()
   const pwa = usePwa()
@@ -270,10 +273,10 @@ export default function App() {
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarEntries={calendarSources.entries} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
         <Route path="/whats-new" element={<WhatsNewPage />} />
-        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} />} />
+        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
         <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />

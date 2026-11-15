@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Palette, Plus, Users, Zap } from 'lucide-react'
+import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, MapPin, Palette, Plus, Users, Zap } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
@@ -12,6 +12,7 @@ import { OccasionArtwork } from './OccasionArtwork'
 import { EventThemePicker } from './EventThemePicker'
 import { calendarPeriod, monthScene } from '../lib/months'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
+import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
 
 const workspaceNames: Record<Workspace, string> = {
   calendar: 'Calendar', tasks: 'Personal Tasks', project: 'Projects', journal: 'Journal',
@@ -19,6 +20,8 @@ const workspaceNames: Record<Workspace, string> = {
 
 type WorkspaceProps = {
   cards: JourneyCard[]
+  calendarEntries: CalendarSourceEntry[]
+  calendarSources: CalendarSource[]
   cardId?: string
   dispatch: Dispatch<JourneyAction>
   onCompose: (options?: ComposerOptions) => void
@@ -66,20 +69,50 @@ function CalendarEvent({ card, highlighted, dispatch }: { card: EventCard; highl
   </article>
 }
 
-function CalendarWorkspace({ cards, cardId, dispatch, onCompose }: WorkspaceProps) {
+function entryIncludesDate(entry: CalendarSourceEntry, date: string) {
+  return entry.date <= date && (entry.endDate ?? entry.date) >= date
+}
+
+function sourceEntryDate(entry: CalendarSourceEntry) {
+  const start = formatDate(entry.date, { weekday: 'short', month: 'short', day: '2-digit' })
+  if (!entry.endDate || entry.endDate === entry.date) return start
+  return `${start} – ${formatDate(entry.endDate, { month: 'short', day: '2-digit' })}`
+}
+
+function CalendarSourceEvent({ entry, source }: { entry: CalendarSourceEntry; source?: CalendarSource }) {
+  return <article className="calendar-source-event" data-source-id={entry.sourceId}>
+    <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{source?.shortLabel ?? 'Calendar source'}</span></div>
+    <h4>{entry.title}</h4>
+    <p>{entry.detail ?? source?.provenance ?? 'Reference date from an enabled calendar source.'}</p>
+    <div className="calendar-source-event-note"><FileText size="0.75rem" aria-hidden="true" />Calendar source · reference only, not a personal card</div>
+  </article>
+}
+
+type CalendarAgendaItem = JourneyCard | CalendarSourceEntry
+
+function isCalendarSourceEntry(entry: CalendarAgendaItem): entry is CalendarSourceEntry {
+  return 'sourceId' in entry
+}
+
+function CalendarWorkspace({ cards, calendarEntries, calendarSources, cardId, dispatch, onCompose }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
   const { month, selectedDate } = calendarPeriod(query, initialCard?.date)
   const monthCards = cards.filter((card) => card.date.startsWith(month))
   const events = monthCards.filter((card): card is EventCard => card.type === 'event')
-  const agenda = selectedDate ? monthCards.filter((card) => card.date === selectedDate) : events
-  const sortedAgenda = [...agenda].sort((a, b) => a.date.localeCompare(b.date))
+  const sourceEntries = calendarEntries.filter((entry) => entry.date.slice(0, 7) <= month && (entry.endDate ?? entry.date).slice(0, 7) >= month)
+  const sourceById = new Map(calendarSources.map((source) => [source.id, source]))
+  const agenda: CalendarAgendaItem[] = selectedDate
+    ? [...monthCards.filter((card) => card.date === selectedDate), ...sourceEntries.filter((entry) => entryIncludesDate(entry, selectedDate))]
+    : [...events, ...sourceEntries]
+  const sortedAgenda = [...agenda].sort((first, second) => first.date.localeCompare(second.date) || first.title.localeCompare(second.title))
+  const visibleEntryCount = events.length + sourceEntries.length
   const changeMonth = (amount: number) => navigate(`/calendar?month=${shiftMonth(month, amount)}`)
   return <div className="workspace-content calendar-workspace">
     <WorkspaceHero type="event" month={month} eyebrow="Connected Calendar View" title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
-      stat={{ label: events.length === 1 ? 'Event this month' : 'Events this month', value: events.length }}>
-      Your school days, personal plans, and everything in between.
+      stat={{ label: visibleEntryCount === 1 ? 'Entry this month' : 'Entries this month', value: visibleEntryCount }}>
+      Your personal plans and any calendar sources you choose to show.
     </WorkspaceHero>
     <section className="workspace-panel calendar-panel" aria-label="Monthly calendar">
       <div className="panel-heading calendar-toolbar"><h3>{formatDate(`${month}-01`, { month: 'long', year: 'numeric' })}</h3>
@@ -91,25 +124,32 @@ function CalendarWorkspace({ cards, cardId, dispatch, onCompose }: WorkspaceProp
         {calendarDays(month).map((date, index) => {
           if (!date) return <span key={`blank-${index}`} className="calendar-blank" />
           const dateCards = monthCards.filter((card) => card.date === date)
+          const dateSourceEntries = sourceEntries.filter((entry) => entryIncludesDate(entry, date))
+          const labels = [
+            dateCards.length ? `${dateCards.length} personal ${dateCards.length === 1 ? 'card' : 'cards'}` : '',
+            dateSourceEntries.length ? `${dateSourceEntries.length} calendar-source ${dateSourceEntries.length === 1 ? 'entry' : 'entries'}` : '',
+          ].filter(Boolean).join(', ') || 'no entries'
           return <button key={date} className={`calendar-day ${selectedDate === date ? 'is-selected' : ''} ${date === FOCUS_DATE ? 'is-today' : ''}`}
             onClick={() => navigate(`/calendar?date=${date}`)} aria-pressed={selectedDate === date}
-            aria-label={`${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${dateCards.length} ${dateCards.length === 1 ? 'card' : 'cards'}`}>
-            <span>{Number(date.slice(8))}</span><span className="calendar-dots">{[...new Set(dateCards.map((card) => card.type))].map((type) => <i key={type} className={`calendar-dot dot-${type}`} />)}</span>
+            aria-label={`${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${labels}`}>
+            <span>{Number(date.slice(8))}</span><span className="calendar-dots">{[...new Set(dateCards.map((card) => card.type))].map((type) => <i key={type} className={`calendar-dot dot-${type}`} />)}{dateSourceEntries.length > 0 && <i className="calendar-dot dot-source" />}</span>
           </button>
         })}
       </div>
-      <div className="calendar-legend">{(['event', 'task', 'project', 'note'] as const).map((type) => <span key={type}><i className={`calendar-dot dot-${type}`} />{TYPE_CONFIG[type].shortLabel}</span>)}</div>
+      <div className="calendar-legend">{(['event', 'task', 'project', 'note'] as const).map((type) => <span key={type}><i className={`calendar-dot dot-${type}`} />{TYPE_CONFIG[type].shortLabel}</span>)}{sourceEntries.length > 0 && <span><i className="calendar-dot dot-source" />Calendar source</span>}</div>
     </section>
     <section className="workspace-panel agenda-panel">
-      <div className="panel-heading"><h3>{selectedDate ? `${shortDate(selectedDate)} · Connected agenda` : 'Connected event details'}</h3>
-        {selectedDate && <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All events</button>}</div>
-      {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map((card) => card.type === 'event'
-        ? <CalendarEvent key={card.id} card={card} highlighted={card.id === cardId} dispatch={dispatch} />
-        : <Link key={card.id} className={`agenda-item agenda-item-${card.type}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
-          <span className="agenda-item-icon"><TypeIcon type={card.type} size={19} /></span><span><small>{TYPE_CONFIG[card.type].label}</small><strong>{card.title || 'Untitled reflection'}</strong></span><ArrowRight size="0.9375rem" />
-        </Link>)}</div>
-        : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No cards here yet. An open day has its own possibilities.</EmptyState>}
-      {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add an event</button>}
+      <div className="panel-heading"><h3>{selectedDate ? `${shortDate(selectedDate)} · Connected agenda` : 'Connected calendar details'}</h3>
+        {selectedDate && <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All entries</button>}</div>
+      {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map((entry) => isCalendarSourceEntry(entry)
+        ? <CalendarSourceEvent key={entry.id} entry={entry} source={sourceById.get(entry.sourceId)} />
+        : entry.type === 'event'
+          ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} dispatch={dispatch} />
+          : <Link key={entry.id} className={`agenda-item agenda-item-${entry.type}`} to={destinationPath({ page: TYPE_CONFIG[entry.type].workspace, cardId: entry.id })}>
+            <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ArrowRight size="0.9375rem" />
+          </Link>)}</div>
+        : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
+      {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
     </section>
   </div>
 }
@@ -211,9 +251,11 @@ const pageDetails: Record<Workspace, { description: string; action: string }> = 
   journal: { description: 'A quiet corner for the thoughts you want to come back to.', action: 'Write a note' },
 }
 
-export function WorkspacePage({ page, cards, dispatch, onNavigate, onCompose, storageAvailable }: {
+export function WorkspacePage({ page, cards, calendarEntries, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
   page: Workspace
   cards: JourneyCard[]
+  calendarEntries: CalendarSourceEntry[]
+  calendarSources: CalendarSource[]
   dispatch: Dispatch<JourneyAction>
   onNavigate: (destination: Destination) => void
   onCompose: (options?: ComposerOptions) => void
@@ -223,7 +265,7 @@ export function WorkspacePage({ page, cards, dispatch, onNavigate, onCompose, st
   const [query] = useSearchParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
   if (cardId && !selected) return <NotFoundPage card backTo={WORKSPACE_PATHS[page]} />
-  const props = { cards, cardId, dispatch, onCompose, onNavigate }
+  const props = { cards, calendarEntries, calendarSources, cardId, dispatch, onCompose, onNavigate }
   const queryDate = query.get('date')
   const queryMonth = query.get('month')
   const newDate = isValidDate(queryDate) ? queryDate : selected?.date

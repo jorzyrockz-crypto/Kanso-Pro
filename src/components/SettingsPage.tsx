@@ -1,5 +1,5 @@
-import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, Check, Download, ExternalLink, HardDrive, Info, Laptop, Mail, Palette, ShieldCheck, Sparkles, UserRound } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, CalendarDays, Check, Download, ExternalLink, FileText, HardDrive, Info, Laptop, Mail, Palette, ShieldCheck, Sparkles, Trash2, Upload, UserRound } from 'lucide-react'
+import type { ChangeEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { version } from '../../package.json'
@@ -18,8 +18,9 @@ import type { AppearanceController } from '../lib/useAppearance'
 import { KansoMark } from './AppHeader'
 import { PwaSettings } from './PwaSettings'
 import type { PwaController } from '../lib/usePwa'
+import type { CalendarSource, CalendarSourcesController } from '../lib/calendarSources'
 
-const icons = { account: UserRound, appearance: Palette, workspace: HardDrive, privacy: ShieldCheck, about: Info }
+const icons = { account: UserRound, appearance: Palette, calendar: CalendarDays, workspace: HardDrive, privacy: ShieldCheck, about: Info }
 const repository = 'https://github.com/jorzyrockz-crypto/Kanso-Pro'
 const sourceRef = __APP_SOURCE_REF__.split('/').map(encodeURIComponent).join('/')
 const docs = `${repository}/blob/${sourceRef}`
@@ -32,7 +33,67 @@ function SettingsSection({ id, title, description, children }: { id: typeof SETT
   </section>
 }
 
-export function SettingsPage({ account, state, storageAvailable, appearance, pwa }: { account: AccountController; state: JourneyState; storageAvailable: boolean; appearance: AppearanceController; pwa: PwaController }) {
+function CalendarSourceSwitch({ source, onChange }: { source: CalendarSource; onChange: (enabled: boolean) => void }) {
+  const controlId = `calendar-source-${source.id}`
+  return <div className="calendar-source-switch-row">
+    <div><strong>{source.label}</strong><span>{source.entries.length} {source.imported ? 'extracted' : 'verified'} dated {source.entries.length === 1 ? 'entry' : 'entries'}</span></div>
+    <button type="button" id={controlId} className="ios-switch" role="switch" aria-checked={source.enabled} aria-label={`${source.enabled ? 'Hide' : 'Show'} ${source.label} in Calendar`} onClick={() => onChange(!source.enabled)}>
+      <span aria-hidden="true" />
+      <span className="sr-only">{source.enabled ? 'Shown in Calendar' : 'Hidden from Calendar'}</span>
+    </button>
+  </div>
+}
+
+function CalendarSourcesSettings({ calendarSources }: { calendarSources: CalendarSourcesController }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  const [feedback, setFeedback] = useState<{ error: boolean; message: string } | null>(null)
+  const depEd = calendarSources.sources.find((source) => source.id === 'deped-sy-2026-2027')
+  const localSources = calendarSources.sources.filter((source) => source.imported)
+
+  const chooseMemo = () => inputRef.current?.click()
+  const importMemo = async (event: ChangeEvent<HTMLInputElement>) => {
+    const [file] = Array.from(event.target.files ?? [])
+    event.target.value = ''
+    if (!file) return
+    setImporting(true)
+    setFeedback(null)
+    try {
+      const result = await calendarSources.importMemo(file)
+      setFeedback({ error: false, message: result.message })
+    } catch (error) {
+      setFeedback({ error: true, message: error instanceof Error ? error.message : 'This memorandum could not be imported.' })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  return <>
+    {depEd && <div className="calendar-source-card calendar-source-deped">
+      <div className="calendar-source-card-heading"><span className="calendar-source-mark"><CalendarDays size="1rem" aria-hidden="true" /></span><div><span className="calendar-source-kicker">Official calendar source</span><h3>DepEd Calendar · SY 2026–2027</h3></div></div>
+      <p>Three-term dates from the supplied memorandum, kept separate from your personal event cards.</p>
+      <CalendarSourceSwitch source={depEd} onChange={calendarSources.setDepEdEnabled} />
+      <div className="calendar-source-provenance"><FileText size="0.875rem" aria-hidden="true" /><span><strong>Source:</strong> {depEd.provenance} {depEd.reference}</span></div>
+    </div>}
+
+    <div className="calendar-import-panel">
+      <div><strong>Import a future memorandum</strong><p>Choose a local PDF to read its selectable date text in this browser. Nothing is uploaded. Kanso keeps only the extracted dated entries and the file name—not the PDF itself.</p></div>
+      <input ref={inputRef} className="sr-only" type="file" accept="application/pdf,.pdf" aria-label="Choose a local PDF memorandum" onChange={importMemo} />
+      <button type="button" className="button settings-secondary" onClick={chooseMemo} disabled={importing}><Upload size="0.9375rem" aria-hidden="true" />{importing ? 'Reading PDF locally…' : 'Choose local PDF'}</button>
+    </div>
+    <p className="calendar-import-note"><ShieldCheck size="0.8125rem" aria-hidden="true" />Image-only scans need a text-accessible PDF; browser reading does not send your document to an OCR or cloud service.</p>
+    {feedback && <p className={`account-feedback calendar-import-feedback ${feedback.error ? 'is-error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{!feedback.error && <Check size="0.9375rem" aria-hidden="true" />}{feedback.message}</p>}
+
+    {localSources.length > 0 && <div className="local-calendar-sources" aria-label="Imported calendar sources">{localSources.map((source) => <div key={source.id} className="local-calendar-source">
+      <CalendarSourceSwitch source={source} onChange={(enabled) => calendarSources.setSourceEnabled(source.id, enabled)} />
+      <p>{source.provenance}</p>
+      <button type="button" className="text-button calendar-source-remove" onClick={() => calendarSources.removeSource(source.id)}><Trash2 size="0.75rem" aria-hidden="true" />Remove source</button>
+    </div>)}</div>}
+    <p className="settings-preference-status"><span>{calendarSources.storageAvailable ? 'Calendar-source choices stay only in this browser.' : 'Browser storage is unavailable; source choices will last only for this session.'}</span></p>
+  </>
+}
+
+export function SettingsPage({ account, state, storageAvailable, appearance, pwa, calendarSources }: { account: AccountController; state: JourneyState; storageAvailable: boolean; appearance: AppearanceController; pwa: PwaController; calendarSources: CalendarSourcesController }) {
   const { user, phase } = account
   const { hash } = useLocation()
   const month = useCurrentMonth()
@@ -73,17 +134,21 @@ export function SettingsPage({ account, state, storageAvailable, appearance, pwa
           <div className="settings-month-preview" data-settings-month={month} style={monthPalette(scene)}><div><span className="settings-month-label"><Sparkles size="0.8125rem" aria-hidden="true" />Automatic · {scene.name} {month.slice(0, 4)}</span><h3>{scene.title}.</h3><p>Sign-in follows your device’s current month. Timeline and Calendar follow the month you’re viewing.</p></div><MonthArtwork month={month} side="right" className="settings-month-art" /></div>
         </SettingsSection>
 
+        <SettingsSection id="calendar" title="Calendar sources" description="Show reference dates alongside your plans, without turning them into personal cards.">
+          <CalendarSourcesSettings calendarSources={calendarSources} />
+        </SettingsSection>
+
         <SettingsSection id="workspace" title="Device workspace & backup" description="Your plans live here. Keep a copy somewhere you trust.">
           <DeviceWorkspaceSummary state={state} storageAvailable={storageAvailable} />
           <div className="settings-backup-row"><div><strong>A copy of your whole journey.</strong><p>Events, task lists, projects, notes, and your Tablet frame preference.</p></div><button className="button settings-secondary" type="button" onClick={exportWorkspace}><Download size="0.9375rem" aria-hidden="true" />Export device backup</button></div>
-          <p className="settings-caption">Downloads a JSON file without sign-in tokens or passwords. Color mode stays a separate device setting and is not included. Keep the backup private. This is not cloud sync, and we can’t verify where you save the file.</p>
+          <p className="settings-caption">Downloads a JSON file without sign-in tokens or passwords. Color mode and Calendar-source preferences stay separate and are not included. Imported PDFs are never included. Keep the backup private. This is not cloud sync, and we can’t verify where you save the file.</p>
           {feedback && <p ref={feedbackRef} tabIndex={-1} className={`account-feedback settings-backup-feedback ${feedback.error ? 'is-error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{!feedback.error && <Check size="0.9375rem" aria-hidden="true" />}{feedback.message}</p>}
         </SettingsSection>
 
         <SettingsSection id="privacy" title="Privacy & storage" description="A clear picture of what stays here, and what signing in does.">
           <div className="settings-privacy-callout"><ShieldCheck size="1.375rem" aria-hidden="true" /><div><strong>Local does not mean locked.</strong><p>Anyone using this browser profile can access its cards, even while signed out. Use a separate browser profile on shared devices.</p></div></div>
           <dl className="settings-data-list">
-            <div><dt><HardDrive size="1rem" aria-hidden="true" />Saved in this browser</dt><dd>Your cards, edits, color mode, and Timeline frame preference. Clearing site data can erase them. When storage is blocked, changes last only for the session.</dd></div>
+            <div><dt><HardDrive size="1rem" aria-hidden="true" />Saved in this browser</dt><dd>Your cards, edits, color mode, Timeline frame preference, and Calendar-source choices. Imported memorandum PDFs are read in memory only; Kanso keeps extracted dates, not the PDF. Clearing site data can erase browser-stored data. When storage is blocked, changes last only for the session.</dd></div>
             <div><dt><Mail size="1rem" aria-hidden="true" />Your account & session</dt><dd>Firebase manages your identity and sign-in session separately. Signing in or out does not upload, transfer, hide, delete, or separate your cards by account.</dd></div>
             <div><dt><Laptop size="1rem" aria-hidden="true" />A different device or address</dt><dd>A new browser profile, device, or website address has its own workspace. Export important plans before changing hosts; signing in does not move them.</dd></div>
           </dl>
