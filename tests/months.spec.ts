@@ -23,7 +23,8 @@ function yearOfPlans() {
 async function readRow(page: Page, row: Locator) {
   await row.evaluate((element) => {
     const headerBottom = document.querySelector('.stream-header')!.getBoundingClientRect().bottom
-    const navTop = document.querySelector('.bottom-bar')!.getBoundingClientRect().top
+    const sidebar = getComputedStyle(document.documentElement).getPropertyValue('--navigation-layout').trim() === 'sidebar'
+    const navTop = sidebar ? innerHeight : document.querySelector('.bottom-bar')!.getBoundingClientRect().top
     // Bring the row into the upper part of the reading area, not merely into view.
     const readingArea = headerBottom + Math.max(0, navTop - headerBottom) * .35
     window.scrollTo({ top: window.scrollY + element.getBoundingClientRect().top - readingArea + 30, behavior: 'instant' })

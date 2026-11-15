@@ -2,7 +2,7 @@
 
 A little structure. A lot of possibility.
 
-An iPad-first, local-first workspace for events, personal tasks, project milestones, and journal reflections. A persistent, reach-friendly **bottom navigation bar** connects five workspace pages; the slim top header keeps branding, New card, and a **Profile** disclosure for account access and Settings. Every view — including card creation, account management, and Settings — has its own URL and uses normal document scrolling, not a modal overlay.
+An iPad-first, local-first workspace for events, personal tasks, project milestones, and journal reflections. An adaptive five-destination navigation stays at the **bottom on phones/portrait tablets** and becomes a **sidebar on laptops and larger landscape tablets**; the slim top header keeps branding, New card, and a **Profile** disclosure for account access and Settings. Every view — including card creation, account management, and Settings — has its own URL and uses normal document scrolling, not a modal overlay.
 
 ## Run locally
 
@@ -21,6 +21,7 @@ npm run preview     # Serve the production build
 npm test            # Vitest dates, storage, routing, themes, and auth adapter
 npm run test:e2e    # Full Playwright app regression (slower; not needed for every change)
 npm run test:pwa    # Build + 3 focused production PWA checks (~40 seconds here)
+npm run test:layout # Only fluidity + navigation checks; no full app suite
 ```
 
 The browser tests use an npm-packaged Chromium on Linux x64, so they do not need a separate browser download. Playwright 1.61.1 and Chromium 149 are pinned as a matching stable pair; update these together. Later browser builds have a [known native new-tab regression](https://github.com/microsoft/playwright/issues/42142), so the separate-tab test remains unchanged rather than hiding it with retries. On macOS, Windows, or Linux ARM, run `npx playwright install chromium` first. An existing browser can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
@@ -39,8 +40,8 @@ The browser tests use an npm-packaged Chromium on Linux x64, so they do not need
 | My workspace / Account | `/account` | Signed-in profile and device workspace |
 | Settings | `/settings` | `/settings#appearance` or `/settings#workspace` |
 
-- The fixed workspace bottom bar keeps all five labeled page links within easy reach, with an active-page indicator and navigation touch targets at least 44 × 44 CSS pixels. The top header no longer duplicates the page links.
-- Bottom and side safe-area insets are respected. Measured bar height reserves space for the last content, footer, keyboard focus scrolling, and toast messages so they do not disappear behind navigation.
+- One fixed navigation keeps all five labeled page links: bottom tabs in compact/portrait-touch layouts and a left rail for qualifying landscape tablets and mouse-based laptops. Active-page indicators and touch targets remain at least 44 × 44 CSS pixels. The top header no longer duplicates the page links.
+- Bottom and side safe-area insets are respected. Measured navigation height reserves bottom space only when the bar is at the bottom; a side rail instead insets content horizontally. Toasts center over the usable content, not the whole window.
 - Page URLs support direct visits, refresh, browser Back/Forward, and opening links in a new tab. `/timeline` redirects to `/`.
 - Calendar selection is reflected in `?month=2026-12` or `?date=2026-11-11`; individual task lists, projects, and journal entries use card-specific paths.
 - The app retains shared state while switching pages, restores scroll on Back/Forward, updates browser titles, and focuses page content for keyboard/screen-reader navigation.
@@ -156,11 +157,28 @@ For an existing event, open it in **Calendar** and expand its **Background** row
 
 The artwork is local SVG, not copied Google Calendar imagery and not an external calendar integration. It scales without image downloads; decorative SVGs stay out of the accessibility tree, and screen-relative dark overlays protect text contrast on narrow layouts. Background tiles and the inline expander have touch targets at least 44 × 44 CSS pixels. Existing version-one saves without an occasion field keep their data and default to automatic detection.
 
-## iPad design
+## Touch-aware fluidity
 
-This is an **iPad-inspired responsive web app**, not a native iPadOS app or a claim of full Apple Human Interface Guidelines compliance. Glass surfaces, rounded cards, a portrait-first timeline, responsive landscape/split-width layouts, and a floating bottom bar are intentional design choices. Bottom navigation prioritizes reachability rather than reproducing a particular iPadOS release's navigation placement.
+Kanso Pro distinguishes tablets with **`pointer: coarse`**, not width alone. Layout changes use CSS, not JavaScript device sniffing, `zoom`, or a scaled canvas. Typography, spacing, layout dimensions, and UI icons use **rem** so root scaling enlarges the whole interface; viewport breakpoints, hairline borders, and vector artwork coordinates stay independent.
 
-Navigation links and the top-level New card/home controls have touch targets at least 44 × 44 CSS pixels. The layout supports reduced motion, keyboard navigation, and safe-area spacing. Automated browser tests cover phone/tablet/desktop sizes and simulated touch and safe-area insets; they do not replace testing in Safari on a physical iPad, including its on-screen keyboard and browser chrome.
+| Device / window | Root text scale | Main navigation | Calendar / agenda |
+| --- | --- | --- | --- |
+| Phone, including short landscape windows | Normal | Bottom tabs | Compact responsive layout |
+| Touch split view, 640–699 px wide and 600 px+ tall | Normal; finger-size controls | Bottom tabs | Single column |
+| Portrait touch tablet, 700 px+ wide and 600 px+ tall | `clamp(16px, 100vw / 42, 20px)` | Bottom tabs | Single column |
+| Landscape touch tablet, 1000–1299 px wide and 600 px+ tall | Up to 20 px | **13 rem** sidebar, **3 rem** rows | Single column |
+| Landscape touch tablet, 1300 px+ wide and 600 px+ tall | 20 px | 13 rem sidebar | Side by side when content space permits |
+| Fine-pointer laptop/desktop, 1024 px+ wide | No tablet scaling | **14.5 rem** sidebar | Wider content and responsive columns |
+
+Touch controls grow to at least **2.5 rem**, never below the existing 44 px floor, at 640 px+ width / 600 px+ height. Small icon controls grow with their targets. Native text fields stay at least 16 px on touch to avoid an extra focus zoom. The 600 px height guard intentionally keeps sideways phones and short keyboard windows compact rather than identifying them as tablets.
+
+The top header spans the full window. The same five navigation links move into the sidebar—no duplicated navigation or sixth planning destination. Active rail links get a 3 px accent stripe; touch rail links avoid sticky hover, and dark/forced-color palettes remain supported. Settings, account panels, entry composition, and calendar columns use **container queries** so they reflow for their actual available space, including the rail. The dedicated sign-in/create/reset page never gets a rail or planning tabs. Existing monthly SVG scenes are retained, not replaced by remote images or fixed seasonal pictures.
+
+All views stay normal pages with direct URLs, history, focus, and document scrolling. Rotation/split-view changes do not remount forms or reset cards, appearance, or auth. CSS alone owns the breakpoint query; the Timeline reads its `--navigation-layout` result when calculating the visible month rather than maintaining a second JavaScript media query. Navigation measurement and footer/scroll clearance adapt to both orientations.
+
+For a layout change, run `npm run build` and **`npm run test:layout`**, not the complete suite. Focused verification covered 22 touch/fine-pointer viewport combinations, 999/1000, 1023/1024, 1299/1300 and 599/600 boundaries, rotation with focused drafts, phone/tablet sign-in field preservation, Timeline month selection, history, safe areas, toast placement, and print. The initial eight layout/navigation checks passed together; the expanded rotation/sign-in and sidebar-month checks also passed individually after final polish. The strict production build includes 1,752 modules and still prepares 23 local PWA shell assets. No dependency was added, and no full app-suite rerun is claimed.
+
+This is an **iPad-inspired responsive web app**, not a native iPadOS app or Apple HIG certification. Automated Chromium/touch checks and reviewed portrait/landscape/dark screenshots do not replace physical iPad/Safari, on-screen-keyboard, or assistive-technology testing.
 
 ## Data and scope
 
@@ -181,7 +199,8 @@ src/
   types.ts                  Discriminated card and action types
   data.ts                   Sample journey and storage keys
   styles.css                Timeline, card, and workspace component styling
-  layout.css                App header, bottom bar, full-page/responsive layouts
+  layout.css                App chrome, full-page layouts, measured navigation clearance
+  fluid.css                 Touch scaling, adaptive sidebar, content container queries
   occasions.css             Illustrated event surfaces, text scrims, theme picker
   months.css                Subtle month backdrops and calendar hero watermarks
   account.css               Account forms, identity, and shared device summary
@@ -223,7 +242,8 @@ src/
     useChromeHeight.ts      Measured header/bar heights for layout and scroll insets
     *.test.ts               Unit tests
 tests/journey.spec.ts        Browser, routing, and accessibility regression tests
-tests/navigation.spec.ts     Bottom-bar placement, touch, safe areas, and clearance
+tests/navigation.spec.ts     Adaptive navigation, touch, safe areas, and clearance
+tests/fluidity.spec.ts        Touch/fine-pointer breakpoints, rotation/drafts, rail month reading
 tests/occasions.spec.ts      Background creation/editing, sync, layout, keyboard, axe
 tests/months.spec.ts         Twelve scenes, month/scroll/history sync, layout, contrast
 tests/account.spec.ts        Auth flows, persistence, privacy, backup, layout, axe

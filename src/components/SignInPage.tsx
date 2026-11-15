@@ -20,7 +20,7 @@ export function SignInHeader() {
   return <header ref={ref} className="sign-in-header">
     <div className="sign-in-header-inner">
       <Link to="/" className="app-brand" aria-label="Kanso Pro home"><span className="brand-mark"><KansoMark /></span><span className="brand-name">Kanso <span>Pro</span></span></Link>
-      <Link to="/" className="sign-in-back"><ArrowLeft size={15} /><span>Back to workspace</span></Link>
+      <Link to="/" className="sign-in-back"><ArrowLeft size="0.9375rem" /><span>Back to workspace</span></Link>
     </div>
   </header>
 }
@@ -75,19 +75,19 @@ export function SignInPage({ account, mode, notices, deviceWorkspace, onAction }
           <form className="account-form" method="post" aria-label={mode === 'create' ? 'Create account' : mode === 'reset' ? 'Reset password' : 'Sign in with email'} aria-busy={!!busy} onSubmit={submit}>
             {mode === 'create' && <div className="form-field"><label htmlFor="signup-name">Display name</label><input id="signup-name" name="displayName" autoComplete="name" required maxLength={80} disabled={disabled} value={name} onChange={(event) => setName(event.target.value)} placeholder="What should we call you?" /></div>}
             <div className="form-field"><label htmlFor="account-email">Email address</label><input id="account-email" name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} disabled={disabled} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></div>
-            {mode !== 'reset' && <div className="form-field"><label htmlFor="account-password">Password</label><div className="account-password-field"><input id="account-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'create' ? 'new-password' : 'current-password'} required minLength={mode === 'create' ? 8 : undefined} maxLength={4096} disabled={disabled} value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby={mode === 'create' ? 'password-hint' : undefined} /><button type="button" className="account-password-toggle" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} disabled={disabled} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div>{mode === 'create' && <p id="password-hint" className="account-field-hint">At least 8 characters. A unique passphrase is a good start.</p>}</div>}
+            {mode !== 'reset' && <div className="form-field"><label htmlFor="account-password">Password</label><div className="account-password-field"><input id="account-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'create' ? 'new-password' : 'current-password'} required minLength={mode === 'create' ? 8 : undefined} maxLength={4096} disabled={disabled} value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby={mode === 'create' ? 'password-hint' : undefined} /><button type="button" className="account-password-toggle" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} disabled={disabled} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff size="1.0625rem" /> : <Eye size="1.0625rem" />}</button></div>{mode === 'create' && <p id="password-hint" className="account-field-hint">At least 8 characters. A unique passphrase is a good start.</p>}</div>}
             {mode === 'sign-in' && <Link className="account-forgot" to="/sign-in?mode=reset" aria-disabled={disabled} tabIndex={disabled ? -1 : undefined} onClick={(event) => { if (disabled) event.preventDefault() }}>Forgot your password?</Link>}
-            <button className="button button-dark account-submit" type="submit" disabled={disabled}>{busy && busy !== 'google' ? <><LoaderCircle size={15} />Working securely…</> : mode === 'create' ? <>Create account<ArrowRight size={15} /></> : mode === 'reset' ? <>Send reset email<Mail size={15} /></> : <>Sign in<LogIn size={15} /></>}</button>
+            <button className="button button-dark account-submit" type="submit" disabled={disabled}>{busy && busy !== 'google' ? <><LoaderCircle size="0.9375rem" />Working securely…</> : mode === 'create' ? <>Create account<ArrowRight size="0.9375rem" /></> : mode === 'reset' ? <>Send reset email<Mail size="0.9375rem" /></> : <>Sign in<LogIn size="0.9375rem" /></>}</button>
           </form>
-          {mode === 'reset' ? <Link className="account-return" to="/sign-in" aria-disabled={disabled} tabIndex={disabled ? -1 : undefined} onClick={(event) => { if (disabled) event.preventDefault() }}>Back to sign in<ArrowRight size={13} /></Link> : <>
+          {mode === 'reset' ? <Link className="account-return" to="/sign-in" aria-disabled={disabled} tabIndex={disabled ? -1 : undefined} onClick={(event) => { if (disabled) event.preventDefault() }}>Back to sign in<ArrowRight size="0.8125rem" /></Link> : <>
             <div className="account-divider"><span />or<span /></div>
             <button type="button" className="button account-google" disabled={disabled} onClick={() => void perform(account.google, 'You’re signed in with Google. Welcome back.')}><GoogleMark />{busy === 'google' ? 'Opening Google…' : 'Continue with Google'}</button>
           </>}
-          <p className="account-auth-note"><ShieldCheck size={14} />Secure sign-in with Firebase. Your password is never saved in your workspace.</p>
+          <p className="account-auth-note"><ShieldCheck size="0.875rem" />Secure sign-in with Firebase. Your password is never saved in your workspace.</p>
         </section>
-        <div className="sign-in-guest"><span>Just looking for a little focus?</span><Link to="/">Continue as guest<ArrowRight size={14} /></Link></div>
+        <div className="sign-in-guest"><span>Just looking for a little focus?</span><Link to="/">Continue as guest<ArrowRight size="0.875rem" /></Link></div>
         <p className="sign-in-local-note">Cards stay in this browser. Sign-in does not add cloud sync or hide cards on shared devices.</p>
-        <details className="sign-in-device"><summary><HardDrive size={14} /><span>Your device workspace & backup</span><ChevronDown size={14} /></summary>{deviceWorkspace}</details>
+        <details className="sign-in-device"><summary><HardDrive size="0.875rem" /><span>Your device workspace & backup</span><ChevronDown size="0.875rem" /></summary>{deviceWorkspace}</details>
       </div>
     </div>
   </main>

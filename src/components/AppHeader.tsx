@@ -18,7 +18,7 @@ export function AppHeader({ account, storageAvailable, onCompose, onSignOut }: {
         <span className="brand-name">Kanso <span>Pro</span></span>
       </Link>
       <div className="topbar-actions">
-        <button className="button button-dark global-create" onClick={onCompose}><Plus size={16} /><span>New card</span></button>
+        <button className="button button-dark global-create" onClick={onCompose}><Plus size="1rem" /><span>New card</span></button>
         <ProfileMenu account={account} storageAvailable={storageAvailable} onSignOut={onSignOut} />
       </div>
     </div>

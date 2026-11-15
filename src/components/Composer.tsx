@@ -31,7 +31,7 @@ export function Composer({ options, cards, onCancel, onCreate }: {
     }
   }
   return <section className="composer-card" aria-labelledby="composer-title">
-    <div className="composer-header"><div><span className="eyebrow"><Plus size={11} />A new little chapter</span><h2 id="composer-title">Add to your journey</h2></div></div>
+    <div className="composer-header"><div><span className="eyebrow"><Plus size="0.6875rem" />A new little chapter</span><h2 id="composer-title">Add to your journey</h2></div></div>
     <form className={`composer-form composer-${input.type}`} onSubmit={submit}>
       <fieldset className="type-fieldset"><legend>What are we making room for?</legend><div className="type-options">{(['event', 'task', 'project', 'note'] as CardType[]).map((type) => <label className={`type-option option-${type}`} key={type}>
         <input type="radio" name="cardType" value={type} checked={input.type === type} onChange={() => update('type', type)} />
@@ -40,7 +40,7 @@ export function Composer({ options, cards, onCancel, onCreate }: {
       <div className="form-field"><label htmlFor="card-title">Card title <span>*</span></label><input id="card-title" data-page-focus="true" required maxLength={160} value={input.title}
         onChange={(event) => update('title', event.target.value)} placeholder={{ event: 'e.g. A fresh start with the team', task: 'e.g. Prepare for the week ahead', project: 'e.g. Bring the reading festival to life', note: 'e.g. A thought worth coming back to' }[input.type]} /></div>
       <div className="form-row">
-        <div className="form-field"><label htmlFor="card-date"><CalendarDays size={12} />Journey date <span>*</span></label><input id="card-date" type="date" required min="1900-01-01" max="2100-12-31" value={input.date} onChange={(event) => {
+        <div className="form-field"><label htmlFor="card-date"><CalendarDays size="0.75rem" />Journey date <span>*</span></label><input id="card-date" type="date" required min="1900-01-01" max="2100-12-31" value={input.date} onChange={(event) => {
           const nextDate = event.target.value
           setInput((current) => ({ ...current, date: nextDate, dueDate: current.dueDate < nextDate ? nextDate : current.dueDate }))
           setError('')
@@ -56,7 +56,7 @@ export function Composer({ options, cards, onCancel, onCreate }: {
       </div>}
       <p className="composer-hint"><span className={`calendar-dot dot-${input.type}`} />Placed in date order. Connected to {TYPE_CONFIG[input.type].workspace === 'project' ? 'Projects' : TYPE_CONFIG[input.type].workspace === 'tasks' ? 'Personal Tasks' : input.type === 'note' ? 'your Journal' : 'your Calendar'}.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="composer-footer"><button type="button" className="button button-quiet" onClick={onCancel}>Cancel</button><button type="submit" className="button button-dark">Add to Timeline<ArrowRight size={14} /></button></div>
+      <div className="composer-footer"><button type="button" className="button button-quiet" onClick={onCancel}>Cancel</button><button type="submit" className="button button-dark">Add to Timeline<ArrowRight size="0.875rem" /></button></div>
     </form>
   </section>
 }

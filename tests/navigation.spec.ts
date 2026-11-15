@@ -30,7 +30,24 @@ async function expectBottomBar(page: Page, width: number, height: number) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
 }
 
-test('bottom navigation stays fixed and touch-sized in portrait, landscape, and split-width layouts', async ({ page }) => {
+async function expectPrimaryNavigation(page: Page, width: number, height: number) {
+  if (width < 1024) return expectBottomBar(page, width, height)
+  // This test uses the default fine pointer; touch breakpoints have dedicated coverage.
+  const bar = await rect(navigation(page))
+  expect(bar.x).toBeGreaterThanOrEqual(0)
+  expect(bar.right).toBeLessThanOrEqual(232)
+  expect(bar.bottom).toBeLessThanOrEqual(height)
+  expect(bar.y).toBeLessThan(150)
+  const links = await navigation(page).getByRole('link').evaluateAll(elements => elements.map(element => {
+    const { width, height } = element.getBoundingClientRect()
+    return { width, height }
+  }))
+  expect(links).toHaveLength(5)
+  expect(links.every(link => link.width >= 44 && link.height >= 44)).toBe(true)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+}
+
+test('primary navigation stays fixed and reachable in portrait, landscape, and split-width layouts', async ({ page }) => {
   await page.goto('/projects/proj-reading')
   await expect(page.getByRole('heading', { level: 1, name: 'Projects', exact: true })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
@@ -41,14 +58,14 @@ test('bottom navigation stays fixed and touch-sized in portrait, landscape, and 
     await page.setViewportSize({ width, height })
     await settleLayout(page)
     await page.evaluate(() => window.scrollTo(0, 0))
-    await expectBottomBar(page, width, height)
+    await expectPrimaryNavigation(page, width, height)
     const before = await rect(navigation(page))
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
     await settleLayout(page)
     const after = await rect(navigation(page))
     expect(Math.abs(after.y - before.y)).toBeLessThan(1)
     expect(Math.abs(after.bottom - before.bottom)).toBeLessThan(1)
-    await expectBottomBar(page, width, height)
+    await expectPrimaryNavigation(page, width, height)
   }
   for (const control of [page.getByRole('link', { name: 'Kanso Pro home', exact: true }), page.getByRole('button', { name: 'New card', exact: true })]) {
     const bounds = await rect(control)

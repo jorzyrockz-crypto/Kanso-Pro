@@ -3,13 +3,13 @@
   .application { position: relative; isolation: isolate; }
   .month-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; user-select: none; background: radial-gradient(ellipse at 90% 20%, var(--month-adaptive-wash, var(--month-wash)), transparent 58%), radial-gradient(ellipse at 6% 80%, var(--month-adaptive-wash, var(--month-wash)), transparent 55%), linear-gradient(160deg, var(--month-adaptive-canvas, var(--month-canvas)), var(--theme-blue-soft, #edf7fb) 72%, var(--month-adaptive-canvas, var(--month-canvas))); }
   .month-artwork { display: block; aspect-ratio: 1; pointer-events: none; user-select: none; }
-  .month-backdrop > .month-artwork { position: absolute; width: clamp(360px, 44vw, 650px); height: auto; opacity: .4; }
-  .month-backdrop-right { top: calc(var(--topbar-height) + 5px); right: clamp(-90px, -4vw, -30px); }
-  .month-backdrop-left { bottom: max(8px, var(--safe-area-bottom)); left: clamp(-100px, -6vw, -40px); }
+  .month-backdrop > .month-artwork { position: absolute; width: clamp(22.5rem, 44vw, 40.625rem); height: auto; opacity: .4; }
+  .month-backdrop-right { top: calc(var(--topbar-height) + 0.3125rem); right: clamp(-5.625rem, -4vw, -1.875rem); }
+  .month-backdrop-left { bottom: max(0.5rem, var(--safe-area-bottom)); left: clamp(-6.25rem, -6vw, -2.5rem); }
 
   /* The same month's scene adds a quiet watermark to the calendar's existing hero. */
   .workspace-hero.month-calendar-hero { position: relative; isolation: isolate; overflow: hidden; border: 1px solid var(--theme-border, rgb(255 255 255 / 90%)); background: linear-gradient(105deg, var(--theme-surface-muted, #f5faff) 8%, color-mix(in srgb, var(--month-adaptive-canvas, var(--month-canvas)) 70%, var(--theme-surface, white)) 56%, var(--month-adaptive-wash, var(--month-wash))); box-shadow: 0 8px 22px rgb(37 77 109 / 5%); }
-  .month-calendar-hero > .month-hero-artwork { position: absolute; z-index: -1; top: 50%; right: 5%; width: 310px; height: 310px; transform: translateY(-46%); opacity: .48; }
+  .month-calendar-hero > .month-hero-artwork { position: absolute; z-index: -1; top: 50%; right: 5%; width: 19.375rem; height: 19.375rem; transform: translateY(-46%); opacity: .48; }
   .month-calendar-hero .hero-copy { position: relative; max-width: 76%; }
   .month-calendar-hero h2 { color: var(--theme-text-primary, #24435e); }
   .month-calendar-hero p { color: var(--theme-text-secondary, #506c81); }
@@ -19,18 +19,18 @@
   .month-calendar-hero .hero-stat > strong { color: var(--theme-text-primary, #2a526e); }
 
   @media (min-width: 1500px) {
-    .month-backdrop-right { right: max(-30px, calc((100vw - 1700px) / 2)); }
-    .month-backdrop-left { left: max(-40px, calc((100vw - 1700px) / 2)); }
+    .month-backdrop-right { right: max(-1.875rem, calc((100vw - 106.25rem) / 2)); }
+    .month-backdrop-left { left: max(-2.5rem, calc((100vw - 106.25rem) / 2)); }
   }
   @media (max-width: 760px) {
-    .month-backdrop > .month-artwork { width: 390px; opacity: .32; }
-    .month-backdrop-right { right: -126px; top: calc(var(--topbar-height) + 46px); }
-    .month-backdrop-left { left: -125px; bottom: var(--bottom-bar-height); }
-    .month-calendar-hero > .month-hero-artwork { right: 0; width: 290px; height: 290px; opacity: .36; }
+    .month-backdrop > .month-artwork { width: 24.375rem; opacity: .32; }
+    .month-backdrop-right { right: -7.875rem; top: calc(var(--topbar-height) + 2.875rem); }
+    .month-backdrop-left { left: -7.8125rem; bottom: var(--bottom-bar-height); }
+    .month-calendar-hero > .month-hero-artwork { right: 0; width: 18.125rem; height: 18.125rem; opacity: .36; }
     .month-calendar-hero .hero-copy { max-width: 100%; }
   }
   @media (max-width: 500px) {
-    .month-calendar-hero > .month-hero-artwork { right: 0; top: 42%; width: 260px; height: 260px; opacity: .32; }
+    .month-calendar-hero > .month-hero-artwork { right: 0; top: 42%; width: 16.25rem; height: 16.25rem; opacity: .32; }
   }
   @media (prefers-reduced-motion: reduce) {
     .month-backdrop, .month-artwork { animation: none; transition: none; }

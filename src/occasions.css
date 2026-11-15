@@ -9,99 +9,99 @@
   /* Screen-relative scrim stays behind the copy even when the SVG is cropped on phones. */
   .occasion-surface::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, var(--occasion-start), color-mix(in srgb, var(--occasion-start) 94%, transparent) 35%, color-mix(in srgb, var(--occasion-start) 80%, transparent) 76%, color-mix(in srgb, var(--occasion-start) 10%, transparent)); }
   .illustrated-event-card { border: 1px solid rgb(255 255 255 / 42%); box-shadow: 0 15px 32px -10px rgb(29 48 77 / 25%); }
-  .illustrated-event-card .card-topline { margin-bottom: 15px; }
-  .occasion-event-badge { padding: 4px 8px; border-color: rgb(255 255 255 / 20%); background: rgb(8 20 37 / 55%); color: #fff; font-size: 8px; letter-spacing: .8px; }
-  .illustrated-event-card .card-menu { width: 44px; height: 44px; color: #fff; background: rgb(8 20 37 / 55%); border: 1px solid rgb(255 255 255 / 20%); }
+  .illustrated-event-card .card-topline { margin-bottom: 0.9375rem; }
+  .occasion-event-badge { padding: 0.25rem 0.5rem; border-color: rgb(255 255 255 / 20%); background: rgb(8 20 37 / 55%); color: #fff; font-size: 0.5rem; letter-spacing: 0.05rem; }
+  .illustrated-event-card .card-menu { width: 2.75rem; height: 2.75rem; color: #fff; background: rgb(8 20 37 / 55%); border: 1px solid rgb(255 255 255 / 20%); }
   .illustrated-event-card .card-menu:hover { background: #263e56; }
-  .occasion-event-time { display: inline-flex; padding: 3px 7px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 20px; background: rgb(8 20 37 / 55%); color: #fff; font-size: 8.5px; line-height: 1.5; font-weight: 750; letter-spacing: .4px; }
-  .occasion-event-copy { max-width: 74%; margin-top: 9px; }
-  .occasion-event-copy h3 { color: #fff; font-size: 16px; line-height: 1.5; font-weight: 800; text-shadow: 0 1px 3px rgb(5 17 29 / 25%); }
+  .occasion-event-time { display: inline-flex; padding: 0.1875rem 0.4375rem; border: 1px solid rgb(255 255 255 / 18%); border-radius: 1.25rem; background: rgb(8 20 37 / 55%); color: #fff; font-size: 0.53125rem; line-height: 1.5; font-weight: 750; letter-spacing: 0.025rem; }
+  .occasion-event-copy { max-width: 74%; margin-top: 0.5625rem; }
+  .occasion-event-copy h3 { color: #fff; font-size: 1rem; line-height: 1.5; font-weight: 800; text-shadow: 0 1px 3px rgb(5 17 29 / 25%); }
   .illustrated-event-card:hover h3 { color: #fff; }
-  .occasion-event-copy .card-caption { color: #f5f8fc; font-size: 10px; line-height: 1.75; font-weight: 450; }
-  .occasion-event-footer { flex-wrap: wrap; margin-top: 18px; padding-top: 11px; color: #fff; border-color: rgb(255 255 255 / 24%); font-size: 8.5px; }
-  .occasion-event-footer > span { padding: 3px 5px; border-radius: 5px; background: rgb(8 20 37 / 55%); }
+  .occasion-event-copy .card-caption { color: #f5f8fc; font-size: 0.625rem; line-height: 1.75; font-weight: 450; }
+  .occasion-event-footer { flex-wrap: wrap; margin-top: 1.125rem; padding-top: 0.6875rem; color: #fff; border-color: rgb(255 255 255 / 24%); font-size: 0.53125rem; }
+  .occasion-event-footer > span { padding: 0.1875rem 0.3125rem; border-radius: 0.3125rem; background: rgb(8 20 37 / 55%); }
 
   /* Keep editing controls on a plain surface, separate from the illustrated event. */
   .calendar-event { min-width: 0; padding: 0; overflow: hidden; overflow-wrap: anywhere; background: var(--theme-surface, #fff); }
   .calendar-event-meta > .badge, .event-detail-meta > span { min-width: 0; }
-  .calendar-event-surface { position: relative; padding: 17px; background-color: var(--theme-surface-muted, #f4f9ff); }
+  .calendar-event-surface { position: relative; padding: 1.0625rem; background-color: var(--theme-surface-muted, #f4f9ff); }
   .calendar-event-content { position: relative; z-index: 1; }
-  .calendar-event-surface.occasion-surface { min-height: 205px; background-color: var(--occasion-start); }
+  .calendar-event-surface.occasion-surface { min-height: 12.8125rem; background-color: var(--occasion-start); }
   .occasion-surface .calendar-event-copy { max-width: 75%; }
-  .occasion-surface .calendar-event-copy h4 { color: #fff; font-size: 15px; margin-top: 16px; overflow-wrap: anywhere; text-shadow: 0 1px 3px rgb(5 17 29 / 25%); }
-  .occasion-surface .calendar-event-copy p { color: #f5f8fc; font-size: 10.5px; }
+  .occasion-surface .calendar-event-copy h4 { color: #fff; font-size: 0.9375rem; margin-top: 1rem; overflow-wrap: anywhere; text-shadow: 0 1px 3px rgb(5 17 29 / 25%); }
+  .occasion-surface .calendar-event-copy p { color: #f5f8fc; font-size: 0.65625rem; }
   .calendar-event-surface.occasion-surface .calendar-event-meta > span:first-child,
-  .calendar-event-surface.holiday-card .calendar-event-meta > span:first-child { color: #fff; padding: 4px 7px; border-radius: 20px; background: rgb(8 20 37 / 55%); }
+  .calendar-event-surface.holiday-card .calendar-event-meta > span:first-child { color: #fff; padding: 0.25rem 0.4375rem; border-radius: 1.25rem; background: rgb(8 20 37 / 55%); }
   .calendar-event-surface.occasion-surface .calendar-event-meta > .badge,
   .calendar-event-surface.holiday-card .calendar-event-meta > .badge { color: #fff; background: rgb(8 20 37 / 55%); border-color: rgb(255 255 255 / 14%); }
   .calendar-event-surface.occasion-surface .event-detail-meta,
   .calendar-event-surface.holiday-card .event-detail-meta { color: #fff; }
   .calendar-event-surface.occasion-surface .event-detail-meta > span,
-  .calendar-event-surface.holiday-card .event-detail-meta > span { padding: 4px 6px; border-radius: 6px; background: rgb(8 20 37 / 55%); }
+  .calendar-event-surface.holiday-card .event-detail-meta > span { padding: 0.25rem 0.375rem; border-radius: 0.375rem; background: rgb(8 20 37 / 55%); }
   .calendar-event-surface.holiday-card .calendar-event-copy p { color: #fff; }
   .event-background-editor { border-top: 1px solid var(--theme-border, #dce7f0); background: var(--theme-surface-muted, #f8fbfe); color: var(--theme-text-primary, #3b5973); }
-  .event-background-editor > summary { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 10px 13px; color: var(--theme-text-primary, #3b5973); font-size: 10px; line-height: 1.5; font-weight: 650; list-style: none; cursor: pointer; }
+  .event-background-editor > summary { display: flex; align-items: center; gap: 0.4375rem; min-height: 2.75rem; padding: 0.625rem 0.8125rem; color: var(--theme-text-primary, #3b5973); font-size: 0.625rem; line-height: 1.5; font-weight: 650; list-style: none; cursor: pointer; }
   .event-background-editor > summary::-webkit-details-marker { display: none; }
-  .event-background-editor > summary > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
-  .event-background-current { margin-left: auto; max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--theme-text-secondary, #536b81); font-size: 9px; font-weight: 550; }
+  .event-background-editor > summary > span:first-child { display: inline-flex; align-items: center; gap: 0.375rem; }
+  .event-background-current { margin-left: auto; max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--theme-text-secondary, #536b81); font-size: 0.5625rem; font-weight: 550; }
   .event-background-editor > summary > svg { color: var(--theme-text-secondary, #58758c); transition: transform .2s; }
   .event-background-editor[open] > summary > svg { transform: rotate(90deg); }
   .event-background-editor > summary:hover { background: var(--theme-blue-soft, #edf5fb); }
-  .event-background-editor > summary:focus-visible { outline-offset: -4px; border-radius: 8px; }
-  .event-background-options { padding: 15px; border-top: 1px solid var(--theme-border, #e2ebf3); background: var(--theme-surface, #fff); }
+  .event-background-editor > summary:focus-visible { outline-offset: -4px; border-radius: 0.5rem; }
+  .event-background-options { padding: 0.9375rem; border-top: 1px solid var(--theme-border, #e2ebf3); background: var(--theme-surface, #fff); }
 
   /* A native radio group: keyboard arrows, visible focus, and generous tap areas. */
-  .occasion-picker { min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--theme-border, #dee8f1); border-radius: 17px; background: var(--theme-surface, #fbfdff); }
-  .occasion-picker > legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 5px; color: var(--theme-text-primary, #425f78); font-size: 11px; font-weight: 750; }
-  .occasion-picker .occasion-picker-hint { color: var(--theme-text-secondary, #5d7186); font-size: 10.5px; line-height: 1.8; }
-  .occasion-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 13px; }
-  .occasion-option { position: relative; display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 0; min-height: 84px; padding: 6px; border: 1px solid var(--theme-border, #dce6ef); border-radius: 12px; color: var(--theme-text-secondary, #4f687f); background: var(--theme-surface, #fff); cursor: pointer; transition: background .2s, border-color .2s; }
+  .occasion-picker { min-width: 0; margin: 0; padding: 1.125rem; border: 1px solid var(--theme-border, #dee8f1); border-radius: 1.0625rem; background: var(--theme-surface, #fbfdff); }
+  .occasion-picker > legend { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0 0.3125rem; color: var(--theme-text-primary, #425f78); font-size: 0.6875rem; font-weight: 750; }
+  .occasion-picker .occasion-picker-hint { color: var(--theme-text-secondary, #5d7186); font-size: 0.65625rem; line-height: 1.8; }
+  .occasion-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.8125rem; }
+  .occasion-option { position: relative; display: flex; flex-direction: column; gap: 0.375rem; align-items: stretch; min-width: 0; min-height: 5.25rem; padding: 0.375rem; border: 1px solid var(--theme-border, #dce6ef); border-radius: 0.75rem; color: var(--theme-text-secondary, #4f687f); background: var(--theme-surface, #fff); cursor: pointer; transition: background .2s, border-color .2s; }
   .occasion-option:hover { background: var(--theme-blue-soft, #f0f7fc); border-color: var(--theme-border-strong, #9ecbe6); }
   .occasion-option.is-selected { color: var(--theme-blue, #155e8b); background: var(--theme-blue-soft, #eaf5fd); border-color: #76b5dd; box-shadow: 0 0 0 1px #76b5dd; }
   .occasion-option > input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
   .occasion-option:has(input:focus-visible) { outline: 3px solid var(--theme-focus, #1894d1); outline-offset: 3px; }
-  .occasion-swatch { position: relative; display: flex; align-items: center; justify-content: center; min-height: 52px; overflow: hidden; border-radius: 7px; background: var(--theme-blue-soft, #edf5fc); color: var(--theme-blue, #537c9a); }
+  .occasion-swatch { position: relative; display: flex; align-items: center; justify-content: center; min-height: 3.25rem; overflow: hidden; border-radius: 0.4375rem; background: var(--theme-blue-soft, #edf5fc); color: var(--theme-blue, #537c9a); }
   .swatch-none { color: var(--theme-text-secondary, #6a7e90); background: var(--theme-blue-soft, #f0f3f7); }
-  .occasion-option-check { position: absolute; right: 4px; bottom: 4px; z-index: 1; display: flex; align-items: center; justify-content: center; width: 17px; height: 17px; border: 1px solid rgb(255 255 255 / 65%); border-radius: 50%; background: #166e9e; color: #fff; }
-  .occasion-option-label { text-align: center; color: inherit; font-size: 10px; line-height: 1.6; font-weight: 650; overflow-wrap: anywhere; }
+  .occasion-option-check { position: absolute; right: 0.25rem; bottom: 0.25rem; z-index: 1; display: flex; align-items: center; justify-content: center; width: 1.0625rem; height: 1.0625rem; border: 1px solid rgb(255 255 255 / 65%); border-radius: 50%; background: #166e9e; color: #fff; }
+  .occasion-option-label { text-align: center; color: inherit; font-size: 0.625rem; line-height: 1.6; font-weight: 650; overflow-wrap: anywhere; }
   .occasion-picker-compact { padding: 0; border: 0; border-radius: 0; background: var(--theme-surface, #fff); }
   .occasion-picker-compact > legend { padding: 0; }
   .occasion-picker-compact .occasion-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .occasion-picker .occasion-selection { margin-top: 12px; color: var(--theme-text-primary, #3e647d); font-size: 10px; line-height: 1.8; font-weight: 650; }
-  .occasion-vector-note { display: block; margin-top: 4px; color: var(--theme-text-secondary, #5b7185); font-size: 9px; line-height: 1.7; }
+  .occasion-picker .occasion-selection { margin-top: 0.75rem; color: var(--theme-text-primary, #3e647d); font-size: 0.625rem; line-height: 1.8; font-weight: 650; }
+  .occasion-vector-note { display: block; margin-top: 0.25rem; color: var(--theme-text-secondary, #5b7185); font-size: 0.5625rem; line-height: 1.7; }
 
-  .occasion-preview { position: relative; min-width: 0; min-height: 176px; margin-top: 18px; padding: 22px; overflow: hidden; border: 1px solid var(--theme-border, #dbe7f1); border-radius: 15px; color: var(--theme-text-primary, #36506b); background: linear-gradient(110deg, var(--theme-blue-soft, #edf5fc), var(--theme-surface-muted, #f9fcff)); }
+  .occasion-preview { position: relative; min-width: 0; min-height: 11rem; margin-top: 1.125rem; padding: 1.375rem; overflow: hidden; border: 1px solid var(--theme-border, #dbe7f1); border-radius: 0.9375rem; color: var(--theme-text-primary, #36506b); background: linear-gradient(110deg, var(--theme-blue-soft, #edf5fc), var(--theme-surface-muted, #f9fcff)); }
   .occasion-preview-copy { position: relative; z-index: 1; max-width: 74%; }
-  .occasion-preview-eyebrow { color: var(--theme-text-secondary, #5d7489); font-size: 8px; line-height: 1.5; font-weight: 750; letter-spacing: 1px; text-transform: uppercase; }
-  .occasion-preview h3 { margin-top: 11px; color: var(--theme-text-primary, #27435d); font-size: 19px; line-height: 1.5; letter-spacing: -.5px; font-weight: 800; overflow-wrap: anywhere; }
-  .occasion-preview p { margin-top: 7px; color: var(--theme-text-secondary, #5d7186); font-size: 10.5px; line-height: 1.8; }
+  .occasion-preview-eyebrow { color: var(--theme-text-secondary, #5d7489); font-size: 0.5rem; line-height: 1.5; font-weight: 750; letter-spacing: 0.0625rem; text-transform: uppercase; }
+  .occasion-preview h3 { margin-top: 0.6875rem; color: var(--theme-text-primary, #27435d); font-size: 1.1875rem; line-height: 1.5; letter-spacing: -0.03125rem; font-weight: 800; overflow-wrap: anywhere; }
+  .occasion-preview p { margin-top: 0.4375rem; color: var(--theme-text-secondary, #5d7186); font-size: 0.65625rem; line-height: 1.8; }
   .occasion-preview.occasion-surface { border-color: rgb(255 255 255 / 25%); background: linear-gradient(115deg, var(--occasion-start), var(--occasion-end)); }
   .occasion-preview.occasion-surface .occasion-preview-eyebrow,
   .occasion-preview.occasion-surface h3 { color: #fff; }
   .occasion-preview.occasion-surface p { color: #f5f8fc; }
 
   @media (max-width: 680px) {
-    .occasion-event-copy h3 { font-size: 15px; }
-    .calendar-event-surface { padding: 15px; }
-    .occasion-picker { padding: 15px; }
+    .occasion-event-copy h3 { font-size: 0.9375rem; }
+    .calendar-event-surface { padding: 0.9375rem; }
+    .occasion-picker { padding: 0.9375rem; }
     .occasion-picker-compact { padding: 0; }
-    .occasion-preview { padding: 18px; min-height: 185px; }
-    .occasion-preview h3 { font-size: 17px; }
-    .occasion-event-footer { gap: 6px; font-size: 8px; }
-    .occasion-event-footer > span { padding: 3px 4px; }
+    .occasion-preview { padding: 1.125rem; min-height: 11.5625rem; }
+    .occasion-preview h3 { font-size: 1.0625rem; }
+    .occasion-event-footer { gap: 0.375rem; font-size: 0.5rem; }
+    .occasion-event-footer > span { padding: 0.1875rem 0.25rem; }
   }
   @media (max-width: 420px) {
     .occasion-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .occasion-preview-copy { max-width: 78%; }
   }
   @media (max-width: 360px) {
-    .occasion-picker { padding: 12px; }
+    .occasion-picker { padding: 0.75rem; }
     .occasion-picker-compact { padding: 0; }
     .occasion-event-copy { max-width: 80%; }
-    .occasion-event-copy h3 { font-size: 14px; }
-    .occasion-preview { padding: 15px; }
-    .occasion-preview h3 { font-size: 16px; }
-    .event-background-editor > summary { padding: 10px; font-size: 9px; }
-    .event-background-current { font-size: 8px; }
+    .occasion-event-copy h3 { font-size: 0.875rem; }
+    .occasion-preview { padding: 0.9375rem; }
+    .occasion-preview h3 { font-size: 1rem; }
+    .event-background-editor > summary { padding: 0.625rem; font-size: 0.5625rem; }
+    .event-background-current { font-size: 0.5rem; }
   }
 }

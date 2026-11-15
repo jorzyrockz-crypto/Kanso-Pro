@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 
 /** Keep page/scroll insets in sync with navigation, text size, and device safe areas. */
-export function useChromeHeight<T extends HTMLElement>(property: '--topbar-height' | '--bottom-bar-height') {
+export function useChromeHeight<T extends HTMLElement>(property: '--topbar-height' | '--navigation-height') {
   const ref = useRef<T>(null)
 
   useLayoutEffect(() => {

@@ -53,29 +53,29 @@ function EventJourneyCard({ card, highlight }: { card: EventCard; highlight: boo
   if (theme !== 'none') return (
     <CardFrame card={card} highlight={highlight} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />}>
       <div className="card-topline">
-        <span className="badge occasion-event-badge">{card.holiday ? <Flag size={11} /> : <CalendarDays size={11} />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
-        <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size={17} /></Link>
+        <span className="badge occasion-event-badge">{card.holiday ? <Flag size="0.6875rem" /> : <CalendarDays size="0.6875rem" />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
+        <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size="1.0625rem" /></Link>
       </div>
       <span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span>
       <div className="occasion-event-copy"><h3>{card.title}</h3>{card.context && <p className="card-caption">{card.context}</p>}</div>
-      <div className="card-footer occasion-event-footer"><span><CalendarDays size={11} />Connected to Calendar</span><span className="footer-link">Open Schedule<ArrowRight size={12} /></span></div>
+      <div className="card-footer occasion-event-footer"><span><CalendarDays size="0.6875rem" />Connected to Calendar</span><span className="footer-link">Open Schedule<ArrowRight size="0.75rem" /></span></div>
     </CardFrame>
   )
   if (card.holiday) return (
     <CardFrame card={card} highlight={highlight} className="holiday-card">
       <div className="card-topline">
-        <span className="badge holiday-badge"><Flag size={12} />PH HOLIDAY</span>
+        <span className="badge holiday-badge"><Flag size="0.75rem" />PH HOLIDAY</span>
         <div className="person-actions">
           <span className="person-pill holiday-person"><Avatar name="You" />You</span>
-          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label="Open holiday details"><MoreHorizontal size={16} /></Link>
+          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label="Open holiday details"><MoreHorizontal size="1rem" /></Link>
         </div>
       </div>
-      <span className="badge all-day-badge"><CalendarDays size={11} />ALL DAY</span>
+      <span className="badge all-day-badge"><CalendarDays size="0.6875rem" />ALL DAY</span>
       <h3>{card.title}</h3>
       <p className="card-caption truncate">{card.context}</p>
       <div className="card-footer holiday-footer">
-        <span><CalendarDays size={11} />Connected to Calendar</span>
-        <span className="footer-link">Open Schedule <ArrowRight size={12} /></span>
+        <span><CalendarDays size="0.6875rem" />Connected to Calendar</span>
+        <span className="footer-link">Open Schedule <ArrowRight size="0.75rem" /></span>
       </div>
     </CardFrame>
   )
@@ -85,13 +85,13 @@ function EventJourneyCard({ card, highlight }: { card: EventCard; highlight: boo
         <span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span>
         <div className="person-actions">
           <span className="person-pill"><Avatar name={card.owner} /><span>{card.owner}</span></span>
-          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size={17} /></Link>
+          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size="1.0625rem" /></Link>
         </div>
       </div>
       <h3>{card.title}</h3>
       <div className="event-footer">
-        <span className="organization-pill"><Users size={13} /><span>{card.organization}</span></span>
-        <span className="footer-link">Calendar <ChevronRight size={13} /></span>
+        <span className="organization-pill"><Users size="0.8125rem" /><span>{card.organization}</span></span>
+        <span className="footer-link">Calendar <ChevronRight size="0.8125rem" /></span>
       </div>
     </CardFrame>
   )
@@ -103,7 +103,7 @@ function TaskJourneyCard({ card, dispatch, highlight }: { card: TaskCard; dispat
     <CardFrame card={card} highlight={highlight}>
       <div className="card-topline task-topline">
         <span className="badge type-badge"><TypeIcon type="task" size={12} />Task & Reminder</span>
-        {card.reminder && <span className="reminder-pill"><Bell size={11} />{formatTime(card.reminder)}</span>}
+        {card.reminder && <span className="reminder-pill"><Bell size="0.6875rem" />{formatTime(card.reminder)}</span>}
       </div>
       <h3>{card.title}</h3>
       <div className="timeline-checklist">
@@ -115,7 +115,7 @@ function TaskJourneyCard({ card, dispatch, highlight }: { card: TaskCard; dispat
         ))}
         {total > 3 && <span className="more-items">+{total - 3} more in Personal Tasks</span>}
       </div>
-      <div className="card-footer task-footer"><span>{done} of {total} completed</span><span className="footer-link">Personal Tasks Page <ArrowRight size={12} /></span></div>
+      <div className="card-footer task-footer"><span>{done} of {total} completed</span><span className="footer-link">Personal Tasks Page <ArrowRight size="0.75rem" /></span></div>
     </CardFrame>
   )
 }
@@ -125,13 +125,13 @@ function NoteJourneyCard({ card, highlight }: { card: NoteCard; highlight: boole
     <CardFrame card={card} highlight={highlight} className="journal-paper">
       <div className="card-topline note-topline">
         <span className="badge type-badge"><TypeIcon type="note" size={11} />Journal Note</span>
-        <span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size={10} />Pinned</>}</span>
+        <span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size="0.625rem" />Pinned</>}</span>
       </div>
       <h3>{card.title || 'Untitled reflection'}</h3>
       <p className={`note-excerpt ${card.body ? '' : 'muted'}`}>{card.body || 'A fresh page, ready for a thought.'}</p>
       <div className="card-footer note-footer">
         <div className="note-tags">{card.tags.slice(0, 2).map((tag) => <span key={tag}>#{tag}</span>)}</div>
-        <span className="footer-link">Open Journal <ArrowRight size={12} /></span>
+        <span className="footer-link">Open Journal <ArrowRight size="0.75rem" /></span>
       </div>
     </CardFrame>
   )
@@ -142,20 +142,20 @@ function ProjectJourneyCard({ card, highlight }: { card: ProjectCard; highlight:
   if (!card.featured) return (
     <CardFrame card={card} highlight={highlight} className="sprint-card">
       <div className="card-topline">
-        <span className="badge type-badge"><Zap size={11} />Project Sprint</span>
+        <span className="badge type-badge"><Zap size="0.6875rem" />Project Sprint</span>
         <span className="on-track"><span className="status-dot" />{percent === 100 ? 'Completed' : 'On track'}</span>
       </div>
       <h3>{card.title}</h3>
       <p className="card-caption">{card.team.length} Collaborators <span className="meta-dot">·</span> {card.context}</p>
       <ProgressBar value={percent} label={`${card.title} progress`} />
-      <div className="sprint-footer"><span><strong>{done}</strong> / {total} Tasks Done</span><span className="footer-link">Open Projects <ArrowRight size={12} /></span></div>
+      <div className="sprint-footer"><span><strong>{done}</strong> / {total} Tasks Done</span><span className="footer-link">Open Projects <ArrowRight size="0.75rem" /></span></div>
     </CardFrame>
   )
   return (
     <CardFrame card={card} highlight={highlight} className="featured-project-card">
       <div className="project-heading">
         <div><h3>{card.title}</h3><p className="card-caption">Due Date: {shortDate(card.dueDate)} <span className="meta-dot">·</span> {card.context || 'Personal Project'}</p></div>
-        <span className="project-orb"><Zap size={23} strokeWidth={1.8} /></span>
+        <span className="project-orb"><Zap size="1.4375rem" strokeWidth={1.8} /></span>
       </div>
       <div className="project-meta">
         <AvatarStack names={card.team} />
@@ -210,18 +210,18 @@ function QuietDays({ entry, onCompose, expanded, onToggle, highlightId }: { entr
     <section ref={ref} className="journey-row quiet-row">
       <div className="quiet-pill-wrapper">
         <button className={`quiet-pill ${expanded ? 'is-expanded' : ''}`} onClick={onToggle} aria-expanded={expanded} aria-controls={drawerId}>
-          <CalendarDays size={16} />
+          <CalendarDays size="1rem" />
           <span className="quiet-label">{gapLabel(entry.start, entry.end)} <span className="quiet-label-dot">·</span> No scheduled events</span>
           <span className="quiet-badge">{expanded ? 'Hide buffer' : entry.cards.length ? `Peek ${entry.cards.length} ${entry.cards.length === 1 ? 'card' : 'cards'}` : 'Make room'}</span>
-          <ChevronDown size={13} className="quiet-chevron" />
+          <ChevronDown size="0.8125rem" className="quiet-chevron" />
         </button>
         {expanded && <div id={drawerId} className="quiet-drawer">
           <div className="quiet-drawer-header"><span><span className="status-dot" />A little breathing room</span>
-            <button className="text-button" onClick={() => onCompose({ date: addDays(entry.start, Math.min(2, Math.floor(daysBetween(entry.start, entry.end) / 2))) })}><Plus size={11} />Insert card here</button>
+            <button className="text-button" onClick={() => onCompose({ date: addDays(entry.start, Math.min(2, Math.floor(daysBetween(entry.start, entry.end) / 2))) })}><Plus size="0.6875rem" />Insert card here</button>
           </div>
           {entry.cards.length ? <div className="quiet-items">{entry.cards.map((card) => (
             <Link key={card.id} id={`card-${card.id}`} className={`quiet-item quiet-item-${card.type} ${highlightId === card.id ? 'is-highlighted' : ''}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
-              <TypeIcon type={card.type} size={17} /><span><strong>{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })}:</strong> {card.title}</span><ChevronRight size={13} />
+              <TypeIcon type={card.type} size={17} /><span><strong>{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })}:</strong> {card.title}</span><ChevronRight size="0.8125rem" />
             </Link>
           ))}</div> : <p className="quiet-empty">Nothing planned. Keep it open, or plant a new idea.</p>}
         </div>}
@@ -256,9 +256,9 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
           <DayRow entry={entry} dispatch={dispatch} highlightId={highlightId} />
         </Fragment>
       })
-        : <div className="timeline-empty"><EmptyState icon={<Sparkles size={24} />} title="A little room for something new"
-          action={<button className="button button-dark" onClick={() => onCompose({ type: filter === 'all' ? 'event' : filter })}><Plus size={14} />Add a card</button>}>Your {filter === 'all' ? 'journey starts' : `${TYPE_CONFIG[filter].shortLabel.toLowerCase()} will appear`} here.</EmptyState></div>}
-      <div className="horizon"><button onClick={() => onCompose()}><span className="horizon-dot" />Continue Your Journey <span className="horizon-separator">·</span> Add Next Card<Plus size={13} /></button>
+        : <div className="timeline-empty"><EmptyState icon={<Sparkles size="1.5rem" />} title="A little room for something new"
+          action={<button className="button button-dark" onClick={() => onCompose({ type: filter === 'all' ? 'event' : filter })}><Plus size="0.875rem" />Add a card</button>}>Your {filter === 'all' ? 'journey starts' : `${TYPE_CONFIG[filter].shortLabel.toLowerCase()} will appear`} here.</EmptyState></div>}
+      <div className="horizon"><button onClick={() => onCompose()}><span className="horizon-dot" />Continue Your Journey <span className="horizon-separator">·</span> Add Next Card<Plus size="0.8125rem" /></button>
         <p>A little structure. A lot of possibility.</p>
       </div>
     </section>

@@ -50,15 +50,15 @@ function StreamHeader({ filter, count, month, bezel, onFilter, onFocus, onToggle
         </div>
       </div>
       <div className="header-actions">
-        <button className="button button-focus" onClick={onFocus} title="Focus the active card" aria-label="Focus Active"><Crosshair size={14} /><span>Focus Active</span></button>
-        <button className={`frame-toggle ${bezel ? 'is-active' : ''}`} onClick={onToggleFrame} aria-pressed={bezel} aria-label="Tablet frame" title="Toggle tablet frame"><Tablet size={15} /></button>
+        <button className="button button-focus" onClick={onFocus} title="Focus the active card" aria-label="Focus Active"><Crosshair size="0.875rem" /><span>Focus Active</span></button>
+        <button className={`frame-toggle ${bezel ? 'is-active' : ''}`} onClick={onToggleFrame} aria-pressed={bezel} aria-label="Tablet frame" title="Toggle tablet frame"><Tablet size="0.9375rem" /></button>
       </div>
     </div>
     <div className="header-bottom">
       <nav className="filter-bar" aria-label="Filter journey cards">{filters.map(({ type, label }) => <button key={type} className={`filter-pill ${filter === type ? 'is-active' : ''}`} onClick={() => onFilter(type)} aria-pressed={filter === type}>
         {type !== 'all' && <span className={`filter-dot dot-${type}`} />}<span>{label}</span>{type === 'all' && <span className="filter-count">{count}</span>}
       </button>)}</nav>
-      <span className="connected-label"><Link2 size={12} />All your pages, connected</span>
+      <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
     </div>
   </header>
 }
@@ -71,7 +71,7 @@ function NewCardPage({ cards, onCancel, onCreate }: {
   const location = useLocation()
   return <main id="main-content" tabIndex={-1} className="create-page" aria-labelledby="page-title">
     <PageHeader title="New card" description="An event, a small step, a bigger idea, or a thought worth keeping." />
-    <button className="text-button return-to-page" onClick={onCancel}><ArrowLeft size={13} />Back to your workspace</button>
+    <button className="text-button return-to-page" onClick={onCancel}><ArrowLeft size="0.8125rem" />Back to your workspace</button>
     <Composer key={location.key} options={composerOptions(location.search)} cards={cards} onCancel={onCancel} onCreate={onCreate} />
   </main>
 }
@@ -117,7 +117,9 @@ export default function App() {
       const value = Math.min(100, Math.max(22, ((window.innerHeight * 0.7 - bounds.top) / bounds.height) * 100))
       timeline.style.setProperty('--scroll-progress', `${value}%`)
       const headerBottom = document.querySelector('.stream-header')?.getBoundingClientRect().bottom ?? 0
-      const navTop = document.querySelector('.bottom-bar')?.getBoundingClientRect().top ?? window.innerHeight
+      // CSS owns the layout query; a side rail must not shorten the reading viewport.
+      const sidebar = getComputedStyle(document.documentElement).getPropertyValue('--navigation-layout').trim() === 'sidebar'
+      const navTop = sidebar ? window.innerHeight : document.querySelector('.bottom-bar')?.getBoundingClientRect().top ?? window.innerHeight
       const anchor = headerBottom + Math.max(0, navTop - headerBottom) * .5
       const markers = monthRows.map((row) => ({ month: row.dataset.timelineMonth!, top: row.getBoundingClientRect().top }))
       const atEnd = window.scrollY > 1 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2
@@ -129,6 +131,8 @@ export default function App() {
     window.addEventListener('resize', requestUpdate)
     const observer = new ResizeObserver(requestUpdate)
     observer.observe(timeline)
+    const navigation = document.querySelector('.bottom-bar')
+    if (navigation) observer.observe(navigation)
     return () => {
       window.removeEventListener('scroll', requestUpdate)
       window.removeEventListener('resize', requestUpdate)
@@ -215,7 +219,7 @@ export default function App() {
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
     {signInLayout ? <SignInHeader /> : <><AppHeader account={account} storageAvailable={storageAvailable} onCompose={() => openComposer()} onSignOut={signOutFromProfile} /><BottomNavigation /></>}
-    {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size={15} /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
+    {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size="0.9375rem" /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
@@ -233,6 +237,6 @@ export default function App() {
     </div>
     <AppFooter />
     <RouteEffects />
-    <div className="toast-region" role={toast?.kind === 'error' ? 'alert' : 'status'} aria-live={toast?.kind === 'error' ? 'assertive' : 'polite'}>{toast && <div className={`toast ${toast.kind === 'error' ? 'is-error' : ''}`} key={toast.id}><span className="toast-icon">{toast.kind === 'error' ? <AlertCircle size={16} /> : <Check size={16} />}</span><span>{toast.message}</span><button className="icon-button" aria-label="Dismiss notification" onClick={() => setToast(null)}><X size={14} /></button></div>}</div>
+    <div className="toast-region" role={toast?.kind === 'error' ? 'alert' : 'status'} aria-live={toast?.kind === 'error' ? 'assertive' : 'polite'}>{toast && <div className={`toast ${toast.kind === 'error' ? 'is-error' : ''}`} key={toast.id}><span className="toast-icon">{toast.kind === 'error' ? <AlertCircle size="1rem" /> : <Check size="1rem" />}</span><span>{toast.message}</span><button className="icon-button" aria-label="Dismiss notification" onClick={() => setToast(null)}><X size="0.875rem" /></button></div>}</div>
   </div>
 }

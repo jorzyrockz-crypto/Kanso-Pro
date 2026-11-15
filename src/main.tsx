@@ -13,6 +13,7 @@ import './account.css'
 import './sign-in.css'
 import './settings.css'
 import './theme.css'
+import './fluid.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

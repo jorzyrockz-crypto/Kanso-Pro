@@ -5,7 +5,7 @@ import type { CardType } from '../types'
 
 export function TypeIcon({ type, size = 14 }: { type: CardType; size?: number }) {
   const Icon = { event: CalendarDays, task: CircleCheck, project: Zap, note: BookOpen }[type]
-  return <Icon size={size} strokeWidth={2} aria-hidden="true" />
+  return <Icon size={`${size / 16}rem`} strokeWidth={2} aria-hidden="true" />
 }
 
 export function Avatar({ name = 'Floyran Gumban', className = '' }: { name?: string; className?: string }) {
@@ -51,7 +51,7 @@ export function EmptyState({ icon, title, children, action }: {
 }) {
   return (
     <div className="empty-state">
-      <span className="empty-icon">{icon ?? <CalendarDays size={24} />}</span>
+      <span className="empty-icon">{icon ?? <CalendarDays size="1.5rem" />}</span>
       <h3>{title}</h3>
       {children && <p>{children}</p>}
       {action}
@@ -75,14 +75,14 @@ export function AddChecklistItem({ onAdd, placeholder = 'Add a task…', label =
     <form className="quick-add-form" onSubmit={submit}>
       <label className="sr-only" htmlFor="quick-add-input">{placeholder.replace('…', '')}</label>
       <input id="quick-add-input" value={text} onChange={(event) => setText(event.target.value)} maxLength={240} placeholder={placeholder} required />
-      <button className="button button-accent" type="submit"><Plus size={15} /><span>{label}</span></button>
+      <button className="button button-accent" type="submit"><Plus size="0.9375rem" /><span>{label}</span></button>
     </form>
   )
 }
 
 export function SaveIndicator({ available }: { available: boolean }) {
   return <span className={`save-indicator ${available ? '' : 'save-warning'}`}>
-    {available ? <Check size={12} /> : <span className="status-dot" />}
+    {available ? <Check size="0.75rem" /> : <span className="status-dot" />}
     {available ? 'Saved on this device' : 'Not saved · device storage unavailable'}
   </span>
 }

@@ -6,7 +6,7 @@
 
 Make **Profile → Settings** the home for personal/device preferences and workspace maintenance, without crowding the planning interface.
 
-- Keep Timeline, Calendar, Tasks, Projects, and Journal as the five bottom-bar destinations. Do not add a sixth Settings tab or move navigation back to the top.
+- Keep Timeline, Calendar, Tasks, Projects, and Journal as exactly five primary destinations. The subsequent fluidity request keeps bottom tabs on phones/portrait tablets and authorizes a left sidebar for fine-pointer laptops (1024 px+) or landscape touch tablets (1000 px+ wide, 600 px+ tall). No sixth Settings tab or top planning row.
 - Settings is a normal, refreshable page with its own URL, not a modal, drawer, or full-screen overlay. The Profile menu is only a compact navigation disclosure.
 - Preserve the Kanso Pro visual language, monthly sign-in, current Firebase flows, and guest planning.
 - Keep account identity separate from browser-local cards. Settings must not imply that sign-in uploads, locks, or separates workspace content.
@@ -45,7 +45,7 @@ Interaction requirements:
 
 ## 2. Dedicated `/settings` page
 
-Use the normal workspace header and bottom bar. Set the title to **Settings · Kanso Pro**, provide one main landmark, a useful heading/back link, and normal document scrolling. No planning tab should incorrectly appear active on Settings.
+Use the normal workspace header and adaptive five-link navigation (bottom tabs or sidebar). Set the title to **Settings · Kanso Pro**, provide one main landmark, a useful heading/back link, and normal document scrolling. No planning tab should incorrectly appear active on Settings.
 
 Tablet/desktop: a restrained section index beside settings cards. Phone/split view: a single column with wrapping section links. Use the same section anchors in both layouts; nested routes are unnecessary for the first release.
 
@@ -86,7 +86,7 @@ Added preference/bootstrap unit tests and `tests/appearance.spec.ts` coverage fo
 
 - [x] Profile → Settings works with mouse, keyboard, and touch, both signed in and as a guest.
 - [x] `/settings` works on direct load, refresh, Back/Forward, and in a new tab; unknown routes still show recovery pages.
-- [x] Settings is a page, not a modal. Bottom navigation stays fixed, reachable, and limited to its existing five destinations.
+- [x] Settings is a page, not a modal. Primary navigation stays fixed, reachable, and limited to its existing five destinations; the later fluidity request adapts its placement without changing routes.
 - [x] Escape/outside dismissal and route navigation leave focus in the correct place; no hidden disclosure items remain in the tab order.
 - [x] Phone, split-width tablet, portrait/landscape, safe-area, and keyboard-height layouts have no horizontal overflow or obscured final controls; targets stay at least 44 × 44 px.
 - [x] Profile/security flows, legacy redirects, and sign-out/cross-tab sessions continue to work. Offline or misconfigured auth never blocks local settings or guest plans.
@@ -115,6 +115,12 @@ Axe WCAG A/AA checks include every monthly Settings-preview palette and expanded
 - Six production appearance combinations (Light/Dark/Auto × light/dark device) passed initial prepaint, mounted selection, native-control scheme, and live system-change checks.
 - PWA validation is deliberately scoped: strict TypeScript/production build, icon transparency/dimensions/maskable safe-zone checks, and **three production browser tests** for native manifest/installability, offline direct links and local saving with appearance persistence, and waiting/consented updates without reloading another tab’s unfinished form. Run `npm run test:pwa`; no full app suite is required for a small PWA change.
 - PWA integration adds **no third-party dependency**. `npm audit` reports **0 vulnerabilities**. No physical-device install, live Firebase action, Vercel deployment, or production release is claimed.
+
+### Subsequent fluid layout
+
+The user subsequently approved touch-first fluidity: rem-based scaling only for coarse-pointer tablet-size/tall windows; finger-size controls; a 14.5-rem laptop rail or 13-rem landscape-touch rail; bottom tabs retained on portrait tablets, split views, phones, and short landscape windows. Container queries prevent Settings/account/calendar panels from being squeezed by a rail. Sign-in never gets planning navigation, and monthly vector scenes are retained.
+
+Build/validation was scoped rather than restarting the full suite: eight layout/navigation checks passed together, including 22 touch/fine-pointer viewport cases; the expanded rotation/sign-in-field check and the sidebar/portrait Timeline-month regression passed individually after final polish. Strict build passed (1,752 modules; 23 PWA shell assets). Existing routes, storage schema, cards, drafts, color mode, and auth architecture are unchanged. Physical-device verification remains manual.
 
 ## Still deferred
 

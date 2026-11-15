@@ -57,9 +57,9 @@ export function AccountPage({ account, state, storageAvailable }: { account: Acc
     }
   }
   const notices = <>
-    {account.phase === 'loading' && <p className="account-loading" role="status"><LoaderCircle size={15} />Checking your sign-in… Your plans are still available.</p>}
-    {account.phase === 'error' && <div className="account-connection-error" role="alert"><p>{account.initializationError}</p><button className="button button-soft" onClick={account.retry}>Retry connection<RefreshCw size={14} /></button></div>}
-    {feedback && <p ref={feedbackRef} tabIndex={-1} className={`account-feedback ${feedback.kind === 'error' ? 'is-error' : ''}`} role={feedback.kind === 'error' ? 'alert' : 'status'}>{feedback.kind === 'success' && <Check size={15} />}{feedback.message}</p>}
+    {account.phase === 'loading' && <p className="account-loading" role="status"><LoaderCircle size="0.9375rem" />Checking your sign-in… Your plans are still available.</p>}
+    {account.phase === 'error' && <div className="account-connection-error" role="alert"><p>{account.initializationError}</p><button className="button button-soft" onClick={account.retry}>Retry connection<RefreshCw size="0.875rem" /></button></div>}
+    {feedback && <p ref={feedbackRef} tabIndex={-1} className={`account-feedback ${feedback.kind === 'error' ? 'is-error' : ''}`} role={feedback.kind === 'error' ? 'alert' : 'status'}>{feedback.kind === 'success' && <Check size="0.9375rem" />}{feedback.message}</p>}
   </>
   const deviceWorkspace = <DeviceWorkspacePanel state={state} storageAvailable={storageAvailable} onExport={exportWorkspace} showReturnLink={!!user} />
 
@@ -69,23 +69,23 @@ export function AccountPage({ account, state, storageAvailable }: { account: Acc
     <PageHeader title="My workspace" breadcrumb="Account & workspace" description="Your personal account, and the plans you’re making room for." />
     <div className="account-layout">
       <section className="account-card" aria-labelledby="account-title">
-        <div className="account-card-heading"><span className="account-heading-icon"><UserRound size={22} /></span><span className="eyebrow">Personal account</span></div>
+        <div className="account-card-heading"><span className="account-heading-icon"><UserRound size="1.375rem" /></span><span className="eyebrow">Personal account</span></div>
         <h2 id="account-title">Good to have you here.</h2>
         <p className="account-intro">Manage your identity and how you sign in.</p>
         {notices}
         <div className="account-identity"><span className="account-large-avatar" aria-hidden="true">{accountInitials(user)}</span><div><strong>{accountName(user)}</strong><span>{user.email ?? 'Firebase account'}</span><small>{user.providers.includes('google.com') ? 'Google' : 'Email & password'}{user.providers.includes('google.com') && user.providers.includes('password') && ' · Email & password'}</small></div></div>
         <div className={`account-verification ${user.emailVerified ? 'is-verified' : ''}`}>
-          <div><BadgeCheck size={17} /><span><strong>{user.emailVerified ? 'Email verified' : 'Verify your email'}</strong><small>{user.emailVerified ? 'Your email address is confirmed.' : 'Open the verification email, then check your status here.'}</small></span></div>
-          {!user.emailVerified && <div className="account-inline-actions"><button className="button button-soft" disabled={disabled} onClick={() => void perform(account.sendVerification, 'Verification email sent. Open the link in your inbox, then choose Check verification.')}>{busy === 'verify' ? 'Sending…' : 'Send verification email'}<Mail size={13} /></button><button className="button button-quiet" disabled={disabled} onClick={() => void perform(account.refresh, 'Your verification status has been refreshed.')}>{busy === 'refresh' ? 'Checking…' : 'Check verification'}<RefreshCw size={13} /></button></div>}
+          <div><BadgeCheck size="1.0625rem" /><span><strong>{user.emailVerified ? 'Email verified' : 'Verify your email'}</strong><small>{user.emailVerified ? 'Your email address is confirmed.' : 'Open the verification email, then check your status here.'}</small></span></div>
+          {!user.emailVerified && <div className="account-inline-actions"><button className="button button-soft" disabled={disabled} onClick={() => void perform(account.sendVerification, 'Verification email sent. Open the link in your inbox, then choose Check verification.')}>{busy === 'verify' ? 'Sending…' : 'Send verification email'}<Mail size="0.8125rem" /></button><button className="button button-quiet" disabled={disabled} onClick={() => void perform(account.refresh, 'Your verification status has been refreshed.')}>{busy === 'refresh' ? 'Checking…' : 'Check verification'}<RefreshCw size="0.8125rem" /></button></div>}
         </div>
         <form className="account-form account-profile-form" method="post" aria-label="Profile details" aria-busy={!!busy} onSubmit={(event) => { event.preventDefault(); if (!disabled) void perform(() => account.saveName(profileName), 'Your display name has been saved to your account.') }}>
           <h3>Profile details</h3><div className="form-field"><label htmlFor="profile-name">Display name</label><input id="profile-name" name="displayName" autoComplete="name" required maxLength={80} value={profileName} disabled={disabled} onChange={(event) => setProfileName(event.target.value)} /></div>
           <p className="account-field-hint">This name appears in your account badge. It does not rename existing cards.</p>
-          <button className="button button-dark" disabled={disabled || profileName.trim() === (user.displayName ?? '').trim()} type="submit">{busy === 'save-name' ? 'Saving…' : 'Save profile'}<Check size={14} /></button>
+          <button className="button button-dark" disabled={disabled || profileName.trim() === (user.displayName ?? '').trim()} type="submit">{busy === 'save-name' ? 'Saving…' : 'Save profile'}<Check size="0.875rem" /></button>
         </form>
         <div className="account-security"><h3>Sign-in & security</h3><p>Your sign-in stays on this browser when site storage is available. Use a trusted browser profile and sign out on shared devices.</p>
-          <div className="account-inline-actions">{user.providers.includes('password') && user.email && <button className="button button-quiet" disabled={disabled} onClick={() => void perform(() => account.resetPassword(user.email!), 'If an account exists for that email, password reset instructions have been sent.')}><KeyRound size={14} />{busy === 'reset' ? 'Sending…' : 'Email a password reset'}</button>}
-            <button className="button account-sign-out" disabled={disabled} onClick={() => void perform(account.signOut, 'You’re signed out. Your device plans are still here.')}><LogOut size={14} />{busy === 'sign-out' ? 'Signing out…' : 'Sign out'}</button></div>
+          <div className="account-inline-actions">{user.providers.includes('password') && user.email && <button className="button button-quiet" disabled={disabled} onClick={() => void perform(() => account.resetPassword(user.email!), 'If an account exists for that email, password reset instructions have been sent.')}><KeyRound size="0.875rem" />{busy === 'reset' ? 'Sending…' : 'Email a password reset'}</button>}
+            <button className="button account-sign-out" disabled={disabled} onClick={() => void perform(account.signOut, 'You’re signed out. Your device plans are still here.')}><LogOut size="0.875rem" />{busy === 'sign-out' ? 'Signing out…' : 'Sign out'}</button></div>
         </div>
       </section>
       {deviceWorkspace}

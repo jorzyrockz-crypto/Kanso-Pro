@@ -21,12 +21,12 @@ export function DeviceWorkspacePanel({ state, storageAvailable, onExport, showRe
 }) {
   const titleId = useId()
   return <aside className="account-device-panel" aria-labelledby={titleId}>
-    <span className="account-device-icon"><HardDrive size={23} aria-hidden="true" /></span><span className="eyebrow">Your device workspace</span><h2 id={titleId}>A little room for your plans.</h2>
+    <span className="account-device-icon"><HardDrive size="1.4375rem" aria-hidden="true" /></span><span className="eyebrow">Your device workspace</span><h2 id={titleId}>A little room for your plans.</h2>
     <p>These cards live in this browser, whether you’re a guest or signed in.</p>
     <DeviceWorkspaceSummary state={state} storageAvailable={storageAvailable} />
-    <div className="account-local-notice"><ShieldCheck size={17} aria-hidden="true" /><div><strong>Sign-in is not cloud sync.</strong><p>Signing in or out does not upload, transfer, hide, or delete these cards. Anyone using this browser profile can access them. Use a separate browser profile on shared devices.</p></div></div>
-    <button className="button account-export" onClick={onExport}><Download size={15} aria-hidden="true" />Export device backup</button>
+    <div className="account-local-notice"><ShieldCheck size="1.0625rem" aria-hidden="true" /><div><strong>Sign-in is not cloud sync.</strong><p>Signing in or out does not upload, transfer, hide, or delete these cards. Anyone using this browser profile can access them. Use a separate browser profile on shared devices.</p></div></div>
+    <button className="button account-export" onClick={onExport}><Download size="0.9375rem" aria-hidden="true" />Export device backup</button>
     <p className="account-backup-note">A JSON copy of all card content. Keep the file private. It does not contain your sign-in tokens or password.</p>
-    {showReturnLink && <Link className="button button-soft account-continue" to="/">Back to your timeline<ArrowRight size={14} aria-hidden="true" /></Link>}
+    {showReturnLink && <Link className="button button-soft account-continue" to="/">Back to your timeline<ArrowRight size="0.875rem" aria-hidden="true" /></Link>}
   </aside>
 }

@@ -51,15 +51,15 @@ function CalendarEvent({ card, highlighted, dispatch }: { card: EventCard; highl
     <div className={`calendar-event-surface ${theme !== 'none' ? `occasion-surface occasion-${theme}` : card.holiday ? 'holiday-card' : ''}`}>
       {theme !== 'none' && <OccasionArtwork theme={theme} />}
       <div className="calendar-event-content">
-        <div className="calendar-event-meta"><span><CalendarDays size={12} />{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })} <span>·</span> {card.allDay ? 'All day' : `${formatTime(card.time)}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`}</span>
+        <div className="calendar-event-meta"><span><CalendarDays size="0.75rem" />{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })} <span>·</span> {card.allDay ? 'All day' : `${formatTime(card.time)}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`}</span>
           <span className="badge">{card.organization}</span></div>
         <div className="calendar-event-copy"><h4>{card.title}</h4><p>{card.context}</p></div>
         <div className="event-detail-meta"><span><Avatar name={card.owner} />{card.owner === 'You' ? 'Your calendar' : `Organized by ${card.owner}`}</span>
-          {card.location && <span><MapPin size={12} />{card.location}</span>}</div>
+          {card.location && <span><MapPin size="0.75rem" />{card.location}</span>}</div>
       </div>
     </div>
     <details className="event-background-editor">
-      <summary aria-label={`Customize background for ${card.title}`}><span><Palette size={13} />Background</span><span className="event-background-current">{choice === 'auto' ? `Auto · ${label}` : label}</span><ChevronRight size={14} /></summary>
+      <summary aria-label={`Customize background for ${card.title}`}><span><Palette size="0.8125rem" />Background</span><span className="event-background-current">{choice === 'auto' ? `Auto · ${label}` : label}</span><ChevronRight size="0.875rem" /></summary>
       <div className="event-background-options"><EventThemePicker value={choice} title={card.title} holiday={card.holiday} compact
         onChange={(occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} /></div>
     </details>
@@ -84,8 +84,8 @@ function CalendarWorkspace({ cards, cardId, dispatch, onCompose }: WorkspaceProp
     <section className="workspace-panel calendar-panel" aria-label="Monthly calendar">
       <div className="panel-heading calendar-toolbar"><h3>{formatDate(`${month}-01`, { month: 'long', year: 'numeric' })}</h3>
         <div className="calendar-controls"><button className="text-button" onClick={() => navigate(`/calendar?date=${FOCUS_DATE}`)}>Focus date</button>
-          <button className="icon-button" aria-label="Previous month" onClick={() => changeMonth(-1)}><ChevronLeft size={17} /></button>
-          <button className="icon-button" aria-label="Next month" onClick={() => changeMonth(1)}><ChevronRight size={17} /></button></div></div>
+          <button className="icon-button" aria-label="Previous month" onClick={() => changeMonth(-1)}><ChevronLeft size="1.0625rem" /></button>
+          <button className="icon-button" aria-label="Next month" onClick={() => changeMonth(1)}><ChevronRight size="1.0625rem" /></button></div></div>
       <div className="calendar-grid">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => <span key={day} className="calendar-weekday">{day}</span>)}
         {calendarDays(month).map((date, index) => {
@@ -106,10 +106,10 @@ function CalendarWorkspace({ cards, cardId, dispatch, onCompose }: WorkspaceProp
       {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map((card) => card.type === 'event'
         ? <CalendarEvent key={card.id} card={card} highlighted={card.id === cardId} dispatch={dispatch} />
         : <Link key={card.id} className={`agenda-item agenda-item-${card.type}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
-          <span className="agenda-item-icon"><TypeIcon type={card.type} size={19} /></span><span><small>{TYPE_CONFIG[card.type].label}</small><strong>{card.title || 'Untitled reflection'}</strong></span><ArrowRight size={15} />
+          <span className="agenda-item-icon"><TypeIcon type={card.type} size={19} /></span><span><small>{TYPE_CONFIG[card.type].label}</small><strong>{card.title || 'Untitled reflection'}</strong></span><ArrowRight size="0.9375rem" />
         </Link>)}</div>
-        : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size={13} />Plan something</button>}>No cards here yet. An open day has its own possibilities.</EmptyState>}
-      {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size={13} />Add an event</button>}
+        : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No cards here yet. An open day has its own possibilities.</EmptyState>}
+      {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add an event</button>}
     </section>
   </div>
 }
@@ -118,7 +118,7 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Works
   const tasks = cards.filter((card): card is TaskCard => card.type === 'task')
   const activeId = cardId ?? 'task-grades'
   const selected = tasks.find((card) => card.id === activeId) ?? tasks[0]
-  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size={14} />Create a task card</button>}>Add your first task card to start making space for what matters.</EmptyState>
+  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task card</button>}>Add your first task card to start making space for what matters.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
   return <div className="workspace-content task-workspace">
     <WorkspaceHero type="task" eyebrow="Personal Task & Reminder Hub" title="Daily Action & Reminders" stat={{ label: 'Completion', value: `${percent}%` }}>
@@ -130,19 +130,19 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Works
     <AddChecklistItem key={selected.id} placeholder="Add a personal task…" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false } })} />
     <section className="workspace-panel checklist-panel">
       <div className="checklist-heading"><div><span className="eyebrow">{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><h3>{selected.title}</h3></div>
-        {selected.reminder && <span className="reminder-pill"><Bell size={12} />{formatTime(selected.reminder)} reminder</span>}</div>
+        {selected.reminder && <span className="reminder-pill"><Bell size="0.75rem" />{formatTime(selected.reminder)} reminder</span>}</div>
       <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span></div>
       <div className="workspace-checklist">{selected.subtasks.map((item) => <label key={item.id} className={`workspace-check task-check ${item.done ? 'is-done' : ''}`}>
         <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
         <span className="check-copy"><strong>{item.title}</strong><small>{item.done ? 'Complete. A little more room to breathe.' : 'Connected to your timeline task card'}</small></span>
-        {item.label && <span className="check-label">{item.done ? <Check size={12} /> : <Clock3 size={11} />}{item.label}</span>}
+        {item.label && <span className="check-label">{item.done ? <Check size="0.75rem" /> : <Clock3 size="0.6875rem" />}{item.label}</span>}
       </label>)}</div>
       {!total && <p className="inline-empty">No actions yet. Add the first one above.</p>}
     </section>
     {tasks.length > 1 && <div className="other-lists"><span className="eyebrow">Your other lists</span>{tasks.filter((card) => card.id !== selected.id).map((card) => <Link key={card.id} className="list-summary" to={destinationPath({ page: 'tasks', cardId: card.id })}>
-      <span className="list-icon"><TypeIcon type="task" size={17} /></span><span><strong>{card.title}</strong><small>{shortDate(card.date)} · {progress(card.subtasks).done} of {card.subtasks.length} completed</small></span><ChevronRight size={16} />
+      <span className="list-icon"><TypeIcon type="task" size={17} /></span><span><strong>{card.title}</strong><small>{shortDate(card.date)} · {progress(card.subtasks).done} of {card.subtasks.length} completed</small></span><ChevronRight size="1rem" />
     </Link>)}</div>}
-    <p className="workspace-fineprint"><Bell size={12} />Reminder times are planning labels, not device notifications.</p>
+    <p className="workspace-fineprint"><Bell size="0.75rem" />Reminder times are planning labels, not device notifications.</p>
   </div>
 }
 
@@ -150,7 +150,7 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
   const projects = cards.filter((card): card is ProjectCard => card.type === 'project')
   const activeId = cardId ?? 'proj-tos'
   const selected = projects.find((card) => card.id === activeId) ?? projects[0]
-  if (!selected) return <EmptyState icon={<Zap size={24} />} title="Good things take a few steps" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size={14} />Start a project</button>}>Give your next big idea a little structure.</EmptyState>
+  if (!selected) return <EmptyState icon={<Zap size="1.5rem" />} title="Good things take a few steps" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />Start a project</button>}>Give your next big idea a little structure.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
   return <div className="workspace-content project-workspace">
     <WorkspaceHero type="project" eyebrow="Project Collaboration & Planning" title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
@@ -160,7 +160,7 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
     {projects.length > 1 && <div className="workspace-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
       {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>}
-    <div className="team-panel"><span className="eyebrow"><Users size={13} />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
+    <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
     <section className="workspace-panel checklist-panel">
       <div className="panel-heading"><h3>Collaborative Tasks & Deliverables</h3><span className="count-label">{done} / {total} complete</span></div>
       <ProgressBar value={percent} label="Project completion" />
@@ -172,7 +172,7 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
       {!total && <p className="inline-empty">Every project starts with one small step. Add a milestone below.</p>}
       <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: 'You' } })} />
     </section>
-    <p className="workspace-fineprint"><Users size={12} />Team names are planning references. This workspace is stored on your device.</p>
+    <p className="workspace-fineprint"><Users size="0.75rem" />Team names are planning references. This workspace is stored on your device.</p>
   </div>
 }
 
@@ -180,7 +180,7 @@ function JournalWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, stor
   const notes = cards.filter((card): card is NoteCard => card.type === 'note')
   const activeId = cardId ?? 'note-observation'
   const selected = notes.find((card) => card.id === activeId) ?? notes[0]
-  if (!selected) return <EmptyState title="A fresh page is waiting" action={<button className="button button-dark" onClick={() => onCompose({ type: 'note' })}><Plus size={14} />Write a note</button>}>Catch a thought, notice a moment, or leave a note for your future self.</EmptyState>
+  if (!selected) return <EmptyState title="A fresh page is waiting" action={<button className="button button-dark" onClick={() => onCompose({ type: 'note' })}><Plus size="0.875rem" />Write a note</button>}>Catch a thought, notice a moment, or leave a note for your future self.</EmptyState>
   const wordCount = selected.body.trim() ? selected.body.trim().split(/\s+/).length : 0
   return <div className="workspace-content journal-workspace">
     <WorkspaceHero type="note" eyebrow="Personal Journal & Written Notes" title="Reflective Journal Studio">
@@ -198,7 +198,7 @@ function JournalWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, stor
       <label htmlFor="journal-body" className="sr-only">Your reflection</label>
       <textarea id="journal-body" className="journal-body-input" rows={9} value={selected.body} maxLength={20000} placeholder="What’s on your mind today?"
         onChange={(event) => dispatch({ type: 'update-note', id: selected.id, body: event.target.value })} />
-      <div className="journal-editor-footer"><span>{wordCount} {wordCount === 1 ? 'word' : 'words'} · Private to this browser</span><Link className="button button-accent" to="/" state={{ focusCardId: selected.id }}>View on timeline<ArrowRight size={13} /></Link></div>
+      <div className="journal-editor-footer"><span>{wordCount} {wordCount === 1 ? 'word' : 'words'} · Private to this browser</span><Link className="button button-accent" to="/" state={{ focusCardId: selected.id }}>View on timeline<ArrowRight size="0.8125rem" /></Link></div>
     </section>
     <p className="workspace-fineprint">Changes appear immediately on your journey card. No save button needed.</p>
   </div>
@@ -238,7 +238,7 @@ export function WorkspacePage({ page, cards, dispatch, onNavigate, onCompose, st
       {page === 'project' && <ProjectWorkspace {...props} />}
       {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} />}
       <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} />
-        <Link to="/" state={cardId ? { focusCardId: cardId } : null} className="text-button">View your timeline<ArrowRight size={12} /></Link>
+        <Link to="/" state={cardId ? { focusCardId: cardId } : null} className="text-button">View your timeline<ArrowRight size="0.75rem" /></Link>
       </div>
     </div>
   </main>
