@@ -12,6 +12,7 @@ import './months.css'
 import './account.css'
 import './sign-in.css'
 import './settings.css'
+import './theme.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

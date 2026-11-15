@@ -5,10 +5,7 @@ import { useChromeHeight } from '../lib/useChromeHeight'
 import { ProfileMenu } from './ProfileMenu'
 
 export function KansoMark({ size = 24 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-    <path d="M9 5v22M23 5 11 16l12 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="9" cy="16" r="3" fill="#7dd3fc" />
-  </svg>
+  return <img className="kanso-icon" src="/icons/icon-96.png" width={size} height={size} alt="" aria-hidden="true" decoding="async" />
 }
 
 export function AppHeader({ account, storageAvailable, onCompose, onSignOut }: { account: AccountController; storageAvailable: boolean; onCompose: () => void; onSignOut: () => Promise<void> }) {

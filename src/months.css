@@ -1,22 +1,22 @@
 @layer layout {
   /* A static, page-wide wash. It never sits above content or receives input. */
   .application { position: relative; isolation: isolate; }
-  .month-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; user-select: none; background: radial-gradient(ellipse at 90% 20%, var(--month-wash), transparent 58%), radial-gradient(ellipse at 6% 80%, var(--month-wash), transparent 55%), linear-gradient(160deg, var(--month-canvas), #edf7fb 72%, var(--month-canvas)); }
+  .month-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; user-select: none; background: radial-gradient(ellipse at 90% 20%, var(--month-adaptive-wash, var(--month-wash)), transparent 58%), radial-gradient(ellipse at 6% 80%, var(--month-adaptive-wash, var(--month-wash)), transparent 55%), linear-gradient(160deg, var(--month-adaptive-canvas, var(--month-canvas)), var(--theme-blue-soft, #edf7fb) 72%, var(--month-adaptive-canvas, var(--month-canvas))); }
   .month-artwork { display: block; aspect-ratio: 1; pointer-events: none; user-select: none; }
   .month-backdrop > .month-artwork { position: absolute; width: clamp(360px, 44vw, 650px); height: auto; opacity: .4; }
   .month-backdrop-right { top: calc(var(--topbar-height) + 5px); right: clamp(-90px, -4vw, -30px); }
   .month-backdrop-left { bottom: max(8px, var(--safe-area-bottom)); left: clamp(-100px, -6vw, -40px); }
 
   /* The same month's scene adds a quiet watermark to the calendar's existing hero. */
-  .workspace-hero.month-calendar-hero { position: relative; isolation: isolate; overflow: hidden; border: 1px solid rgb(255 255 255 / 90%); background: linear-gradient(105deg, #f5faff 8%, color-mix(in srgb, var(--month-canvas) 70%, white) 56%, var(--month-wash)); box-shadow: 0 8px 22px rgb(37 77 109 / 5%); }
+  .workspace-hero.month-calendar-hero { position: relative; isolation: isolate; overflow: hidden; border: 1px solid var(--theme-border, rgb(255 255 255 / 90%)); background: linear-gradient(105deg, var(--theme-surface-muted, #f5faff) 8%, color-mix(in srgb, var(--month-adaptive-canvas, var(--month-canvas)) 70%, var(--theme-surface, white)) 56%, var(--month-adaptive-wash, var(--month-wash))); box-shadow: 0 8px 22px rgb(37 77 109 / 5%); }
   .month-calendar-hero > .month-hero-artwork { position: absolute; z-index: -1; top: 50%; right: 5%; width: 310px; height: 310px; transform: translateY(-46%); opacity: .48; }
   .month-calendar-hero .hero-copy { position: relative; max-width: 76%; }
-  .month-calendar-hero h2 { color: #24435e; }
-  .month-calendar-hero p { color: #506c81; }
-  .month-calendar-hero .hero-eyebrow { color: #45657d; border-color: #ccdee9; background: rgb(255 255 255 / 80%); }
-  .month-calendar-hero .hero-stat { position: relative; color: #2a526e; border-color: rgb(255 255 255 / 95%); background: rgb(255 255 255 / 84%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  .month-calendar-hero .hero-stat > span { color: #4d6d83; }
-  .month-calendar-hero .hero-stat > strong { color: #2a526e; }
+  .month-calendar-hero h2 { color: var(--theme-text-primary, #24435e); }
+  .month-calendar-hero p { color: var(--theme-text-secondary, #506c81); }
+  .month-calendar-hero .hero-eyebrow { color: var(--theme-text-primary, #45657d); border-color: var(--theme-border, #ccdee9); background: var(--theme-glass, rgb(255 255 255 / 80%)); }
+  .month-calendar-hero .hero-stat { position: relative; color: var(--theme-text-primary, #2a526e); border-color: var(--theme-border, rgb(255 255 255 / 95%)); background: var(--theme-glass, rgb(255 255 255 / 84%)); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .month-calendar-hero .hero-stat > span { color: var(--theme-text-secondary, #4d6d83); }
+  .month-calendar-hero .hero-stat > strong { color: var(--theme-text-primary, #2a526e); }
 
   @media (min-width: 1500px) {
     .month-backdrop-right { right: max(-30px, calc((100vw - 1700px) / 2)); }

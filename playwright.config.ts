@@ -30,6 +30,7 @@ if (browserOverride) {
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: ['**/pwa/**'], // Production-only checks have their own short command/config.
   fullyParallel: false,
   workers: 1,
   timeout: 30_000,

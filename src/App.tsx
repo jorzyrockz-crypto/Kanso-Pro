@@ -7,6 +7,8 @@ import { buildTimeline, focusCard, formatDate } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useAccount } from './lib/useAccount'
+import { useAppearance } from './lib/useAppearance'
+import { usePwa } from './lib/usePwa'
 import { accountError } from './lib/account'
 import { SettingsPage } from './components/SettingsPage'
 import { AccountPage } from './components/AccountPage'
@@ -77,6 +79,8 @@ function NewCardPage({ cards, onCancel, onCreate }: {
 export default function App() {
   const { state, dispatch, storageAvailable } = useJourneyStore()
   const account = useAccount()
+  const appearance = useAppearance()
+  const pwa = usePwa()
   const location = useLocation()
   const navigate = useNavigate()
   const navigationType = useNavigationType()
@@ -220,7 +224,7 @@ export default function App() {
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
           element={<WorkspacePage page={page} cards={state.cards} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
-        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} onToggleFrame={() => dispatch({ type: 'toggle-bezel' })} />} />
+        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
         <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />

@@ -2,44 +2,44 @@
   /* A true entry page: planning navigation returns after sign-in or guest entry. */
   .application-auth { --bottom-bar-height: 0px; min-height: 100svh; padding-bottom: 0; }
   .application-auth .page-outlet { display: flex; }
-  .application-auth .app-footer { padding: 15px max(24px, var(--safe-area-right)) max(24px, var(--safe-area-bottom)) max(24px, var(--safe-area-left)); color: #49687d; }
+  .application-auth .app-footer { padding: 15px max(24px, var(--safe-area-right)) max(24px, var(--safe-area-bottom)) max(24px, var(--safe-area-left)); color: var(--theme-text-primary, #49687d); }
   .sign-in-header { position: relative; padding-top: env(safe-area-inset-top); }
   .sign-in-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 22px; width: 100%; max-width: 1280px; min-height: 92px; margin: 0 auto; padding: 12px max(40px, var(--safe-area-right)) 12px max(40px, var(--safe-area-left)); }
-  .sign-in-back { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; color: #405f75; font-size: 11px; line-height: 1.6; font-weight: 600; text-decoration: none; }
-  .sign-in-back:hover { border-color: #cbdde8; background: rgb(255 255 255 / 65%); }
+  .sign-in-back { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; color: var(--theme-text-primary, #405f75); font-size: 11px; line-height: 1.6; font-weight: 600; text-decoration: none; }
+  .sign-in-back:hover { border-color: var(--theme-border-strong, #cbdde8); background: var(--theme-glass, rgb(255 255 255 / 65%)); }
   .sign-in-page { width: 100%; max-width: 1104px; margin: auto; padding: 20px 32px 36px; }
   .sign-in-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 422px); align-items: center; gap: clamp(40px, 7vw, 100px); }
   .sign-in-story { min-width: 0; padding: 0 4px 22px; }
-  .sign-in-month { display: inline-flex; align-items: center; gap: 9px; min-height: 32px; padding: 7px 12px; border: 1px solid rgb(255 255 255 / 95%); border-radius: 30px; color: #496477; background: rgb(255 255 255 / 66%); font-size: 10px; line-height: 1.6; font-weight: 600; letter-spacing: .3px; }
+  .sign-in-month { display: inline-flex; align-items: center; gap: 9px; min-height: 32px; padding: 7px 12px; border: 1px solid var(--theme-border, rgb(255 255 255 / 95%)); border-radius: 30px; color: var(--theme-text-primary, #496477); background: var(--theme-glass, rgb(255 255 255 / 66%)); font-size: 10px; line-height: 1.6; font-weight: 600; letter-spacing: .3px; }
   .sign-in-month > span { width: 6px; height: 6px; border-radius: 50%; background: #739b9d; }
   .sign-in-illustration { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; isolation: isolate; width: 100%; max-width: 430px; height: 280px; margin: 20px 0 0 -25px; }
-  .sign-in-art-wash { position: absolute; z-index: -1; width: 260px; height: 260px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 50%; background: radial-gradient(circle at 40% 40%, rgb(255 255 255 / 70%), color-mix(in srgb, var(--month-wash) 65%, transparent)); }
+  .sign-in-art-wash { position: absolute; z-index: -1; width: 260px; height: 260px; border: 1px solid var(--theme-border, rgb(255 255 255 / 80%)); border-radius: 50%; background: radial-gradient(circle at 40% 40%, var(--theme-glass, rgb(255 255 255 / 70%)), color-mix(in srgb, var(--month-adaptive-wash, var(--month-wash)) 65%, transparent)); }
   .sign-in-hero-art { width: 330px; max-width: 100%; height: 330px; opacity: .88; }
-  .sign-in-season-title { position: relative; margin-top: 7px; color: #294a5b; font-family: var(--serif); font-size: clamp(48px, 5.1vw, 68px); line-height: 1.08; letter-spacing: -1.8px; font-weight: 450; text-wrap: balance; }
-  .sign-in-story-copy { margin-top: 17px; color: #36586e; font-size: 19px; line-height: 1.65; letter-spacing: -.4px; font-weight: 500; }
-  .sign-in-season-note { margin-top: 25px; color: #526c7e; font-size: 11px; line-height: 1.95; }
+  .sign-in-season-title { position: relative; margin-top: 7px; color: var(--theme-text-primary, #294a5b); font-family: var(--serif); font-size: clamp(48px, 5.1vw, 68px); line-height: 1.08; letter-spacing: -1.8px; font-weight: 450; text-wrap: balance; }
+  .sign-in-story-copy { margin-top: 17px; color: var(--theme-text-primary, #36586e); font-size: 19px; line-height: 1.65; letter-spacing: -.4px; font-weight: 500; }
+  .sign-in-season-note { margin-top: 25px; color: var(--theme-text-secondary, #526c7e); font-size: 11px; line-height: 1.95; }
   .sign-in-form-column { min-width: 0; }
-  .sign-in-card { padding: 31px; border: 1px solid rgb(255 255 255 / 95%); border-radius: 25px; background: #fff; box-shadow: 0 18px 60px rgb(44 78 96 / 8%), 0 2px 6px rgb(44 78 96 / 3%); }
-  .sign-in-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #476a80; font-size: 8px; line-height: 1.5; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
-  .sign-in-eyebrow > svg { color: #567b91; }
-  .sign-in-card h1 { margin-top: 19px; color: #213e52; font-size: 28px; line-height: 1.35; letter-spacing: -1.05px; font-weight: 800; text-wrap: balance; }
+  .sign-in-card { padding: 31px; border: 1px solid var(--theme-border, rgb(255 255 255 / 95%)); border-radius: 25px; background: var(--theme-surface, #fff); box-shadow: 0 18px 60px rgb(44 78 96 / 8%), 0 2px 6px rgb(44 78 96 / 3%); }
+  .sign-in-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--theme-blue, #476a80); font-size: 8px; line-height: 1.5; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
+  .sign-in-eyebrow > svg { color: var(--theme-text-secondary, #567b91); }
+  .sign-in-card h1 { margin-top: 19px; color: var(--theme-text-primary, #213e52); font-size: 28px; line-height: 1.35; letter-spacing: -1.05px; font-weight: 800; text-wrap: balance; }
   .sign-in-card .account-intro { margin-top: 8px; font-size: 11px; line-height: 1.9; }
   .sign-in-card .account-modes { margin-top: 22px; }
   .sign-in-card a[aria-disabled="true"] { cursor: wait; opacity: .65; }
   .sign-in-card .account-form { gap: 17px; margin-top: 21px; }
   .sign-in-card .form-field > label { font-size: 10.5px; }
   .sign-in-card .button { min-height: 46px; }
-  .sign-in-card .account-auth-note { margin-top: 19px; color: #5b7384; font-size: 9px; line-height: 1.9; }
+  .sign-in-card .account-auth-note { margin-top: 19px; color: var(--theme-text-secondary, #5b7384); font-size: 9px; line-height: 1.9; }
   .sign-in-card .account-forgot { margin-top: -10px; }
   .sign-in-card .account-divider { margin: 19px 0; }
-  .sign-in-guest { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0 6px; margin-top: 14px; color: #496679; font-size: 10px; line-height: 1.7; text-align: center; }
-  .sign-in-guest > a { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; border-radius: 5px; color: #235c7c; font-size: 10.5px; font-weight: 750; text-decoration: none; }
+  .sign-in-guest { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0 6px; margin-top: 14px; color: var(--theme-text-primary, #496679); font-size: 10px; line-height: 1.7; text-align: center; }
+  .sign-in-guest > a { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; border-radius: 5px; color: var(--theme-blue, #235c7c); font-size: 10.5px; font-weight: 750; text-decoration: none; }
   .sign-in-guest > a:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .sign-in-local-note { max-width: 350px; margin: 0 auto; color: #516c7e; font-size: 9px; line-height: 1.9; text-align: center; }
+  .sign-in-local-note { max-width: 350px; margin: 0 auto; color: var(--theme-text-secondary, #516c7e); font-size: 9px; line-height: 1.9; text-align: center; }
   .sign-in-device { margin-top: 13px; }
-  .sign-in-device > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 9px; border: 1px solid transparent; border-radius: 12px; color: #426278; font-size: 9px; line-height: 1.6; list-style: none; cursor: pointer; }
+  .sign-in-device > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 9px; border: 1px solid transparent; border-radius: 12px; color: var(--theme-text-primary, #426278); font-size: 9px; line-height: 1.6; list-style: none; cursor: pointer; }
   .sign-in-device > summary::-webkit-details-marker { display: none; }
-  .sign-in-device > summary:hover, .sign-in-device[open] > summary { border-color: rgb(255 255 255 / 85%); background: rgb(255 255 255 / 60%); }
+  .sign-in-device > summary:hover, .sign-in-device[open] > summary { border-color: var(--theme-border-strong, rgb(255 255 255 / 85%)); background: var(--theme-glass, rgb(255 255 255 / 60%)); }
   .sign-in-device[open] > summary > svg:last-child { transform: rotate(180deg); }
   .sign-in-device > .account-device-panel { margin-top: 8px; padding: 24px; border-radius: 19px; box-shadow: 0 5px 20px rgb(44 78 96 / 4%); }
   .sign-in-device .account-device-icon { display: none; }
@@ -48,7 +48,7 @@
   .sign-in-device .account-device-stats > div { padding: 10px 8px; }
   .sign-in-device .account-device-stats strong { font-size: 20px; }
   .sign-in-device .account-device-stats span { font-size: 8px; }
-  .month-backdrop-sign-in { background: radial-gradient(ellipse at 8% 25%, var(--month-wash), transparent 60%), radial-gradient(ellipse at 90% 92%, color-mix(in srgb, var(--month-wash) 70%, white), transparent 55%), var(--month-canvas); }
+  .month-backdrop-sign-in { background: radial-gradient(ellipse at 8% 25%, var(--month-adaptive-wash, var(--month-wash)), transparent 60%), radial-gradient(ellipse at 90% 92%, color-mix(in srgb, var(--month-adaptive-wash, var(--month-wash)) 70%, var(--theme-surface, white)), transparent 55%), var(--month-adaptive-canvas, var(--month-canvas)); }
   .month-backdrop-sign-in > .month-artwork { opacity: .25; }
   .month-backdrop-sign-in > .month-backdrop-right { top: -130px; right: -130px; width: 540px; }
   .month-backdrop-sign-in > .month-backdrop-left { bottom: -100px; left: -100px; width: 440px; }

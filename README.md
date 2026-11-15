@@ -19,7 +19,8 @@ Open the local Vite address (port **5173** by default). The development server b
 npm run build       # Strict TypeScript checks + production build
 npm run preview     # Serve the production build
 npm test            # Vitest dates, storage, routing, themes, and auth adapter
-npm run test:e2e    # Playwright interactions, navigation, responsive layout, axe
+npm run test:e2e    # Full Playwright app regression (slower; not needed for every change)
+npm run test:pwa    # Build + 3 focused production PWA checks (~40 seconds here)
 ```
 
 The browser tests use an npm-packaged Chromium on Linux x64, so they do not need a separate browser download. Playwright 1.61.1 and Chromium 149 are pinned as a matching stable pair; update these together. Later browser builds have a [known native new-tab regression](https://github.com/microsoft/playwright/issues/42142), so the separate-tab test remains unchanged rather than hiding it with retries. On macOS, Windows, or Linux ARM, run `npx playwright install chromium` first. An existing browser can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
@@ -49,7 +50,7 @@ The browser tests use an npm-packaged Chromium on Linux x64, so they do not need
 
 ## Included
 
-- Ice-blue gradients, glass surfaces, self-hosted Plus Jakarta Sans and Newsreader fonts, and a responsive portrait timeline based on the supplied design reference.
+- Ice-blue Light and restful navy Dark palettes, glass surfaces, self-hosted Plus Jakarta Sans and Newsreader fonts, and a responsive portrait timeline based on the supplied design reference. **Auto** follows the device’s color preference.
 - A glowing, scroll-responsive center spine and alternating cards on iPad/desktop; a single-column, left-spine layout below 681px.
 - Type filters, date nodes, four customizable special-occasion vector backgrounds, lined journal paper, and an optional tablet frame.
 - Twelve subtle monthly vector backdrops for Timeline, Calendar, and the dedicated sign-in screen, with a matching illustrated calendar header and seasonal welcome panel.
@@ -63,7 +64,7 @@ The browser tests use an npm-packaged Chromium on Linux x64, so they do not need
 - Reload persistence, same-browser cross-tab updates, schema validation, and a warning when device storage is unavailable.
 - Firebase email/password account creation and sign-in, optional Google sign-in, profile name editing, verification, password recovery, and sign-out without changing local cards.
 - Guest access, clear sign-in loading/error states, and a JSON device-workspace export with no account credentials.
-- A dedicated **Profile → Settings** page for account access, the shared Tablet frame preference, workspace counts/backups, privacy/storage guidance, version, and help. Settings works without sign-in or a working Firebase connection.
+- A dedicated **Profile → Settings** page for account access, app-wide Light / Dark / Auto appearance, workspace counts/backups, privacy/storage guidance, version, and help. Settings works without sign-in or a working Firebase connection.
 - Keyboard-operable navigation, a skip link, one main landmark per page, reduced-motion support, and literal-text rendering through React. No HTML injection or modal focus traps.
 
 ## Account access with Firebase
@@ -78,13 +79,40 @@ The supplied **`russapps-kanso-pro`** Firebase web configuration is included; op
 
 Automated authentication tests use mocked SDK boundaries and intercepted Firebase REST responses; they do not create real users, send emails, or verify live Console settings. Guest planning remains available when authentication is offline or misconfigured.
 
+## Install Kanso Pro & work offline
+
+Open **Profile menu → Settings → About & help** (`/settings#about`). A real **Install Kanso Pro** button appears when the browser offers installation; otherwise the page explains its install menu. On iPhone/iPad, open the site in Safari and use **Share → Add to Home Screen**. Installation usually needs the full site in its own tab, not an embedded preview. The manifest supplies standalone launch, New card/Calendar/Journal shortcuts, and platform-appropriate icons.
+
+The new calendar artwork is used in the header, sign-in, footer, About, favicon, and installation icons. Its exterior white background and drop shadow are removed while preserving the cream paper and folded corner. Regular PNGs are transparent; Apple-touch and maskable variants intentionally use an opaque ice-blue platform background. The maskable artwork fits inside the central safe circle.
+
+- **Offline after setup:** visit once online and wait for **Ready offline on this device**. The production service worker precaches the local app shell, fonts, and icons. Offline reloads and direct links work; cards, checklists, journal edits, and appearance keep using their existing local browser storage. Sign-in, account changes, and external help links require internet.
+- **Safe updates:** a new shell installs in the background, then waits. About shows **Reload to update**, with an unfinished-form warning. Only the tab that chooses this action reloads; other tabs keep their inputs. Updates also activate naturally when old app windows are closed. Saved cards/preferences are not reset. The worker retains one previous shell for already-open tabs.
+- **Privacy & limits:** the worker caches only same-origin build files, never Firebase/API traffic, passwords, tokens, or workspace data. Cards and Firebase sessions retain their separate storage rules. Clearing site data or browser eviction can remove offline availability and local plans; installation is not a backup or cloud sync. Export important plans.
+- **Production only:** registration requires HTTPS (localhost is allowed for development checks). `npm run dev` does not register a worker, avoiding stale development assets. Use `npm run build && npm run preview` to try the installed/offline experience; Vercel receives the same static files and service-worker/manifest cache headers. No deployment is performed by this change.
+
+For small PWA changes, run **`npm run test:pwa`**, not the full browser suite: it builds once and runs three production checks covering manifest/installability/icons, offline direct-load/save/reload with appearance persistence, and consent-based updates with another tab’s unsaved draft. The dependency-free build plugin hashes each shell automatically; no PWA package or remote CDN is required. Physical-device installation and Safari remain manual checks.
+
+## Light, Dark, and Auto
+
+Open **Profile menu → Settings → Appearance** (or `/settings#appearance`):
+
+- **Light** keeps the bright, ice-blue appearance, regardless of the device setting.
+- **Dark** uses a coordinated navy palette across navigation, cards, forms, journal paper, calendar, occasion controls, Settings/Profile, account/security, sign-in/create/reset, feedback, and recovery pages.
+- **Auto** is the default. It follows the browser/device’s `prefers-color-scheme`, including changes while the app is open. Switching back to Auto uses the latest device setting; no reload is needed.
+
+The native radio group supports arrow keys, a visible focus ring/checkmark, and full-card touch targets. The current resolved appearance and save status are shown underneath. Mode changes do not reset drafts or change cards, dates, selected months, account state, or the automatic seasonal scenes. Monthly washes adapt to the mode; original occasion illustrations keep their intended colors and readable text scrims.
+
+Color mode is a separate device/origin preference under **`kanso-pro:appearance:v1`**, containing only `{ "version": 1, "mode": "light" | "dark" | "auto" }`. It is not per account, does not migrate/overwrite the version-one journey or legacy saves, and is **not included in journey backups**. Same-origin tabs follow the saved choice. Missing/invalid settings fall back to Auto; blocked storage keeps the choice in memory for the current session and shows **Not saved**. A synchronous head script applies the saved/system appearance before React renders, in both development and production.
+
+Reduced-motion and forced-color/high-contrast behavior remain available. Print uses a light palette and hides decorative backgrounds and navigation. Automated Chromium/axe coverage checks both modes, all twelve dark monthly palettes, live device changes, keyboard/touch, storage failures, persistence, cross-tab drafts, and light printing. Physical iPad/Safari and assistive-technology checks are still recommended.
+
 ## A sign-in page that follows the month
 
 The sign-in, account-creation, and password-recovery screens reuse the **same twelve local monthly scenes** listed below. The page wash, background vectors, featured illustration, month/year label, and seasonal title all follow the **real current month on the device**. They are not tied to the November 2026 sample, a Calendar selection, or a `month` URL parameter.
 
 - An open page checks again just after **local midnight**, so a month/year change does not require a reload. It also refreshes on tab focus, page restoration, and return to a visible tab after suspension or a device-clock/timezone change.
-- Scheduling uses the next local date, handles daylight-saving days, and avoids month-long browser timeouts. No server cron job, location permission, API request, or saved appearance preference is needed.
-- Changing scenes does not reset entered form fields, passwords, feedback, or workspace cards. Artwork stays static and decorative; white form surfaces preserve contrast, touch targets stay at least 44 pixels, and narrower/keyboard-height windows use normal page scrolling.
+- Scheduling uses the next local date, handles daylight-saving days, and avoids month-long browser timeouts. No server cron job, location permission, API request, or fixed-month preference is needed. The separate color-mode preference does not choose the month.
+- Changing scenes does not reset entered form fields, passwords, feedback, or workspace cards. Artwork stays static and decorative; plain, mode-adapted form surfaces preserve contrast, touch targets stay at least 44 pixels, and narrower/keyboard-height windows use normal page scrolling.
 - Tablet/desktop use a spacious side-by-side composition; phones get a compact seasonal heading above the form. Decorative artwork is hidden for higher-contrast/forced-color displays and printing, with no animation or parallax.
 
 ## Monthly view backgrounds
@@ -111,7 +139,7 @@ The sign-in, account-creation, and password-recovery screens reuse the **same tw
 - **Timeline:** the month badge and backdrop follow the dated cards at the center of the reading area as you scroll. The first month is shown at the top and the last at the end; filtered and empty timelines have safe fallbacks. Month boundaries already have labeled dividers.
 - Monthly scenes are **separate from event occasion backgrounds**. An April birthday can have an April page backdrop and a Birthday event card; changing one does not overwrite the other or alter event metadata.
 - Cards, calendar cells, and controls keep their readable surfaces. Background illustrations never take keyboard focus or block touch, and are hidden for higher-contrast/forced-color displays and printing. There is no background animation or parallax.
-- Monthly appearance is derived from the view; no new stored preference or schema migration is required. Tasks, Projects, Journal, New card, and not-found recovery pages keep their existing backgrounds.
+- The monthly scene is derived from the view; there is no fixed-month preference or journey-schema migration. Every page follows the separate Light / Dark / Auto color preference, including Tasks, Projects, Journal, New card, and recovery pages.
 
 ## Special-occasion backgrounds
 
@@ -158,11 +186,13 @@ src/
   months.css                Subtle month backdrops and calendar hero watermarks
   account.css               Account forms, identity, and shared device summary
   sign-in.css               Dedicated entry layout and responsive seasonal welcome
-  settings.css              Profile disclosure, Settings sections/index, accessible switch
+  settings.css              Profile disclosure and Settings sections/index
+  theme.css                 Semantic dark tokens, color picker, adaptive monthly washes, print
   components/
     AppHeader.tsx           Branding, New card, and the Profile disclosure
     ProfileMenu.tsx         Account-aware navigation, dismissal, focus, and sign-out
     SettingsPage.tsx        Device preferences, backup, privacy, version, and help
+    ColorModePicker.tsx     Native Light / Dark / Auto radio group and save/current status
     DeviceWorkspace.tsx     Shared live counts/save status and account/entry backup panel
     AccountPage.tsx         Profile, auth feedback, legacy URL handling, local backup
     SignInPage.tsx          Branded entry header, login/signup/recovery forms, monthly art
@@ -180,6 +210,8 @@ src/
     account.ts              Validated auth inputs, safe identity/error presentation
     firebase.ts             Modular Firebase Auth adapter and public web config
     useAccount.ts           Shared auth observer, loading state, action protection
+    appearance.ts           Validated color preference, resolution, before-paint script
+    useAppearance.ts        App-wide color/media/storage controller, session fallback
     navigation.ts           Page paths, Settings anchors, deep links, creation options
     workspaceBackup.ts      Workspace-only JSON, dated downloads, object-URL cleanup
     journey.ts              Timezone-safe dates, grouping, progress, creation
@@ -197,6 +229,12 @@ tests/months.spec.ts         Twelve scenes, month/scroll/history sync, layout, c
 tests/account.spec.ts        Auth flows, persistence, privacy, backup, layout, axe
 tests/sign-in.spec.ts        All monthly scenes, clock/timezones, live rollover, responsive/axe
 tests/settings.spec.ts       Profile/Settings links, focus/touch, auth/storage faults, backup, axe
+tests/appearance.spec.ts     Full-app modes, live Auto, prepaint, persistence, all-palette axe
+tests/pwa/                  Three focused production-only install/offline/update checks
+scripts/pwa.ts              Dependency-free, build-hashed app-shell precache generator
+src/service-worker.js       Same-origin shell only; no auth or workspace caching
+public/manifest.webmanifest  Standalone installation metadata and app shortcuts
+public/icons/               Cutout branding, Apple touch icon, and safe-zone maskable icon
 tests/helpers/firebase.ts    Test-only REST interception; no production auth bypass
 docs/firebase-setup.md       Provider/domain setup, data boundary, manual verification
 docs/settings-plan.md        Implemented Settings specification and acceptance results
@@ -207,12 +245,12 @@ docs/settings-plan.md        Implemented Settings specification and acceptance r
 Open the header’s **Profile menu → Settings**, or visit **`/settings`** directly. Settings is a normal full page, not a modal or a sixth bottom destination. Its section index is beside the content on larger screens and wraps above it on phones; each section has a shareable anchor:
 
 - **Profile & account** (`#account`): identity/status and a link to the existing account/security page, or sign-in/create links for guests. No duplicate authentication forms.
-- **Appearance** (`#appearance`): **Tablet frame**, using exactly the same saved preference as the Timeline toolbar. Changes apply immediately, survive reload, and synchronize across same-origin tabs. A decorative preview explains automatic artwork and follows the actual device-local month; it does not add a fixed-month or theme setting.
+- **Appearance** (`#appearance`): functional **Light**, **Dark**, and **Auto** choices for the whole app, replacing the old Settings frame switch. Changes apply immediately, survive reload, and synchronize across same-origin tabs. A decorative preview still follows the actual device-local month. The independent **Tablet frame** quick button remains on the Timeline toolbar.
 - **Device workspace & backup** (`#workspace`): live card counts, storage status, and JSON export for guests and signed-in users. A download contains workspace data only and is not cloud sync or a verified off-device backup. Download errors leave the workspace unchanged.
 - **Privacy & storage** (`#privacy`): browser-profile/origin scope, shared-device access, blocked-storage/session-only behavior, and the separate account session. Another device or host has its own workspace.
-- **About & help** (`#about`): the version from `package.json`, a brief usage guide, and real source/setup documentation links. Build-time source links follow the current Git branch (or Vercel’s commit-ref metadata), with `main` as the archive fallback.
+- **About & help** (`#about`): the version from `package.json`, PWA installation/offline/update status, a brief usage guide, and real source/setup documentation links. Build-time source links follow the current Git branch (or Vercel’s commit-ref metadata), with `main` as the archive fallback.
 
-The page stays usable when authentication or device persistence is unavailable. The version-one journey schema and storage key are unchanged; no identity is added to cards or exports. The sign-in page’s existing guest backup remains available too. Restore/import/reset, dark/system themes, cloud sync, and integrations are deliberately **not** included.
+The page stays usable when authentication or device persistence is unavailable. The version-one journey schema and storage key are unchanged; no identity is added to cards or exports. The sign-in page’s existing guest backup remains available too. Restore/import/reset, cloud sync, and integrations are deliberately **not** included.
 
 The [implemented Settings specification](docs/settings-plan.md) records the reference review, interaction contract, acceptance checks, and verification scope.
 

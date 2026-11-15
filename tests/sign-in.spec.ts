@@ -108,6 +108,8 @@ test('registration, recovery, refresh, legacy links, and history retain the real
   await page.clock.setFixedTime(new Date('2028-05-15T12:00:00Z'))
   await page.goto('/calendar?month=2026-03')
   await expect(page.locator('[data-month-background]')).toHaveAttribute('data-month-background', '2026-03')
+  // Account completion intentionally dismisses an open Profile disclosure.
+  await expect(page.getByRole('button', { name: 'Profile menu', exact: true })).not.toContainText('Checking account')
   await page.getByRole('button', { name: 'Profile menu', exact: true }).click()
   await page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/sign-in')

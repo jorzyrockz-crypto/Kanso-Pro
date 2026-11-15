@@ -13,8 +13,11 @@ import { BACKUP_FAILED, BACKUP_READY, downloadWorkspaceBackup } from '../lib/wor
 import { DeviceWorkspaceSummary } from './DeviceWorkspace'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
 import { PageHeader } from './PageHeader'
-import { SaveIndicator } from './Common'
+import { ColorModePicker } from './ColorModePicker'
+import type { AppearanceController } from '../lib/useAppearance'
 import { KansoMark } from './AppHeader'
+import { PwaSettings } from './PwaSettings'
+import type { PwaController } from '../lib/usePwa'
 
 const icons = { account: UserRound, appearance: Palette, workspace: HardDrive, privacy: ShieldCheck, about: Info }
 const repository = 'https://github.com/jorzyrockz-crypto/Kanso-Pro'
@@ -29,7 +32,7 @@ function SettingsSection({ id, title, description, children }: { id: typeof SETT
   </section>
 }
 
-export function SettingsPage({ account, state, storageAvailable, onToggleFrame }: { account: AccountController; state: JourneyState; storageAvailable: boolean; onToggleFrame: () => void }) {
+export function SettingsPage({ account, state, storageAvailable, appearance, pwa }: { account: AccountController; state: JourneyState; storageAvailable: boolean; appearance: AppearanceController; pwa: PwaController }) {
   const { user, phase } = account
   const { hash } = useLocation()
   const month = useCurrentMonth()
@@ -66,22 +69,21 @@ export function SettingsPage({ account, state, storageAvailable, onToggleFrame }
         </SettingsSection>
 
         <SettingsSection id="appearance" title="Appearance" description="A familiar place, with room for a little personality.">
-          <label className="settings-preference" htmlFor="settings-tablet-frame"><span><strong id="settings-frame-label">Tablet frame</strong><span id="settings-frame-hint">Add a device-style bezel around your Timeline. Your cards and other pages stay the same.</span></span><span className="settings-switch"><input id="settings-tablet-frame" type="checkbox" role="switch" checked={state.bezel} onChange={onToggleFrame} aria-labelledby="settings-frame-label" aria-describedby="settings-frame-hint" /><span className="settings-switch-track" aria-hidden="true" /></span></label>
-          <div className="settings-preference-status"><SaveIndicator available={storageAvailable} /><span>Also available from the Timeline toolbar</span></div>
+          <ColorModePicker appearance={appearance} />
           <div className="settings-month-preview" data-settings-month={month} style={monthPalette(scene)}><div><span className="settings-month-label"><Sparkles size={13} aria-hidden="true" />Automatic · {scene.name} {month.slice(0, 4)}</span><h3>{scene.title}.</h3><p>Sign-in follows your device’s current month. Timeline and Calendar follow the month you’re viewing.</p></div><MonthArtwork month={month} side="right" className="settings-month-art" /></div>
         </SettingsSection>
 
         <SettingsSection id="workspace" title="Device workspace & backup" description="Your plans live here. Keep a copy somewhere you trust.">
           <DeviceWorkspaceSummary state={state} storageAvailable={storageAvailable} />
           <div className="settings-backup-row"><div><strong>A copy of your whole journey.</strong><p>Events, task lists, projects, notes, and your Tablet frame preference.</p></div><button className="button settings-secondary" type="button" onClick={exportWorkspace}><Download size={15} aria-hidden="true" />Export device backup</button></div>
-          <p className="settings-caption">Downloads a JSON file without sign-in tokens or passwords. Keep it private. This is not cloud sync, and we can’t verify where you save the file.</p>
+          <p className="settings-caption">Downloads a JSON file without sign-in tokens or passwords. Color mode stays a separate device setting and is not included. Keep the backup private. This is not cloud sync, and we can’t verify where you save the file.</p>
           {feedback && <p ref={feedbackRef} tabIndex={-1} className={`account-feedback settings-backup-feedback ${feedback.error ? 'is-error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{!feedback.error && <Check size={15} aria-hidden="true" />}{feedback.message}</p>}
         </SettingsSection>
 
         <SettingsSection id="privacy" title="Privacy & storage" description="A clear picture of what stays here, and what signing in does.">
           <div className="settings-privacy-callout"><ShieldCheck size={22} aria-hidden="true" /><div><strong>Local does not mean locked.</strong><p>Anyone using this browser profile can access its cards, even while signed out. Use a separate browser profile on shared devices.</p></div></div>
           <dl className="settings-data-list">
-            <div><dt><HardDrive size={16} aria-hidden="true" />Saved in this browser</dt><dd>Your cards, edits, and Tablet frame preference. Clearing site data can erase them. When storage is blocked, changes last only for the session.</dd></div>
+            <div><dt><HardDrive size={16} aria-hidden="true" />Saved in this browser</dt><dd>Your cards, edits, color mode, and Timeline frame preference. Clearing site data can erase them. When storage is blocked, changes last only for the session.</dd></div>
             <div><dt><Mail size={16} aria-hidden="true" />Your account & session</dt><dd>Firebase manages your identity and sign-in session separately. Signing in or out does not upload, transfer, hide, delete, or separate your cards by account.</dd></div>
             <div><dt><Laptop size={16} aria-hidden="true" />A different device or address</dt><dd>A new browser profile, device, or website address has its own workspace. Export important plans before changing hosts; signing in does not move them.</dd></div>
           </dl>
@@ -91,6 +93,7 @@ export function SettingsPage({ account, state, storageAvailable, onToggleFrame }
         <SettingsSection id="about" title="About & help" description="A little structure. A lot of possibility.">
           <div className="settings-about-brand"><span className="brand-mark"><KansoMark /></span><div><strong>Kanso Pro</strong><span>Version {version} · Your personal planning space</span></div></div>
           <p className="settings-caption">Use the bottom bar to move between your five planning pages. New card adds an event, task list, project, or note to your journey.</p>
+          <PwaSettings pwa={pwa} />
           <div className="settings-help-links"><a href={`${docs}/README.md`} target="_blank" rel="noopener noreferrer"><BookOpen size={18} aria-hidden="true" /><span>Usage guide</span><ExternalLink size={14} aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a><a href={`${docs}/docs/firebase-setup.md`} target="_blank" rel="noopener noreferrer"><ShieldCheck size={18} aria-hidden="true" /><span>Account setup guide</span><ExternalLink size={14} aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a><a href={`${repository}/tree/${sourceRef}`} target="_blank" rel="noopener noreferrer"><Info size={18} aria-hidden="true" /><span>Source code</span><ExternalLink size={14} aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a></div>
           <p className="settings-caption">Help and source links open the project documentation in a new tab.</p>
         </SettingsSection>

@@ -22,9 +22,9 @@
   .occasion-event-footer > span { padding: 3px 5px; border-radius: 5px; background: rgb(8 20 37 / 55%); }
 
   /* Keep editing controls on a plain surface, separate from the illustrated event. */
-  .calendar-event { min-width: 0; padding: 0; overflow: hidden; overflow-wrap: anywhere; background: #fff; }
+  .calendar-event { min-width: 0; padding: 0; overflow: hidden; overflow-wrap: anywhere; background: var(--theme-surface, #fff); }
   .calendar-event-meta > .badge, .event-detail-meta > span { min-width: 0; }
-  .calendar-event-surface { position: relative; padding: 17px; background-color: #f4f9ff; }
+  .calendar-event-surface { position: relative; padding: 17px; background-color: var(--theme-surface-muted, #f4f9ff); }
   .calendar-event-content { position: relative; z-index: 1; }
   .calendar-event-surface.occasion-surface { min-height: 205px; background-color: var(--occasion-start); }
   .occasion-surface .calendar-event-copy { max-width: 75%; }
@@ -39,42 +39,42 @@
   .calendar-event-surface.occasion-surface .event-detail-meta > span,
   .calendar-event-surface.holiday-card .event-detail-meta > span { padding: 4px 6px; border-radius: 6px; background: rgb(8 20 37 / 55%); }
   .calendar-event-surface.holiday-card .calendar-event-copy p { color: #fff; }
-  .event-background-editor { border-top: 1px solid #dce7f0; background: #f8fbfe; color: #3b5973; }
-  .event-background-editor > summary { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 10px 13px; color: #3b5973; font-size: 10px; line-height: 1.5; font-weight: 650; list-style: none; cursor: pointer; }
+  .event-background-editor { border-top: 1px solid var(--theme-border, #dce7f0); background: var(--theme-surface-muted, #f8fbfe); color: var(--theme-text-primary, #3b5973); }
+  .event-background-editor > summary { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 10px 13px; color: var(--theme-text-primary, #3b5973); font-size: 10px; line-height: 1.5; font-weight: 650; list-style: none; cursor: pointer; }
   .event-background-editor > summary::-webkit-details-marker { display: none; }
   .event-background-editor > summary > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
-  .event-background-current { margin-left: auto; max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #536b81; font-size: 9px; font-weight: 550; }
-  .event-background-editor > summary > svg { color: #58758c; transition: transform .2s; }
+  .event-background-current { margin-left: auto; max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--theme-text-secondary, #536b81); font-size: 9px; font-weight: 550; }
+  .event-background-editor > summary > svg { color: var(--theme-text-secondary, #58758c); transition: transform .2s; }
   .event-background-editor[open] > summary > svg { transform: rotate(90deg); }
-  .event-background-editor > summary:hover { background: #edf5fb; }
+  .event-background-editor > summary:hover { background: var(--theme-blue-soft, #edf5fb); }
   .event-background-editor > summary:focus-visible { outline-offset: -4px; border-radius: 8px; }
-  .event-background-options { padding: 15px; border-top: 1px solid #e2ebf3; background: #fff; }
+  .event-background-options { padding: 15px; border-top: 1px solid var(--theme-border, #e2ebf3); background: var(--theme-surface, #fff); }
 
   /* A native radio group: keyboard arrows, visible focus, and generous tap areas. */
-  .occasion-picker { min-width: 0; margin: 0; padding: 18px; border: 1px solid #dee8f1; border-radius: 17px; background: #fbfdff; }
-  .occasion-picker > legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 5px; color: #425f78; font-size: 11px; font-weight: 750; }
-  .occasion-picker .occasion-picker-hint { color: #5d7186; font-size: 10.5px; line-height: 1.8; }
+  .occasion-picker { min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--theme-border, #dee8f1); border-radius: 17px; background: var(--theme-surface, #fbfdff); }
+  .occasion-picker > legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 5px; color: var(--theme-text-primary, #425f78); font-size: 11px; font-weight: 750; }
+  .occasion-picker .occasion-picker-hint { color: var(--theme-text-secondary, #5d7186); font-size: 10.5px; line-height: 1.8; }
   .occasion-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 13px; }
-  .occasion-option { position: relative; display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 0; min-height: 84px; padding: 6px; border: 1px solid #dce6ef; border-radius: 12px; color: #4f687f; background: #fff; cursor: pointer; transition: background .2s, border-color .2s; }
-  .occasion-option:hover { background: #f0f7fc; border-color: #9ecbe6; }
-  .occasion-option.is-selected { color: #155e8b; background: #eaf5fd; border-color: #76b5dd; box-shadow: 0 0 0 1px #76b5dd; }
+  .occasion-option { position: relative; display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 0; min-height: 84px; padding: 6px; border: 1px solid var(--theme-border, #dce6ef); border-radius: 12px; color: var(--theme-text-secondary, #4f687f); background: var(--theme-surface, #fff); cursor: pointer; transition: background .2s, border-color .2s; }
+  .occasion-option:hover { background: var(--theme-blue-soft, #f0f7fc); border-color: var(--theme-border-strong, #9ecbe6); }
+  .occasion-option.is-selected { color: var(--theme-blue, #155e8b); background: var(--theme-blue-soft, #eaf5fd); border-color: #76b5dd; box-shadow: 0 0 0 1px #76b5dd; }
   .occasion-option > input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-  .occasion-option:has(input:focus-visible) { outline: 3px solid #1894d1; outline-offset: 3px; }
-  .occasion-swatch { position: relative; display: flex; align-items: center; justify-content: center; min-height: 52px; overflow: hidden; border-radius: 7px; background: #edf5fc; color: #537c9a; }
-  .swatch-none { color: #6a7e90; background: #f0f3f7; }
+  .occasion-option:has(input:focus-visible) { outline: 3px solid var(--theme-focus, #1894d1); outline-offset: 3px; }
+  .occasion-swatch { position: relative; display: flex; align-items: center; justify-content: center; min-height: 52px; overflow: hidden; border-radius: 7px; background: var(--theme-blue-soft, #edf5fc); color: var(--theme-blue, #537c9a); }
+  .swatch-none { color: var(--theme-text-secondary, #6a7e90); background: var(--theme-blue-soft, #f0f3f7); }
   .occasion-option-check { position: absolute; right: 4px; bottom: 4px; z-index: 1; display: flex; align-items: center; justify-content: center; width: 17px; height: 17px; border: 1px solid rgb(255 255 255 / 65%); border-radius: 50%; background: #166e9e; color: #fff; }
   .occasion-option-label { text-align: center; color: inherit; font-size: 10px; line-height: 1.6; font-weight: 650; overflow-wrap: anywhere; }
-  .occasion-picker-compact { padding: 0; border: 0; border-radius: 0; background: #fff; }
+  .occasion-picker-compact { padding: 0; border: 0; border-radius: 0; background: var(--theme-surface, #fff); }
   .occasion-picker-compact > legend { padding: 0; }
   .occasion-picker-compact .occasion-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .occasion-picker .occasion-selection { margin-top: 12px; color: #3e647d; font-size: 10px; line-height: 1.8; font-weight: 650; }
-  .occasion-vector-note { display: block; margin-top: 4px; color: #5b7185; font-size: 9px; line-height: 1.7; }
+  .occasion-picker .occasion-selection { margin-top: 12px; color: var(--theme-text-primary, #3e647d); font-size: 10px; line-height: 1.8; font-weight: 650; }
+  .occasion-vector-note { display: block; margin-top: 4px; color: var(--theme-text-secondary, #5b7185); font-size: 9px; line-height: 1.7; }
 
-  .occasion-preview { position: relative; min-width: 0; min-height: 176px; margin-top: 18px; padding: 22px; overflow: hidden; border: 1px solid #dbe7f1; border-radius: 15px; color: #36506b; background: linear-gradient(110deg, #edf5fc, #f9fcff); }
+  .occasion-preview { position: relative; min-width: 0; min-height: 176px; margin-top: 18px; padding: 22px; overflow: hidden; border: 1px solid var(--theme-border, #dbe7f1); border-radius: 15px; color: var(--theme-text-primary, #36506b); background: linear-gradient(110deg, var(--theme-blue-soft, #edf5fc), var(--theme-surface-muted, #f9fcff)); }
   .occasion-preview-copy { position: relative; z-index: 1; max-width: 74%; }
-  .occasion-preview-eyebrow { color: #5d7489; font-size: 8px; line-height: 1.5; font-weight: 750; letter-spacing: 1px; text-transform: uppercase; }
-  .occasion-preview h3 { margin-top: 11px; color: #27435d; font-size: 19px; line-height: 1.5; letter-spacing: -.5px; font-weight: 800; overflow-wrap: anywhere; }
-  .occasion-preview p { margin-top: 7px; color: #5d7186; font-size: 10.5px; line-height: 1.8; }
+  .occasion-preview-eyebrow { color: var(--theme-text-secondary, #5d7489); font-size: 8px; line-height: 1.5; font-weight: 750; letter-spacing: 1px; text-transform: uppercase; }
+  .occasion-preview h3 { margin-top: 11px; color: var(--theme-text-primary, #27435d); font-size: 19px; line-height: 1.5; letter-spacing: -.5px; font-weight: 800; overflow-wrap: anywhere; }
+  .occasion-preview p { margin-top: 7px; color: var(--theme-text-secondary, #5d7186); font-size: 10.5px; line-height: 1.8; }
   .occasion-preview.occasion-surface { border-color: rgb(255 255 255 / 25%); background: linear-gradient(115deg, var(--occasion-start), var(--occasion-end)); }
   .occasion-preview.occasion-surface .occasion-preview-eyebrow,
   .occasion-preview.occasion-surface h3 { color: #fff; }

@@ -13,6 +13,10 @@ const navigation = (page: Page) => page.getByRole('navigation', { name: 'Main na
 const localState = (page: Page) => page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)
 const feedback = (page: Page) => page.locator('.account-feedback')
 async function signIn(page: Page) {
+  // React Router may still be rendering the previous create/reset mode after a click.
+  // Wait for the sign-in form before typing, rather than racing its password reset.
+  await expect(page.getByRole('form', { name: 'Sign in with email', exact: true })).toBeVisible()
+  await expect(password(page)).toHaveAttribute('autocomplete', 'current-password')
   await email(page).fill('ada@example.test')
   await password(page).fill('test-passphrase-2026')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
@@ -39,6 +43,7 @@ test.afterEach(() => {
 test('the workspace badge opens a normal, refreshable account page and guests can keep planning', async ({ page }) => {
   await page.goto('/')
   await expect(accountLink(page)).toHaveAttribute('aria-expanded', 'false')
+  await expect(accountLink(page)).not.toContainText('Checking account')
   await accountLink(page).click()
   const signInLink = page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true })
   await expect(signInLink).toHaveAttribute('href', '/sign-in')
@@ -77,6 +82,7 @@ test('email sign-in persists after refresh and never changes or uploads the loca
   await page.goto('/journal/note-lesson')
   await page.getByRole('textbox', { name: 'Your reflection', exact: true }).fill('My private, locally stored planning note.')
   const before = await localState(page)
+  await expect(accountLink(page)).not.toContainText('Checking account')
   await accountLink(page).click()
   await page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true }).click()
   await signIn(page)
