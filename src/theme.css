@@ -89,6 +89,7 @@
       --month-adaptive-wash: color-mix(in srgb, var(--month-ink) 12%, #0c1724);
     }
     :root[data-theme='dark'] .topbar { background: rgb(14 29 44 / 94%); }
+    :root[data-theme='dark'] .topbar.has-backdrop { background: rgb(14 29 44 / 62%); }
     :root[data-theme='dark'] .bottom-bar { background: linear-gradient(180deg, transparent, rgb(12 23 36 / 88%) 80%); }
     :root[data-theme='dark'] .bottom-navigation { background: rgb(20 37 55 / 96%); box-shadow: 0 10px 35px rgb(0 0 0 / 35%); }
     :root[data-theme='dark'] .month-backdrop > .month-artwork { opacity: .16; }

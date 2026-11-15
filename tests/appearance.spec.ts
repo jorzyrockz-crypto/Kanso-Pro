@@ -337,7 +337,7 @@ test('dark occasion editing, authentication feedback, account controls, and Prof
   await expectScheme(page, 'dark', 'dark')
   await expectSurface(page, '.account-card, .account-device-panel, #profile-name, .account-device-stats > div', 'dark')
   await audit(page)
-  await page.getByRole('button', { name: 'Profile menu', exact: true }).click()
+  await page.getByRole('button', { name: 'More', exact: true }).click()
   await expectSurface(page, '.profile-panel', 'dark')
   await audit(page)
 })

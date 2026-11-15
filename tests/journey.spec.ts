@@ -13,6 +13,10 @@ const timeline = async (page: Page) => {
   await navigation(page).getByRole('link', { name: 'Timeline', exact: true }).click()
   await expect(page).toHaveURL('/')
 }
+const openNewCard = async (page: Page) => {
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('button', { name: 'New card', exact: true }).click()
+}
 const audit = async (page: Page) => {
   const report = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
   expect(report.violations.map((violation) => ({
@@ -281,7 +285,7 @@ test('journal editing is live, local, and safely renders entered markup as text'
 
 for (const type of ['event', 'task', 'project', 'note'] as const) {
   test(`new ${type} cards are dated, persistent and connected to their own page`, async ({ page }) => {
-    await page.getByRole('button', { name: 'New card', exact: true }).click()
+    await openNewCard(page)
     const composer = page.locator('.composer-card')
     await composer.locator(`.option-${type}`).click()
     await composer.getByLabel('Card title', { exact: false }).fill(`My new ${type} card`)
@@ -442,7 +446,7 @@ test('has no automated WCAG A/AA violations on the timeline, four pages, new-car
     await expect(content(page)).toBeVisible()
     await audit(page)
   }
-  await page.getByRole('button', { name: 'New card', exact: true }).click()
+  await openNewCard(page)
   await expect(page.getByRole('heading', { level: 1, name: 'New card', exact: true })).toBeVisible()
   await audit(page)
   await page.goto('/missing-page')
@@ -450,7 +454,7 @@ test('has no automated WCAG A/AA violations on the timeline, four pages, new-car
 })
 
 test('an empty new project can grow from zero to its first completed milestone', async ({ page }) => {
-  await page.getByRole('button', { name: 'New card', exact: true }).click()
+  await openNewCard(page)
   await page.locator('.option-project').click()
   await page.getByLabel('Card title', { exact: false }).fill('Start small')
   await page.getByRole('button', { name: 'Add to Timeline', exact: true }).click()
@@ -486,7 +490,7 @@ test('full pages stay usable and accessible on a narrow phone with persistent bo
     expect(navBounds!.y + navBounds!.height).toBeLessThanOrEqual(812)
     await audit(page)
   }
-  await page.getByRole('button', { name: 'New card', exact: true }).click()
+  await openNewCard(page)
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await audit(page)
 })

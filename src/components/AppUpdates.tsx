@@ -1,4 +1,5 @@
 import { ArrowRight, RefreshCw, X } from 'lucide-react'
+import { KansoMark } from './AppHeader'
 import { Link } from 'react-router-dom'
 import type { PwaController } from '../lib/usePwa'
 import { updateSurface } from '../lib/updates'
@@ -8,10 +9,14 @@ import releases from '../lib/whats-new.json'
 
 export function UpdateChrome({ pwa, signedIn, position }: { pwa: PwaController; signedIn: boolean; position: 'titlebar' | 'banner' }) {
   const surface = updateSurface(pwa.overlay, pwa.coarse, signedIn)
-  return <>
-    {position === 'titlebar' && pwa.overlay && <div className="app-titlebar"><span>{pwa.updateReady ? 'Update ready · Kanso Pro' : 'Kanso Pro'}</span>{pwa.updateReady && <button type="button" className="button settings-secondary" onClick={pwa.update}><RefreshCw size=".875rem" />Restart</button>}</div>}
-    {position === 'banner' && pwa.updateReady && surface === 'banner' && !pwa.updateDismissed && <div className="app-update-banner" role="status"><span><RefreshCw size="1rem" /><strong>A new version is ready.</strong><Link to="/whats-new" onClick={event => { if (!confirmNotificationNavigation(event)) event.preventDefault() }}>What’s new<ArrowRight size=".875rem" /></Link></span><div><button type="button" className="button settings-secondary" onClick={pwa.update}>Restart</button><button type="button" className="icon-button" aria-label="Remind me about this update later" onClick={pwa.dismissUpdate}><X size="1rem" /></button></div></div>}
-  </>
+  if (position === 'titlebar') {
+    if (!pwa.overlay) return null
+    return <div id="titleBar" className="app-titlebar">
+      <span className="titlebar-brand"><KansoMark size={16} /><span>Kanso Pro <small>· Your personal planning space</small></span></span>
+      {pwa.updateReady && <button type="button" className="titlebar-update" onClick={pwa.update}><RefreshCw size=".75rem" aria-hidden="true" /><span>Update ready · Restart</span></button>}
+    </div>
+  }
+  return pwa.updateReady && surface === 'banner' && !pwa.updateDismissed ? <div className="app-update-banner" role="status"><span><RefreshCw size="1rem" /><strong>A new version is ready.</strong><Link to="/whats-new" onClick={event => { if (!confirmNotificationNavigation(event)) event.preventDefault() }}>What’s new<ArrowRight size=".875rem" /></Link></span><div><button type="button" className="button settings-secondary" onClick={pwa.update}>Restart</button><button type="button" className="icon-button" aria-label="Remind me about this update later" onClick={pwa.dismissUpdate}><X size="1rem" /></button></div></div> : null
 }
 
 export function WhatsNewPage() {

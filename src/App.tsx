@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Link2, Tablet, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Link2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
@@ -34,14 +34,12 @@ const filters: { type: Filter; label: string }[] = [
   { type: 'note', label: 'Journal Notes' },
 ]
 
-function StreamHeader({ filter, count, month, bezel, onFilter, onFocus, onToggleFrame }: {
+function StreamHeader({ filter, count, month, onFilter, onFocus }: {
   filter: Filter
   count: number
   month: string
-  bezel: boolean
   onFilter: (type: Filter) => void
   onFocus: () => void
-  onToggleFrame: () => void
 }) {
   return <header className="stream-header">
     <div className="header-main">
@@ -56,7 +54,6 @@ function StreamHeader({ filter, count, month, bezel, onFilter, onFocus, onToggle
       </div>
       <div className="header-actions">
         <button className="button button-focus" onClick={onFocus} title="Focus the active card" aria-label="Focus Active"><Crosshair size="0.875rem" /><span>Focus Active</span></button>
-        <button className={`frame-toggle ${bezel ? 'is-active' : ''}`} onClick={onToggleFrame} aria-pressed={bezel} aria-label="Tablet frame" title="Toggle tablet frame"><Tablet size="0.9375rem" /></button>
       </div>
     </div>
     <div className="header-bottom">
@@ -257,17 +254,19 @@ export default function App() {
   }
   const toggleGap = (key: string) => setOpenGaps((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])
 
-  const chrome = { titlebar: <UpdateChrome pwa={pwa} signedIn={!!account.user} position="titlebar" />, notice: <UpdateChrome pwa={pwa} signedIn={!!account.user} position="banner" /> }
+  const titlebar = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="titlebar" />
+  const updateBanner = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="banner" />
+  const artworkVisible = location.pathname === '/' || !!calendarVisible
 
   return <div className={`application ${signInLayout ? 'application-auth' : ''}`}>
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
-    {signInLayout ? <SignInHeader {...chrome} /> : <><AppHeader {...chrome} updateReady={pwa.updateReady} unread={notifications.unread} account={account} storageAvailable={storageAvailable} onCompose={() => openComposer()} onSignOut={signOutFromProfile} /><BottomNavigation /></>}
+    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} updateReady={pwa.updateReady} unread={notifications.unread} account={account} storageAvailable={storageAvailable} onCompose={() => openComposer()} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation /></>}
     {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size="0.9375rem" /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} bezel={state.bezel} onFilter={changeFilter} onFocus={focusActive} onToggleFrame={() => dispatch({ type: 'toggle-bezel' })} />
+          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} onFilter={changeFilter} onFocus={focusActive} />
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}

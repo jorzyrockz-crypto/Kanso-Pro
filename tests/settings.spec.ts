@@ -11,8 +11,8 @@ import type { FirebaseHarness } from './helpers/firebase'
 
 test.use({ timezoneId: 'UTC' })
 const { version } = packageInfo
-const trigger = (page: Page) => page.getByRole('button', { name: 'Profile menu', exact: true })
-const profile = (page: Page) => page.getByRole('navigation', { name: 'Profile', exact: true })
+const trigger = (page: Page) => page.getByRole('button', { name: 'More', exact: true })
+const profile = (page: Page) => page.getByRole('navigation', { name: 'More', exact: true })
 const bottom = (page: Page) => page.getByRole('navigation', { name: 'Main navigation', exact: true })
 const index = (page: Page) => page.getByRole('navigation', { name: 'Settings sections', exact: true })
 const darkMode = (page: Page) => page.getByRole('radio', { name: 'Dark', exact: true })
@@ -84,7 +84,7 @@ test('Profile exposes real guest destinations and opens Settings as a full page'
 
 test('the disclosure follows normal keyboard order, Escape, outside dismissal, and route focus', async ({ page }) => {
   await page.goto('/')
-  await expect(trigger(page)).toContainText('Guest')
+  await expect(trigger(page)).toHaveAttribute('aria-expanded', 'false')
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Skip to page content', exact: true })).toBeFocused()
   await trigger(page).focus()
@@ -95,9 +95,10 @@ test('the disclosure follows normal keyboard order, Escape, outside dismissal, a
   await expect(trigger(page)).toBeFocused()
   await expect(page.getByRole('menu')).toHaveCount(0)
   await page.keyboard.press('Tab')
-  await expect(profile(page).getByRole('link', { name: 'Sign in', exact: true })).toBeFocused()
+  await expect(page.getByRole('button', { name: 'New card', exact: true })).toBeFocused()
   await page.keyboard.press('Shift+Tab')
   await expect(trigger(page)).toBeFocused()
+  await page.keyboard.press('Tab')
   await page.keyboard.press('Tab')
   await page.keyboard.press('Tab')
   await expect(profile(page).getByRole('link', { name: 'Create account', exact: true })).toBeFocused()
@@ -503,7 +504,10 @@ test('Settings and Profile fit phones, split/tablet views, desktop, and short ke
     expect(panel.x).toBeGreaterThanOrEqual(0)
     expect(panel.right).toBeLessThanOrEqual(width)
     expect(panel.y).toBeGreaterThanOrEqual(0)
-    expect(panel.bottom).toBeLessThan((await box(bottom(page))).y)
+    // In bottom-navigation layouts, the disclosure scrolls above the tab bar.
+    // A desktop rail starts high on the left, so the panel instead just stays in view.
+    if (width < 1024) expect(panel.bottom).toBeLessThan((await box(bottom(page))).y)
+    else expect(panel.bottom).toBeLessThanOrEqual(height)
     for (const link of await profile(page).getByRole('link').all()) {
       await link.focus()
       await settle(page)
@@ -585,7 +589,7 @@ test('signed-in Settings/Profile stay accessible and artwork respects motion, co
   await expect(art).toHaveAttribute('focusable', 'false')
   expect(await art.evaluate((element) => ({ pointer: getComputedStyle(element).pointerEvents, animation: getComputedStyle(element).animationName }))).toEqual({ pointer: 'none', animation: 'none' })
   await openProfile(page)
-  expect(await page.locator('.profile-chevron').evaluate((element) => getComputedStyle(element).transitionDuration)).toBe('0s')
+  expect(await trigger(page).evaluate((element) => getComputedStyle(element).transitionDuration)).toBe('0s')
   await page.keyboard.press('Escape')
   await page.emulateMedia({ contrast: 'more' })
   await expect(art).toBeHidden()
@@ -623,7 +627,7 @@ test.describe('touch Profile navigation', () => {
   test('guests can reach Settings, change color mode, and create an account from a phone', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
-    await expect(trigger(page)).toContainText('Guest')
+    await expect(trigger(page)).toHaveAttribute('aria-expanded', 'false')
     await trigger(page).tap()
     await profile(page).getByRole('link', { name: 'Settings', exact: true }).tap()
     await expect(page).toHaveURL('/settings')

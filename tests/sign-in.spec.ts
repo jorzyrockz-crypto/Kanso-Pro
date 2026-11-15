@@ -109,9 +109,9 @@ test('registration, recovery, refresh, legacy links, and history retain the real
   await page.goto('/calendar?month=2026-03')
   await expect(page.locator('[data-month-background]')).toHaveAttribute('data-month-background', '2026-03')
   // Account completion intentionally dismisses an open Profile disclosure.
-  await expect(page.getByRole('button', { name: 'Profile menu', exact: true })).not.toContainText('Checking account')
-  await page.getByRole('button', { name: 'Profile menu', exact: true }).click()
-  await page.getByRole('navigation', { name: 'Profile', exact: true }).getByRole('link', { name: 'Sign in', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'More', exact: true })).not.toContainText('Checking account')
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('navigation', { name: 'More', exact: true }).getByRole('link', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/sign-in')
   await expect(background(page)).toHaveAttribute('data-month-background', '2028-05')
   await page.getByRole('link', { name: 'Create account', exact: true }).click()
