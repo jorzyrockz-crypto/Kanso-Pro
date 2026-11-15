@@ -72,7 +72,7 @@ export function AddChecklistItem({ onAdd, placeholder = 'Add a task…', label =
     setText('')
   }
   return (
-    <form className="quick-add-form" onSubmit={submit}>
+    <form className="quick-add-form" data-unsaved={!!text.trim()} onSubmit={submit}>
       <label className="sr-only" htmlFor="quick-add-input">{placeholder.replace('…', '')}</label>
       <input id="quick-add-input" value={text} onChange={(event) => setText(event.target.value)} maxLength={240} placeholder={placeholder} required />
       <button className="button button-accent" type="submit"><Plus size="0.9375rem" /><span>{label}</span></button>

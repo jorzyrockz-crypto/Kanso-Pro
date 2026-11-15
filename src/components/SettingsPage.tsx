@@ -56,7 +56,7 @@ export function SettingsPage({ account, state, storageAvailable, appearance, pwa
         <span className="eyebrow">Your space</span>
         <nav aria-label="Settings sections">{SETTINGS_SECTIONS.map(({ id, label }) => {
           const Icon = icons[id]
-          return <Link key={id} to={`#${id}`} aria-current={hash === `#${id}` || (!hash && id === 'account') ? 'location' : undefined}><Icon size="1.125rem" aria-hidden="true" /><span>{label}</span></Link>
+          return <Link key={id} to={`#${id}`} aria-current={hash === `#${id}` || (!hash && id === 'account') ? 'location' : undefined}><Icon size="1.125rem" aria-hidden="true" /><span>{label}</span>{id === 'about' && pwa.updateReady && <span className="update-badge" aria-hidden="true">Update</span>}</Link>
         })}</nav>
         <div className="settings-device-note"><Laptop size="1.25rem" aria-hidden="true" /><strong>A little space. On this device.</strong><p>Device preferences and cards are shared within this browser profile.</p></div>
       </aside>

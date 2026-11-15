@@ -53,6 +53,8 @@ export function composerOptions(search: string): ComposerOptions {
 export function pageForPath(path: string, search = '') {
   const pathname = path.replace(/\/+$/, '').toLowerCase() || '/'
   if (pathname === '/new') return { label: 'New card', page: 'new' as const }
+  if (pathname === '/notifications') return { label: 'Notifications', page: 'notifications' as const }
+  if (pathname === '/whats-new') return { label: 'What’s new', page: 'whats-new' as const }
   if (pathname === '/settings') return { label: 'Settings', page: 'settings' as const }
   if (pathname === '/account') return { label: 'My workspace', page: 'account' as const }
   if (pathname === '/sign-in') {

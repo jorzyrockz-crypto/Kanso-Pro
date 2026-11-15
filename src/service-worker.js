@@ -1,6 +1,7 @@
-/* Build replaces these two placeholders. No remote assets, auth traffic or card data. */
+/* Build stamps the cache, app version and precache list. No remote assets, auth traffic or card data. */
 const CACHE_PREFIX = 'kanso-pro-shell-'
 const CACHE_NAME = CACHE_PREFIX + '__BUILD_ID__'
+const APP_VERSION = '__APP_VERSION__'
 const PRECACHE_URLS = __PRECACHE_URLS__
 const PRECACHE_PATHS = new Set(PRECACHE_URLS)
 
@@ -20,6 +21,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
+  if (event.data?.type === 'GET_VERSION') event.ports[0]?.postMessage({ version: APP_VERSION })
 })
 
 self.addEventListener('fetch', (event) => {
@@ -48,5 +50,26 @@ self.addEventListener('fetch', (event) => {
     }
     // Never cache arbitrary requests or overwrite an old shell's HTML with new HTML.
     return fetch(request)
+  })())
+})
+
+// No push subscription or scheduler: these are user-permitted, page-generated reminders.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil((async () => {
+    const path = event.notification.data?.url || '/notifications'
+    if (typeof path !== 'string' || path.length >= 4096 || !/^\/(?:notifications|settings(?:#about)?|calendar(?:\/[^/?#]+)?|tasks(?:\/[^/?#]+)?|projects(?:\/[^/?#]+)?)$/.test(path)) return
+    const url = new URL(path, self.location.origin)
+    if (url.origin !== self.location.origin) return
+    const windows = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).filter(client => client.frameType !== 'nested')
+    const client = windows.find(window => window.focused) || windows[0]
+    if (client) {
+      await client.focus()
+      // Let the page protect an open form and route without a destructive navigation/reload.
+      client.postMessage({ type: 'OPEN_NOTIFICATION', url: url.pathname + url.hash, id: event.notification.data?.id })
+    } else {
+      if (typeof event.notification.data?.id === 'string') url.hash = `notification=${encodeURIComponent(event.notification.data.id)}`
+      await self.clients.openWindow(url.href)
+    }
   })())
 })

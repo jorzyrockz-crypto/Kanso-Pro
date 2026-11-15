@@ -15,13 +15,15 @@ function GoogleMark() {
 }
 
 /** A quiet entry point, separate from the signed-in account/workspace dashboard. */
-export function SignInHeader() {
+export function SignInHeader({ titlebar, notice }: { titlebar?: ReactNode; notice?: ReactNode } = {}) {
   const ref = useChromeHeight<HTMLElement>('--topbar-height')
   return <header ref={ref} className="sign-in-header">
+    {titlebar}
     <div className="sign-in-header-inner">
       <Link to="/" className="app-brand" aria-label="Kanso Pro home"><span className="brand-mark"><KansoMark /></span><span className="brand-name">Kanso <span>Pro</span></span></Link>
       <Link to="/" className="sign-in-back"><ArrowLeft size="0.9375rem" /><span>Back to workspace</span></Link>
     </div>
+    {notice}
   </header>
 }
 

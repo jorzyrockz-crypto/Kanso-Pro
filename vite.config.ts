@@ -17,8 +17,8 @@ export default defineConfig({
     name: 'kanso-appearance-before-paint',
     transformIndexHtml: {
       order: 'pre',
-      handler(html) {
-        return html.replace('<!-- kanso:appearance-before-paint -->', `<script id="kanso-appearance">${appearanceBootstrapScript()}</script>`)
+      handler(html, context) {
+        return html.replace('<!-- kanso:appearance-before-paint -->', `<script id="kanso-appearance">${appearanceBootstrapScript()}</script>`).replace('__KANSO_APP_VERSION__', context.server ? 'development' : '__KANSO_APP_VERSION__')
       },
     },
   }],

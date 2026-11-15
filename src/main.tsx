@@ -14,6 +14,7 @@ import './sign-in.css'
 import './settings.css'
 import './theme.css'
 import './fluid.css'
+import './activity.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

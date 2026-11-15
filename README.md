@@ -20,7 +20,7 @@ npm run build       # Strict TypeScript checks + production build
 npm run preview     # Serve the production build
 npm test            # Vitest dates, storage, routing, themes, and auth adapter
 npm run test:e2e    # Full Playwright app regression (slower; not needed for every change)
-npm run test:pwa    # Build + 3 focused production PWA checks (~40 seconds here)
+npm run test:pwa    # Build + 4 focused production PWA/notification checks
 npm run test:layout # Only fluidity + navigation checks; no full app suite
 ```
 
@@ -87,11 +87,40 @@ Open **Profile menu → Settings → About & help** (`/settings#about`). A real 
 The new calendar artwork is used in the header, sign-in, footer, About, favicon, and installation icons. Its exterior white background and drop shadow are removed while preserving the cream paper and folded corner. Regular PNGs are transparent; Apple-touch and maskable variants intentionally use an opaque ice-blue platform background. The maskable artwork fits inside the central safe circle.
 
 - **Offline after setup:** visit once online and wait for **Ready offline on this device**. The production service worker precaches the local app shell, fonts, and icons. Offline reloads and direct links work; cards, checklists, journal edits, and appearance keep using their existing local browser storage. Sign-in, account changes, and external help links require internet.
-- **Safe updates:** a new shell installs in the background, then waits. About shows **Reload to update**, with an unfinished-form warning. Only the tab that chooses this action reloads; other tabs keep their inputs. Updates also activate naturally when old app windows are closed. Saved cards/preferences are not reset. The worker retains one previous shell for already-open tabs.
+- **Safe updates:** a new shell installs in the background, then waits for consent. A titlebar action (supported desktop installed apps), browser banner/title, or guest touch toast offers Restart; **About → Check for updates / Reload to update / What’s new** stays available. Open forms require confirmation. Only the consenting tab reloads; other tabs keep their inputs. Updates also activate naturally when old app windows close. Saved cards/preferences are not reset, and the worker retains one previous shell for open tabs.
 - **Privacy & limits:** the worker caches only same-origin build files, never Firebase/API traffic, passwords, tokens, or workspace data. Cards and Firebase sessions retain their separate storage rules. Clearing site data or browser eviction can remove offline availability and local plans; installation is not a backup or cloud sync. Export important plans.
 - **Production only:** registration requires HTTPS (localhost is allowed for development checks). `npm run dev` does not register a worker, avoiding stale development assets. Use `npm run build && npm run preview` to try the installed/offline experience; Vercel receives the same static files and service-worker/manifest cache headers. No deployment is performed by this change.
 
-For small PWA changes, run **`npm run test:pwa`**, not the full browser suite: it builds once and runs three production checks covering manifest/installability/icons, offline direct-load/save/reload with appearance persistence, and consent-based updates with another tab’s unsaved draft. The dependency-free build plugin hashes each shell automatically; no PWA package or remote CDN is required. Physical-device installation and Safari remain manual checks.
+For small PWA changes, run **`npm run test:pwa`**, not the full browser suite: it builds once and runs four production checks covering manifest/installability/icons and explicit permission denial, offline direct-load/save/reload with appearance persistence, same-version suppression and consent-based updates with another tab’s unsaved draft, and quiet-hour summary delivery with generic lock-screen text. The dependency-free build plugin stamps HTML and worker with the same deterministic `version+buildhash`; the newest `src/lib/whats-new.json` entry must match the package version. No PWA package or remote CDN is required. Physical-device installation and Safari remain manual checks.
+
+## Notifications & app updates
+
+Open the **header bell → Notifications** (`/notifications`). It is a full page, not a new planning tab; the quiet sign-in header has no bell. Unread counts cap visually at **9+**. Read individual items or **Mark all read**. The newest **60** notifications are retained; card links open the actual Calendar, Tasks, or Projects page. Foreground reminders use actionable toasts, grouped when several arrive. Notification navigation and restart actions ask before replacing an open form; saved plans and other tabs' drafts stay intact.
+
+Reminders are derived from actual local cards and the **device clock**, not the sample `FOCUS_DATE`:
+
+| Card | Reminder |
+| --- | --- |
+| Event | Start time, or **08:00** for all-day events |
+| Task | Reminder time on its card date, or **09:00** if none is set |
+| Project | **09:00** on its due date |
+| Journal note / fully completed nonempty task or milestone list | No reminder |
+
+Existing overdue plans are silently baselined on first use. Later checks catch missed deadlines when reopening and deduplicate each card/deadline. Category switches skip muted deadlines, rather than flooding them when re-enabled. Checks run about once a minute while the page can execute, and on focus/return; browser suspension may delay them.
+
+**Phone notifications are off by default.** Only an explicit opt-in requests browser permission, with blocked/unsupported/iPhone installation guidance. Supported production browsers can deliver generic, privacy-conscious system notifications while the page is backgrounded and still executing; private titles/notes are never included in lock-screen text. More than three are grouped. Default **19:00–06:00 quiet hours** pause phone delivery, not the inbox; queued reminders summarize when execution resumes outside quiet hours (or appear in-app on return). Installed-app badging is optional and feature-detected. **There is no push server, closed-app scheduler, or Periodic Background Sync.** Fully closed/suspended apps cannot promise alarms; reopening catches up. Use your device calendar/alarm for critical deadlines.
+
+Inbox, baseline, read state, and preferences use **`kanso-pro:notifications:v1`**, separate from journey cards, account sessions, and JSON backups. This is the **shared browser-profile workspace**, available signed out—not an account-private feed or cloud sync. Account changes never partition, upload, or delete cards. Blocked storage keeps the inbox in memory for the current session and displays a warning.
+
+App-update checks run on return after **30 minutes**, **hourly** while open, and manually in **Settings → About & help**. A page/worker version handshake avoids announcing the same build and handles a new page still controlled by an older shell. Later/dismissal is session-only; About and its Update badge remain available. Signed-in touch users also get a local update inbox entry. After an updated build opens, a once-per-device-build toast links to **What’s new** (`/whats-new`); first installation is silent, and build-only changes use an up-to-date message instead of recycling release notes. Open-form detection is intentionally conservative: any open form prompts before restart, even if it has not been edited.
+
+Focused checks (without the full app regression):
+
+```sh
+npx vitest run src/lib/notifications.test.ts src/lib/updates.test.ts
+npx playwright test tests/notifications.spec.ts
+npm run test:pwa
+```
 
 ## Light, Dark, and Auto
 
@@ -184,7 +213,7 @@ This is an **iPad-inspired responsive web app**, not a native iPadOS app or Appl
 
 The initial eight cards reproduce the **November 2026 sample journey**. Six cards are on the main stream; two live inside the November 3–9 quiet buffer. `FOCUS_DATE` in `src/data.ts` is deliberately set to **2026-11-14** to keep the supplied example consistent. “Focus Active” finds the project due on that date rather than the old meeting.
 
-This is a **local-first workspace with Firebase Authentication**, not a cloud-synced planning service. “Live Flow” means the pages share live card state on this device. Authentication stores account identity/session information in Firebase; it does not synchronize workspace content. There is no external calendar import, remote team collaboration, background notification service, or Google Sheets synchronization. Seeded calendar source descriptions and team names are sample planning metadata. Reminder times are labels, not device alarms.
+This is a **local-first workspace with Firebase Authentication**, not a cloud-synced planning service. “Live Flow” means the pages share live card state on this device. Authentication stores account identity/session information in Firebase; it does not synchronize workspace content. There is no external calendar import, remote team collaboration, push notification server, or Google Sheets synchronization. Seeded calendar source descriptions and team names are sample planning metadata. Local reminders use the device clock while the app can run; they are not guaranteed closed-app device alarms.
 
 Changes are stored in `localStorage` under `kanso-pro:journey:v1`. Existing data under `chronos-flow:journey:v1` is read automatically when there is no valid Kanso Pro save, so the rebrand preserves earlier edits and preferences. The old key is left untouched. A valid Kanso Pro save takes precedence on subsequent visits.
 
@@ -201,6 +230,7 @@ src/
   styles.css                Timeline, card, and workspace component styling
   layout.css                App chrome, full-page layouts, measured navigation clearance
   fluid.css                 Touch scaling, adaptive sidebar, content container queries
+  activity.css              Notification inbox/preferences, update chrome, release notes
   occasions.css             Illustrated event surfaces, text scrims, theme picker
   months.css                Subtle month backdrops and calendar hero watermarks
   account.css               Account forms, identity, and shared device summary

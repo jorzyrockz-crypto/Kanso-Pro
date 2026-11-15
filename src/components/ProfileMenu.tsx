@@ -5,9 +5,10 @@ import { accountInitials, accountName } from '../lib/account'
 import type { AccountController } from '../lib/useAccount'
 
 /** A navigation disclosure, not an ARIA application menu or a modal. */
-export function ProfileMenu({ account, storageAvailable, onSignOut }: {
+export function ProfileMenu({ account, storageAvailable, onSignOut, updateReady = false }: {
   account: AccountController
   storageAvailable: boolean
+  updateReady?: boolean
   onSignOut: () => Promise<void>
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -91,7 +92,7 @@ export function ProfileMenu({ account, storageAvailable, onSignOut }: {
           <NavLink to="/sign-in" end onClick={close}><LogIn size="1.125rem" aria-hidden="true" /><span>Sign in</span><ArrowRight size="0.875rem" aria-hidden="true" /></NavLink>
           <NavLink to="/sign-in?mode=create" onClick={close}><UserRoundPlus size="1.125rem" aria-hidden="true" /><span>Create account</span><ArrowRight size="0.875rem" aria-hidden="true" /></NavLink>
         </>}
-        <NavLink to="/settings" end onClick={close}><Settings2 size="1.125rem" aria-hidden="true" /><span>Settings</span><ArrowRight size="0.875rem" aria-hidden="true" /></NavLink>
+        <NavLink to="/settings" end onClick={close}><Settings2 size="1.125rem" aria-hidden="true" /><span>Settings</span>{updateReady && <span className="update-badge" aria-hidden="true">Update</span>}<ArrowRight size="0.875rem" aria-hidden="true" /></NavLink>
       </nav>
       {user && <div className="profile-sign-out"><button type="button" disabled={phase !== 'ready' || busy !== null} onClick={() => { close(); void onSignOut() }}><LogOut size="1.0625rem" aria-hidden="true" /><span>{busy === 'sign-out' ? 'Signing out…' : 'Sign out'}</span></button></div>}
       <p className="profile-local-note"><ShieldCheck size="0.875rem" aria-hidden="true" /><span>Cards stay in this browser. Sign-in is not cloud sync or a lock on shared-device plans.</span></p>

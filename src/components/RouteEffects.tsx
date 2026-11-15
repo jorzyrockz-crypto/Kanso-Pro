@@ -3,7 +3,7 @@ import { useLocation, useNavigationType } from 'react-router-dom'
 import { pageForPath, SETTINGS_SECTIONS } from '../lib/navigation'
 
 /** Full-page navigation: meaningful titles, focus, and Back/Forward scroll restoration. */
-export function RouteEffects() {
+export function RouteEffects({ updateReady = false }: { updateReady?: boolean }) {
   const location = useLocation()
   const navigationType = useNavigationType()
   const positions = useRef(new Map<string, number>())
@@ -29,8 +29,8 @@ export function RouteEffects() {
   }, [])
 
   useEffect(() => {
-    document.title = `${pageForPath(location.pathname, location.search).label} · Kanso Pro`
-  }, [location.pathname, location.search])
+    document.title = `${updateReady ? 'Update ready · ' : ''}${pageForPath(location.pathname, location.search).label} · Kanso Pro`
+  }, [location.pathname, location.search, updateReady])
 
   useLayoutEffect(() => {
     const last = previous.current
