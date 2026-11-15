@@ -1,0 +1,120 @@
+@layer layout {
+  /* A true entry page: planning navigation returns after sign-in or guest entry. */
+  .application-auth { --bottom-bar-height: 0px; min-height: 100svh; padding-bottom: 0; }
+  .application-auth .page-outlet { display: flex; }
+  .application-auth .app-footer { padding: 15px max(24px, var(--safe-area-right)) max(24px, var(--safe-area-bottom)) max(24px, var(--safe-area-left)); color: #49687d; }
+  .sign-in-header { position: relative; padding-top: env(safe-area-inset-top); }
+  .sign-in-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 22px; width: 100%; max-width: 1280px; min-height: 92px; margin: 0 auto; padding: 12px max(40px, var(--safe-area-right)) 12px max(40px, var(--safe-area-left)); }
+  .sign-in-back { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; color: #405f75; font-size: 11px; line-height: 1.6; font-weight: 600; text-decoration: none; }
+  .sign-in-back:hover { border-color: #cbdde8; background: rgb(255 255 255 / 65%); }
+  .sign-in-page { width: 100%; max-width: 1104px; margin: auto; padding: 20px 32px 36px; }
+  .sign-in-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 422px); align-items: center; gap: clamp(40px, 7vw, 100px); }
+  .sign-in-story { min-width: 0; padding: 0 4px 22px; }
+  .sign-in-month { display: inline-flex; align-items: center; gap: 9px; min-height: 32px; padding: 7px 12px; border: 1px solid rgb(255 255 255 / 95%); border-radius: 30px; color: #496477; background: rgb(255 255 255 / 66%); font-size: 10px; line-height: 1.6; font-weight: 600; letter-spacing: .3px; }
+  .sign-in-month > span { width: 6px; height: 6px; border-radius: 50%; background: #739b9d; }
+  .sign-in-illustration { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; isolation: isolate; width: 100%; max-width: 430px; height: 280px; margin: 20px 0 0 -25px; }
+  .sign-in-art-wash { position: absolute; z-index: -1; width: 260px; height: 260px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 50%; background: radial-gradient(circle at 40% 40%, rgb(255 255 255 / 70%), color-mix(in srgb, var(--month-wash) 65%, transparent)); }
+  .sign-in-hero-art { width: 330px; max-width: 100%; height: 330px; opacity: .88; }
+  .sign-in-season-title { position: relative; margin-top: 7px; color: #294a5b; font-family: var(--serif); font-size: clamp(48px, 5.1vw, 68px); line-height: 1.08; letter-spacing: -1.8px; font-weight: 450; text-wrap: balance; }
+  .sign-in-story-copy { margin-top: 17px; color: #36586e; font-size: 19px; line-height: 1.65; letter-spacing: -.4px; font-weight: 500; }
+  .sign-in-season-note { margin-top: 25px; color: #526c7e; font-size: 11px; line-height: 1.95; }
+  .sign-in-form-column { min-width: 0; }
+  .sign-in-card { padding: 31px; border: 1px solid rgb(255 255 255 / 95%); border-radius: 25px; background: #fff; box-shadow: 0 18px 60px rgb(44 78 96 / 8%), 0 2px 6px rgb(44 78 96 / 3%); }
+  .sign-in-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #476a80; font-size: 8px; line-height: 1.5; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
+  .sign-in-eyebrow > svg { color: #567b91; }
+  .sign-in-card h1 { margin-top: 19px; color: #213e52; font-size: 28px; line-height: 1.35; letter-spacing: -1.05px; font-weight: 800; text-wrap: balance; }
+  .sign-in-card .account-intro { margin-top: 8px; font-size: 11px; line-height: 1.9; }
+  .sign-in-card .account-modes { margin-top: 22px; }
+  .sign-in-card a[aria-disabled="true"] { cursor: wait; opacity: .65; }
+  .sign-in-card .account-form { gap: 17px; margin-top: 21px; }
+  .sign-in-card .form-field > label { font-size: 10.5px; }
+  .sign-in-card .button { min-height: 46px; }
+  .sign-in-card .account-auth-note { margin-top: 19px; color: #5b7384; font-size: 9px; line-height: 1.9; }
+  .sign-in-card .account-forgot { margin-top: -10px; }
+  .sign-in-card .account-divider { margin: 19px 0; }
+  .sign-in-guest { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0 6px; margin-top: 14px; color: #496679; font-size: 10px; line-height: 1.7; text-align: center; }
+  .sign-in-guest > a { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; border-radius: 5px; color: #235c7c; font-size: 10.5px; font-weight: 750; text-decoration: none; }
+  .sign-in-guest > a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .sign-in-local-note { max-width: 350px; margin: 0 auto; color: #516c7e; font-size: 9px; line-height: 1.9; text-align: center; }
+  .sign-in-device { margin-top: 13px; }
+  .sign-in-device > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 9px; border: 1px solid transparent; border-radius: 12px; color: #426278; font-size: 9px; line-height: 1.6; list-style: none; cursor: pointer; }
+  .sign-in-device > summary::-webkit-details-marker { display: none; }
+  .sign-in-device > summary:hover, .sign-in-device[open] > summary { border-color: rgb(255 255 255 / 85%); background: rgb(255 255 255 / 60%); }
+  .sign-in-device[open] > summary > svg:last-child { transform: rotate(180deg); }
+  .sign-in-device > .account-device-panel { margin-top: 8px; padding: 24px; border-radius: 19px; box-shadow: 0 5px 20px rgb(44 78 96 / 4%); }
+  .sign-in-device .account-device-icon { display: none; }
+  .sign-in-device .account-device-panel h2 { font-size: 19px; }
+  .sign-in-device .account-device-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 18px; }
+  .sign-in-device .account-device-stats > div { padding: 10px 8px; }
+  .sign-in-device .account-device-stats strong { font-size: 20px; }
+  .sign-in-device .account-device-stats span { font-size: 8px; }
+  .month-backdrop-sign-in { background: radial-gradient(ellipse at 8% 25%, var(--month-wash), transparent 60%), radial-gradient(ellipse at 90% 92%, color-mix(in srgb, var(--month-wash) 70%, white), transparent 55%), var(--month-canvas); }
+  .month-backdrop-sign-in > .month-artwork { opacity: .25; }
+  .month-backdrop-sign-in > .month-backdrop-right { top: -130px; right: -130px; width: 540px; }
+  .month-backdrop-sign-in > .month-backdrop-left { bottom: -100px; left: -100px; width: 440px; }
+
+  @media (min-width: 1440px) and (min-height: 1000px) { .sign-in-layout { gap: 110px; } .sign-in-illustration { height: 320px; } .sign-in-hero-art { width: 375px; height: 375px; } }
+  @media (max-width: 960px) {
+    .sign-in-header-inner { padding-right: max(28px, var(--safe-area-right)); padding-left: max(28px, var(--safe-area-left)); min-height: 80px; }
+    .sign-in-page { padding: 16px 28px 30px; }
+    .sign-in-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 390px); gap: 34px; }
+    .sign-in-story { padding-left: 0; }
+    .sign-in-illustration { margin-left: -15px; height: 230px; }
+    .sign-in-art-wash { width: 210px; height: 210px; }
+    .sign-in-hero-art { width: 285px; height: 285px; }
+    .sign-in-season-title { font-size: 48px; letter-spacing: -1.4px; }
+    .sign-in-story-copy { font-size: 17px; }
+  }
+  @media (max-width: 760px) {
+    .sign-in-header-inner { min-height: 76px; }
+    .sign-in-layout { grid-template-columns: minmax(0, 1fr); max-width: 440px; margin: 0 auto; gap: 24px; }
+    .sign-in-story { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); padding: 4px 146px 0 4px; min-height: 122px; align-content: center; }
+    .sign-in-month { justify-self: start; min-height: 28px; padding: 5px 9px; font-size: 9px; }
+    .sign-in-illustration { position: absolute; top: -17px; right: -4px; width: 140px; height: 155px; margin: 0; }
+    .sign-in-art-wash { width: 116px; height: 116px; }
+    .sign-in-hero-art { width: 156px; height: 156px; }
+    .sign-in-season-title { margin-top: 13px; font-size: 34px; line-height: 1.08; letter-spacing: -.9px; }
+    .sign-in-story-copy { margin-top: 8px; font-size: 10px; line-height: 1.8; letter-spacing: 0; }
+    .sign-in-story-copy > br { display: none; }
+    .sign-in-story-copy > br::after { content: ' '; }
+    .sign-in-season-note { display: none; }
+    .month-backdrop-sign-in > .month-backdrop-right { top: 30px; right: -175px; opacity: .22; }
+    .month-backdrop-sign-in > .month-backdrop-left { bottom: -60px; left: -160px; opacity: .22; }
+    .sign-in-device .account-device-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 480px) {
+    .sign-in-header-inner { padding: 8px max(20px, var(--safe-area-right)) 8px max(20px, var(--safe-area-left)); gap: 12px; }
+    .sign-in-header .brand-name { font-size: 18px; }
+    .sign-in-header .brand-mark { width: 32px; height: 34px; border-radius: 10px; }
+    .sign-in-back { padding: 8px 0 8px 6px; gap: 5px; font-size: 9px; }
+    .sign-in-page { padding: 9px max(20px, var(--safe-area-right)) 22px max(20px, var(--safe-area-left)); }
+    .sign-in-layout { gap: 20px; }
+    .sign-in-story { padding-left: 2px; }
+    .sign-in-card { padding: 25px; border-radius: 22px; }
+    .sign-in-card h1 { font-size: 27px; }
+    .sign-in-card .form-field > input, .sign-in-card .account-password-field > input { font-size: 16px; }
+    .sign-in-device > .account-device-panel { padding: 20px; }
+  }
+  @media (max-width: 360px) {
+    .sign-in-header-inner { padding-right: max(16px, var(--safe-area-right)); padding-left: max(16px, var(--safe-area-left)); gap: 8px; }
+    .sign-in-header .app-brand { gap: 7px; }
+    .sign-in-header .brand-name { font-size: 16px; }
+    .sign-in-back { font-size: 8px; gap: 4px; }
+    .sign-in-back > svg { width: 12px; }
+    .sign-in-page { padding-right: max(16px, var(--safe-area-right)); padding-left: max(16px, var(--safe-area-left)); }
+    .sign-in-card { padding: 22px; }
+    .sign-in-story { padding-right: 122px; }
+    .sign-in-season-title { font-size: 32px; }
+    .sign-in-illustration { right: -8px; width: 115px; }
+    .sign-in-hero-art { width: 137px; height: 137px; }
+    .sign-in-art-wash { width: 95px; height: 95px; }
+    .sign-in-device .account-device-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (prefers-contrast: more), (forced-colors: active) {
+    .sign-in-illustration { display: none; }
+    .month-backdrop-sign-in { background: Canvas; }
+    .sign-in-card, .sign-in-month { border-color: CanvasText; background: Canvas; }
+    .sign-in-season-title, .sign-in-story-copy, .sign-in-season-note, .sign-in-month, .sign-in-back, .sign-in-local-note, .sign-in-guest, .sign-in-guest > a { color: CanvasText; }
+  }
+  @media print { .sign-in-illustration { display: none; } .sign-in-header { position: static; } }
+}

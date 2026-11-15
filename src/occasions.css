@@ -1,0 +1,107 @@
+@layer layout {
+  /* Shared original SVG scenes, used on cards, calendar details, and live previews. */
+  .occasion-surface { position: relative; isolation: isolate; overflow: hidden; color: #fff; background: linear-gradient(115deg, var(--occasion-start), var(--occasion-end)); }
+  .occasion-birthday { --occasion-start: #6b284e; --occasion-end: #b14a72; }
+  .occasion-celebration { --occasion-start: #34306e; --occasion-end: #6d53af; }
+  .occasion-holiday { --occasion-start: #124957; --occasion-end: #2a7778; }
+  .occasion-remembrance { --occasion-start: #1b3448; --occasion-end: #37645e; }
+  .occasion-artwork { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+  /* Screen-relative scrim stays behind the copy even when the SVG is cropped on phones. */
+  .occasion-surface::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, var(--occasion-start), color-mix(in srgb, var(--occasion-start) 94%, transparent) 35%, color-mix(in srgb, var(--occasion-start) 80%, transparent) 76%, color-mix(in srgb, var(--occasion-start) 10%, transparent)); }
+  .illustrated-event-card { border: 1px solid rgb(255 255 255 / 42%); box-shadow: 0 15px 32px -10px rgb(29 48 77 / 25%); }
+  .illustrated-event-card .card-topline { margin-bottom: 15px; }
+  .occasion-event-badge { padding: 4px 8px; border-color: rgb(255 255 255 / 20%); background: rgb(8 20 37 / 55%); color: #fff; font-size: 8px; letter-spacing: .8px; }
+  .illustrated-event-card .card-menu { width: 44px; height: 44px; color: #fff; background: rgb(8 20 37 / 55%); border: 1px solid rgb(255 255 255 / 20%); }
+  .illustrated-event-card .card-menu:hover { background: #263e56; }
+  .occasion-event-time { display: inline-flex; padding: 3px 7px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 20px; background: rgb(8 20 37 / 55%); color: #fff; font-size: 8.5px; line-height: 1.5; font-weight: 750; letter-spacing: .4px; }
+  .occasion-event-copy { max-width: 74%; margin-top: 9px; }
+  .occasion-event-copy h3 { color: #fff; font-size: 16px; line-height: 1.5; font-weight: 800; text-shadow: 0 1px 3px rgb(5 17 29 / 25%); }
+  .illustrated-event-card:hover h3 { color: #fff; }
+  .occasion-event-copy .card-caption { color: #f5f8fc; font-size: 10px; line-height: 1.75; font-weight: 450; }
+  .occasion-event-footer { flex-wrap: wrap; margin-top: 18px; padding-top: 11px; color: #fff; border-color: rgb(255 255 255 / 24%); font-size: 8.5px; }
+  .occasion-event-footer > span { padding: 3px 5px; border-radius: 5px; background: rgb(8 20 37 / 55%); }
+
+  /* Keep editing controls on a plain surface, separate from the illustrated event. */
+  .calendar-event { min-width: 0; padding: 0; overflow: hidden; overflow-wrap: anywhere; background: #fff; }
+  .calendar-event-meta > .badge, .event-detail-meta > span { min-width: 0; }
+  .calendar-event-surface { position: relative; padding: 17px; background-color: #f4f9ff; }
+  .calendar-event-content { position: relative; z-index: 1; }
+  .calendar-event-surface.occasion-surface { min-height: 205px; background-color: var(--occasion-start); }
+  .occasion-surface .calendar-event-copy { max-width: 75%; }
+  .occasion-surface .calendar-event-copy h4 { color: #fff; font-size: 15px; margin-top: 16px; overflow-wrap: anywhere; text-shadow: 0 1px 3px rgb(5 17 29 / 25%); }
+  .occasion-surface .calendar-event-copy p { color: #f5f8fc; font-size: 10.5px; }
+  .calendar-event-surface.occasion-surface .calendar-event-meta > span:first-child,
+  .calendar-event-surface.holiday-card .calendar-event-meta > span:first-child { color: #fff; padding: 4px 7px; border-radius: 20px; background: rgb(8 20 37 / 55%); }
+  .calendar-event-surface.occasion-surface .calendar-event-meta > .badge,
+  .calendar-event-surface.holiday-card .calendar-event-meta > .badge { color: #fff; background: rgb(8 20 37 / 55%); border-color: rgb(255 255 255 / 14%); }
+  .calendar-event-surface.occasion-surface .event-detail-meta,
+  .calendar-event-surface.holiday-card .event-detail-meta { color: #fff; }
+  .calendar-event-surface.occasion-surface .event-detail-meta > span,
+  .calendar-event-surface.holiday-card .event-detail-meta > span { padding: 4px 6px; border-radius: 6px; background: rgb(8 20 37 / 55%); }
+  .calendar-event-surface.holiday-card .calendar-event-copy p { color: #fff; }
+  .event-background-editor { border-top: 1px solid #dce7f0; background: #f8fbfe; color: #3b5973; }
+  .event-background-editor > summary { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 10px 13px; color: #3b5973; font-size: 10px; line-height: 1.5; font-weight: 650; list-style: none; cursor: pointer; }
+  .event-background-editor > summary::-webkit-details-marker { display: none; }
+  .event-background-editor > summary > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+  .event-background-current { margin-left: auto; max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #536b81; font-size: 9px; font-weight: 550; }
+  .event-background-editor > summary > svg { color: #58758c; transition: transform .2s; }
+  .event-background-editor[open] > summary > svg { transform: rotate(90deg); }
+  .event-background-editor > summary:hover { background: #edf5fb; }
+  .event-background-editor > summary:focus-visible { outline-offset: -4px; border-radius: 8px; }
+  .event-background-options { padding: 15px; border-top: 1px solid #e2ebf3; background: #fff; }
+
+  /* A native radio group: keyboard arrows, visible focus, and generous tap areas. */
+  .occasion-picker { min-width: 0; margin: 0; padding: 18px; border: 1px solid #dee8f1; border-radius: 17px; background: #fbfdff; }
+  .occasion-picker > legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 5px; color: #425f78; font-size: 11px; font-weight: 750; }
+  .occasion-picker .occasion-picker-hint { color: #5d7186; font-size: 10.5px; line-height: 1.8; }
+  .occasion-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 13px; }
+  .occasion-option { position: relative; display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 0; min-height: 84px; padding: 6px; border: 1px solid #dce6ef; border-radius: 12px; color: #4f687f; background: #fff; cursor: pointer; transition: background .2s, border-color .2s; }
+  .occasion-option:hover { background: #f0f7fc; border-color: #9ecbe6; }
+  .occasion-option.is-selected { color: #155e8b; background: #eaf5fd; border-color: #76b5dd; box-shadow: 0 0 0 1px #76b5dd; }
+  .occasion-option > input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+  .occasion-option:has(input:focus-visible) { outline: 3px solid #1894d1; outline-offset: 3px; }
+  .occasion-swatch { position: relative; display: flex; align-items: center; justify-content: center; min-height: 52px; overflow: hidden; border-radius: 7px; background: #edf5fc; color: #537c9a; }
+  .swatch-none { color: #6a7e90; background: #f0f3f7; }
+  .occasion-option-check { position: absolute; right: 4px; bottom: 4px; z-index: 1; display: flex; align-items: center; justify-content: center; width: 17px; height: 17px; border: 1px solid rgb(255 255 255 / 65%); border-radius: 50%; background: #166e9e; color: #fff; }
+  .occasion-option-label { text-align: center; color: inherit; font-size: 10px; line-height: 1.6; font-weight: 650; overflow-wrap: anywhere; }
+  .occasion-picker-compact { padding: 0; border: 0; border-radius: 0; background: #fff; }
+  .occasion-picker-compact > legend { padding: 0; }
+  .occasion-picker-compact .occasion-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .occasion-picker .occasion-selection { margin-top: 12px; color: #3e647d; font-size: 10px; line-height: 1.8; font-weight: 650; }
+  .occasion-vector-note { display: block; margin-top: 4px; color: #5b7185; font-size: 9px; line-height: 1.7; }
+
+  .occasion-preview { position: relative; min-width: 0; min-height: 176px; margin-top: 18px; padding: 22px; overflow: hidden; border: 1px solid #dbe7f1; border-radius: 15px; color: #36506b; background: linear-gradient(110deg, #edf5fc, #f9fcff); }
+  .occasion-preview-copy { position: relative; z-index: 1; max-width: 74%; }
+  .occasion-preview-eyebrow { color: #5d7489; font-size: 8px; line-height: 1.5; font-weight: 750; letter-spacing: 1px; text-transform: uppercase; }
+  .occasion-preview h3 { margin-top: 11px; color: #27435d; font-size: 19px; line-height: 1.5; letter-spacing: -.5px; font-weight: 800; overflow-wrap: anywhere; }
+  .occasion-preview p { margin-top: 7px; color: #5d7186; font-size: 10.5px; line-height: 1.8; }
+  .occasion-preview.occasion-surface { border-color: rgb(255 255 255 / 25%); background: linear-gradient(115deg, var(--occasion-start), var(--occasion-end)); }
+  .occasion-preview.occasion-surface .occasion-preview-eyebrow,
+  .occasion-preview.occasion-surface h3 { color: #fff; }
+  .occasion-preview.occasion-surface p { color: #f5f8fc; }
+
+  @media (max-width: 680px) {
+    .occasion-event-copy h3 { font-size: 15px; }
+    .calendar-event-surface { padding: 15px; }
+    .occasion-picker { padding: 15px; }
+    .occasion-picker-compact { padding: 0; }
+    .occasion-preview { padding: 18px; min-height: 185px; }
+    .occasion-preview h3 { font-size: 17px; }
+    .occasion-event-footer { gap: 6px; font-size: 8px; }
+    .occasion-event-footer > span { padding: 3px 4px; }
+  }
+  @media (max-width: 420px) {
+    .occasion-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .occasion-preview-copy { max-width: 78%; }
+  }
+  @media (max-width: 360px) {
+    .occasion-picker { padding: 12px; }
+    .occasion-picker-compact { padding: 0; }
+    .occasion-event-copy { max-width: 80%; }
+    .occasion-event-copy h3 { font-size: 14px; }
+    .occasion-preview { padding: 15px; }
+    .occasion-preview h3 { font-size: 16px; }
+    .event-background-editor > summary { padding: 10px; font-size: 9px; }
+    .event-background-current { font-size: 8px; }
+  }
+}

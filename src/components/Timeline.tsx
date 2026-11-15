@@ -1,0 +1,266 @@
+import { ArrowRight, Bell, CalendarDays, ChevronDown, ChevronRight, Flag, MoreHorizontal, Pin, Plus, Sparkles, Users, Zap } from 'lucide-react'
+import { Fragment, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import type { Dispatch, ReactNode, RefObject } from 'react'
+import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineEntry } from '../types'
+import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, projectStatus, shortDate, TYPE_CONFIG } from '../lib/journey'
+import { Avatar, AvatarStack, EmptyState, ProgressBar, TypeIcon } from './Common'
+import { destinationPath } from '../lib/navigation'
+import { occasionLabel, resolveOccasion } from '../lib/occasions'
+import { OccasionArtwork } from './OccasionArtwork'
+
+function useReveal() {
+  const ref = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      element.classList.add('is-visible')
+      return
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        element.classList.add('is-visible')
+        observer.unobserve(element)
+      }
+    }, { threshold: 0.06, rootMargin: '30px' })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  return ref
+}
+
+function CardFrame({ card, className = '', highlight, children, artwork }: {
+  card: JourneyCard
+  className?: string
+  highlight?: boolean
+  children: ReactNode
+  artwork?: ReactNode
+}) {
+  return (
+    <article id={`card-${card.id}`} data-card-id={card.id} data-card-type={card.type} data-occasion={card.type === 'event' ? resolveOccasion(card) : undefined}
+      className={`journey-card card-${card.type} ${className} ${highlight ? 'is-highlighted' : ''}`}>
+      {artwork}
+      <Link className="card-open" to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}
+        aria-label={`Open ${card.title || 'Untitled reflection'} in ${TYPE_CONFIG[card.type].workspace === 'project' ? 'Projects' : TYPE_CONFIG[card.type].workspace}`} />
+      <div className="card-content">{children}</div>
+    </article>
+  )
+}
+
+function EventJourneyCard({ card, highlight }: { card: EventCard; highlight: boolean }) {
+  const theme = resolveOccasion(card)
+  if (theme !== 'none') return (
+    <CardFrame card={card} highlight={highlight} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />}>
+      <div className="card-topline">
+        <span className="badge occasion-event-badge">{card.holiday ? <Flag size={11} /> : <CalendarDays size={11} />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
+        <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size={17} /></Link>
+      </div>
+      <span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span>
+      <div className="occasion-event-copy"><h3>{card.title}</h3>{card.context && <p className="card-caption">{card.context}</p>}</div>
+      <div className="card-footer occasion-event-footer"><span><CalendarDays size={11} />Connected to Calendar</span><span className="footer-link">Open Schedule<ArrowRight size={12} /></span></div>
+    </CardFrame>
+  )
+  if (card.holiday) return (
+    <CardFrame card={card} highlight={highlight} className="holiday-card">
+      <div className="card-topline">
+        <span className="badge holiday-badge"><Flag size={12} />PH HOLIDAY</span>
+        <div className="person-actions">
+          <span className="person-pill holiday-person"><Avatar name="You" />You</span>
+          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label="Open holiday details"><MoreHorizontal size={16} /></Link>
+        </div>
+      </div>
+      <span className="badge all-day-badge"><CalendarDays size={11} />ALL DAY</span>
+      <h3>{card.title}</h3>
+      <p className="card-caption truncate">{card.context}</p>
+      <div className="card-footer holiday-footer">
+        <span><CalendarDays size={11} />Connected to Calendar</span>
+        <span className="footer-link">Open Schedule <ArrowRight size={12} /></span>
+      </div>
+    </CardFrame>
+  )
+  return (
+    <CardFrame card={card} highlight={highlight} className="standard-event-card">
+      <div className="card-topline event-topline">
+        <span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span>
+        <div className="person-actions">
+          <span className="person-pill"><Avatar name={card.owner} /><span>{card.owner}</span></span>
+          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size={17} /></Link>
+        </div>
+      </div>
+      <h3>{card.title}</h3>
+      <div className="event-footer">
+        <span className="organization-pill"><Users size={13} /><span>{card.organization}</span></span>
+        <span className="footer-link">Calendar <ChevronRight size={13} /></span>
+      </div>
+    </CardFrame>
+  )
+}
+
+function TaskJourneyCard({ card, dispatch, highlight }: { card: TaskCard; dispatch: Dispatch<JourneyAction>; highlight: boolean }) {
+  const { done, total } = progress(card.subtasks)
+  return (
+    <CardFrame card={card} highlight={highlight}>
+      <div className="card-topline task-topline">
+        <span className="badge type-badge"><TypeIcon type="task" size={12} />Task & Reminder</span>
+        {card.reminder && <span className="reminder-pill"><Bell size={11} />{formatTime(card.reminder)}</span>}
+      </div>
+      <h3>{card.title}</h3>
+      <div className="timeline-checklist">
+        {card.subtasks.slice(0, 3).map((item) => (
+          <label key={item.id} className={`timeline-check interactive ${item.done ? 'is-done' : ''}`}>
+            <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: card.id, itemId: item.id })} />
+            <span>{item.title}</span>
+          </label>
+        ))}
+        {total > 3 && <span className="more-items">+{total - 3} more in Personal Tasks</span>}
+      </div>
+      <div className="card-footer task-footer"><span>{done} of {total} completed</span><span className="footer-link">Personal Tasks Page <ArrowRight size={12} /></span></div>
+    </CardFrame>
+  )
+}
+
+function NoteJourneyCard({ card, highlight }: { card: NoteCard; highlight: boolean }) {
+  return (
+    <CardFrame card={card} highlight={highlight} className="journal-paper">
+      <div className="card-topline note-topline">
+        <span className="badge type-badge"><TypeIcon type="note" size={11} />Journal Note</span>
+        <span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size={10} />Pinned</>}</span>
+      </div>
+      <h3>{card.title || 'Untitled reflection'}</h3>
+      <p className={`note-excerpt ${card.body ? '' : 'muted'}`}>{card.body || 'A fresh page, ready for a thought.'}</p>
+      <div className="card-footer note-footer">
+        <div className="note-tags">{card.tags.slice(0, 2).map((tag) => <span key={tag}>#{tag}</span>)}</div>
+        <span className="footer-link">Open Journal <ArrowRight size={12} /></span>
+      </div>
+    </CardFrame>
+  )
+}
+
+function ProjectJourneyCard({ card, highlight }: { card: ProjectCard; highlight: boolean }) {
+  const { done, total, percent } = progress(card.subtasks)
+  if (!card.featured) return (
+    <CardFrame card={card} highlight={highlight} className="sprint-card">
+      <div className="card-topline">
+        <span className="badge type-badge"><Zap size={11} />Project Sprint</span>
+        <span className="on-track"><span className="status-dot" />{percent === 100 ? 'Completed' : 'On track'}</span>
+      </div>
+      <h3>{card.title}</h3>
+      <p className="card-caption">{card.team.length} Collaborators <span className="meta-dot">·</span> {card.context}</p>
+      <ProgressBar value={percent} label={`${card.title} progress`} />
+      <div className="sprint-footer"><span><strong>{done}</strong> / {total} Tasks Done</span><span className="footer-link">Open Projects <ArrowRight size={12} /></span></div>
+    </CardFrame>
+  )
+  return (
+    <CardFrame card={card} highlight={highlight} className="featured-project-card">
+      <div className="project-heading">
+        <div><h3>{card.title}</h3><p className="card-caption">Due Date: {shortDate(card.dueDate)} <span className="meta-dot">·</span> {card.context || 'Personal Project'}</p></div>
+        <span className="project-orb"><Zap size={23} strokeWidth={1.8} /></span>
+      </div>
+      <div className="project-meta">
+        <AvatarStack names={card.team} />
+        <span className={`project-status ${percent === 100 ? 'is-complete' : ''}`}><span className="status-dot" />{projectStatus(percent)}</span>
+      </div>
+      <ProgressBar value={percent} label={`${card.title} progress`} />
+      <div className="project-footer"><span><strong>{done}</strong> / {total} Total Tasks</span><strong>{percent}%</strong></div>
+    </CardFrame>
+  )
+}
+
+function JourneyCardView({ card, dispatch, highlight }: { card: JourneyCard; dispatch: Dispatch<JourneyAction>; highlight: boolean }) {
+  switch (card.type) {
+    case 'event': return <EventJourneyCard card={card} highlight={highlight} />
+    case 'task': return <TaskJourneyCard card={card} dispatch={dispatch} highlight={highlight} />
+    case 'note': return <NoteJourneyCard card={card} highlight={highlight} />
+    case 'project': return <ProjectJourneyCard card={card} highlight={highlight} />
+  }
+}
+
+function DayRow({ entry, dispatch, highlightId }: { entry: DayEntry; dispatch: Dispatch<JourneyAction>; highlightId: string | null }) {
+  const ref = useReveal()
+  const first = entry.cards[0]
+  const isMonday = formatDate(entry.date, { weekday: 'short' }) === 'Mon'
+  return (
+    <section ref={ref} className="journey-row day-row" data-timeline-month={entry.date.slice(0, 7)} aria-label={formatDate(entry.date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}>
+      {(['left', 'right'] as const).map((side) => {
+        const sideCards = entry.cards.filter((card) => card.side === side)
+        return sideCards.length > 0 && <div key={`tether-${side}`} className={`tether tether-${side} tether-${sideCards[0].type}`} aria-hidden="true" />
+      })}
+      <div className="card-column card-col-left">{entry.cards.filter((card) => card.side === 'left').map((card) => (
+        <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
+      ))}</div>
+      <div className="date-node-wrapper">
+        <Link className={`date-node ${first.type === 'project' ? 'date-project' : isMonday ? 'date-monday' : ''}`}
+          to={destinationPath({ page: TYPE_CONFIG[first.type].workspace, cardId: first.id })}
+          aria-label={`Open ${formatDate(entry.date, { month: 'long', day: 'numeric' })} details`}>
+          <span>{formatDate(entry.date, { weekday: 'short' })}</span><strong>{entry.date.slice(8)}</strong>
+        </Link>
+      </div>
+      <div className="card-column card-col-right">{entry.cards.filter((card) => card.side === 'right').map((card) => (
+        <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
+      ))}</div>
+    </section>
+  )
+}
+
+function QuietDays({ entry, onCompose, expanded, onToggle, highlightId }: { entry: GapEntry; onCompose: (options?: ComposerOptions) => void; expanded: boolean; onToggle: () => void; highlightId: string | null }) {
+  const ref = useReveal()
+  const drawerId = `quiet-${entry.start}-${entry.end}`
+  return (
+    <section ref={ref} className="journey-row quiet-row">
+      <div className="quiet-pill-wrapper">
+        <button className={`quiet-pill ${expanded ? 'is-expanded' : ''}`} onClick={onToggle} aria-expanded={expanded} aria-controls={drawerId}>
+          <CalendarDays size={16} />
+          <span className="quiet-label">{gapLabel(entry.start, entry.end)} <span className="quiet-label-dot">·</span> No scheduled events</span>
+          <span className="quiet-badge">{expanded ? 'Hide buffer' : entry.cards.length ? `Peek ${entry.cards.length} ${entry.cards.length === 1 ? 'card' : 'cards'}` : 'Make room'}</span>
+          <ChevronDown size={13} className="quiet-chevron" />
+        </button>
+        {expanded && <div id={drawerId} className="quiet-drawer">
+          <div className="quiet-drawer-header"><span><span className="status-dot" />A little breathing room</span>
+            <button className="text-button" onClick={() => onCompose({ date: addDays(entry.start, Math.min(2, Math.floor(daysBetween(entry.start, entry.end) / 2))) })}><Plus size={11} />Insert card here</button>
+          </div>
+          {entry.cards.length ? <div className="quiet-items">{entry.cards.map((card) => (
+            <Link key={card.id} id={`card-${card.id}`} className={`quiet-item quiet-item-${card.type} ${highlightId === card.id ? 'is-highlighted' : ''}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
+              <TypeIcon type={card.type} size={17} /><span><strong>{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })}:</strong> {card.title}</span><ChevronRight size={13} />
+            </Link>
+          ))}</div> : <p className="quiet-empty">Nothing planned. Keep it open, or plant a new idea.</p>}
+        </div>}
+      </div>
+    </section>
+  )
+}
+
+export function Timeline({ entries, filter, onCompose, dispatch, highlightId, containerRef, openGaps, onToggleGap }: {
+  entries: TimelineEntry[]
+  filter: Filter
+  onCompose: (options?: ComposerOptions) => void
+  dispatch: Dispatch<JourneyAction>
+  highlightId: string | null
+  containerRef: RefObject<HTMLElement | null>
+  openGaps: string[]
+  onToggleGap: (key: string) => void
+}) {
+  const hasCards = entries.some((entry) => entry.kind === 'day' || entry.cards.length > 0)
+  return (
+    <section ref={containerRef} id="journey-stream" className="timeline" aria-label="Journey timeline">
+      <div className="timeline-spine" aria-hidden="true" /><div className="timeline-glow" aria-hidden="true" />
+      {hasCards ? entries.map((entry, index) => {
+        if (entry.kind === 'gap') {
+          const key = `${entry.start}-${entry.end}`
+          return <QuietDays key={`${key}-${filter}`} entry={entry} onCompose={onCompose} expanded={openGaps.includes(key)} onToggle={() => onToggleGap(key)} highlightId={highlightId} />
+        }
+        const previous = entries.slice(0, index).filter((item): item is DayEntry => item.kind === 'day').at(-1)
+        const startsMonth = previous && previous.date.slice(0, 7) !== entry.date.slice(0, 7)
+        return <Fragment key={entry.date}>
+          {startsMonth && <div className="month-marker"><span>{formatDate(entry.date, { month: 'long', year: 'numeric' })}</span></div>}
+          <DayRow entry={entry} dispatch={dispatch} highlightId={highlightId} />
+        </Fragment>
+      })
+        : <div className="timeline-empty"><EmptyState icon={<Sparkles size={24} />} title="A little room for something new"
+          action={<button className="button button-dark" onClick={() => onCompose({ type: filter === 'all' ? 'event' : filter })}><Plus size={14} />Add a card</button>}>Your {filter === 'all' ? 'journey starts' : `${TYPE_CONFIG[filter].shortLabel.toLowerCase()} will appear`} here.</EmptyState></div>}
+      <div className="horizon"><button onClick={() => onCompose()}><span className="horizon-dot" />Continue Your Journey <span className="horizon-separator">·</span> Add Next Card<Plus size={13} /></button>
+        <p>A little structure. A lot of possibility.</p>
+      </div>
+    </section>
+  )
+}
