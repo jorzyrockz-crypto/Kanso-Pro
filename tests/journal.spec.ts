@@ -34,10 +34,19 @@ test('Journal offers the responsive note studio with local voice and private Fir
   await expect(imageNote).toContainText('Sign in with Google to store images privately.')
 })
 
-test('note studio uses a rail on larger screens and a focused editor on mobile', async ({ page }) => {
+test('Journal uses a three-column library board and a single-column studio rail on larger screens', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/journal')
+  const boardEntries = page.locator('.journal-note-list:not(.is-compact)')
+  await expect(boardEntries).toBeVisible()
+  expect(await boardEntries.evaluate((element) => getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length)).toBe(3)
+
   await page.goto('/journal/note-lesson')
-  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeVisible()
+  const rail = page.getByRole('complementary', { name: 'Journal entries', exact: true })
+  await expect(rail).toBeVisible()
+  const railEntries = rail.locator('.journal-note-summary')
+  const [firstRailEntry, secondRailEntry] = await Promise.all([railEntries.nth(0).boundingBox(), railEntries.nth(1).boundingBox()])
+  expect(Math.abs(firstRailEntry!.x - secondRailEntry!.x)).toBeLessThanOrEqual(1)
   await expect(page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Your reflection', exact: true })).toBeVisible()
 

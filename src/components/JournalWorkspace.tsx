@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Bold, Camera, Check, Clock3, Code2, Eraser, FileText, Heading1, Heading2, Highlighter, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Mic, Plus, Quote, Square, Tag, Underline, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Bold, Camera, Check, Clock3, Code2, Eraser, FileText, Heading1, Heading2, Highlighter, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Mic, Plus, Quote, Search, Square, Tag, Underline, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ChangeEvent, ClipboardEvent, Dispatch, DragEvent, MouseEvent, ReactNode } from 'react'
@@ -85,7 +85,7 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
   const visible = notes.filter((note) => !normalized || [note.title, note.body, note.category, ...note.tags].filter(Boolean).join(' ').toLocaleLowerCase().includes(normalized))
     .sort((a, b) => updated(b).getTime() - updated(a).getTime())
   return <>
-    <label className="journal-search"><span className="sr-only">Search journal entries</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search journal entries, tags, or categories" /><span aria-hidden="true">⌕</span></label>
+    <label className="journal-search"><Search size=".875rem" aria-hidden="true" /><span className="sr-only">Search journal entries</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search entries, tags, or categories" /></label>
     <div className={`journal-note-list ${compact ? 'is-compact' : ''}`}>
       {visible.map((note) => {
         const Icon = noteIcon(note)

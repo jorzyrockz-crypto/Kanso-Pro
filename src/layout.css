@@ -223,7 +223,9 @@
     .workspace-desktop-aside .list-summary { padding: .75rem; }
     .calendar-workspace { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 1.5rem; }
     .workspace-journal .journal-hub, .workspace-journal .journal-detail { max-width: 84rem; }
-    .workspace-journal .journal-note-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .625rem; }
+    /* Keep the journal library board-like, while the narrow studio rail stays a readable single list. */
+    .workspace-journal .journal-note-list:not(.is-compact) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+    .workspace-journal .journal-note-list.is-compact { display: flex; flex-direction: column; gap: .375rem; }
   }
 
   @media (max-width: 1180px) {
