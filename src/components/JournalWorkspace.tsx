@@ -132,8 +132,10 @@ function JournalHub({ notes, onCreate, imageUploadAvailable }: { notes: NoteCard
 }
 
 function MetadataFields({ note, dispatch }: { note: NoteCard; dispatch: Dispatch<JourneyAction> }) {
+  // On a phone the writing surface should appear in the first viewport; supporting fields remain one tap away.
+  const [open, setOpen] = useState(() => !window.matchMedia('(max-width: 767px)').matches)
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
-  return <details className="studio-note-details" open><summary>Entry details</summary><div className="journal-metadata-fields">
+  return <details className="studio-note-details" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}><summary>Entry details</summary><div className="journal-metadata-fields">
     <label><Tag size=".75rem" />Tags<input aria-label="Tags, separated by commas" value={note.tags.join(', ')} placeholder="e.g. personal, ideas" onChange={(event) => update({ tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12) })} /></label>
     <label><span aria-hidden="true">⌂</span>Category<select aria-label="Note category" value={note.category ?? 'Personal'} onChange={(event) => update({ category: event.target.value })}>{categoryOptions.map((category) => <option key={category}>{category}</option>)}</select></label>
     <label><Clock3 size=".75rem" />Reminder<input aria-label="Note reminder" type="datetime-local" value={note.reminderAt ?? ''} onChange={(event) => update({ reminderAt: event.target.value })} /></label>
@@ -374,14 +376,21 @@ function StudioRichEditor({ note, dispatch, firestoreUserId }: { note: NoteCard;
 }
 
 function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDelete }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onDelete: (note: NoteCard) => void }) {
+  const titleInput = useRef<HTMLTextAreaElement>(null)
   const richText = note.richText ?? initialJournalRichText(note.body)
   const words = journalRichTextWordCount(richText)
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
+  const resizeTitle = (element: HTMLTextAreaElement | null) => {
+    if (!element) return
+    element.style.height = '0px'
+    element.style.height = `${Math.min(element.scrollHeight, 144)}px`
+  }
+  useEffect(() => { resizeTitle(titleInput.current) }, [note.id, note.title])
   return <main className="journal-detail journal-studio-editor">
     <div className="journal-detail-topbar"><Link className="text-button studio-back-to-notes" to="/journal"><ArrowLeft size=".75rem" />Journal</Link><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
     <section className="journal-editor journal-paper" aria-label="Journal entry studio">
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
-      <label htmlFor="journal-title" className="sr-only">Note title</label><input id="journal-title" className="journal-title-input" value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onChange={(event) => update({ title: event.target.value })} />
+      <label htmlFor="journal-title" className="sr-only">Note title</label><textarea ref={titleInput} id="journal-title" className="journal-title-input" rows={1} value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onInput={(event) => resizeTitle(event.currentTarget)} onChange={(event) => update({ title: event.target.value })} />
       <MetadataFields note={note} dispatch={dispatch} />
       <StudioRichEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} />
       <div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · private journal studio</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div>

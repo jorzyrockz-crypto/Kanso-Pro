@@ -62,3 +62,25 @@ test('Journal uses a three-column library board and a single-column studio rail 
   await expect(page.locator('.studio-back-to-notes')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Add photo', exact: true })).toBeDisabled()
 })
+
+test('Journal editor keeps the writing surface readable on phones and tablets', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/journal/note-lesson')
+  await expect(page.getByLabel('Note title', { exact: true })).toHaveJSProperty('tagName', 'TEXTAREA')
+  await expect(page.locator('.studio-note-details')).not.toHaveAttribute('open')
+  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeHidden()
+  await expect(page.getByRole('textbox', { name: 'Your reflection', exact: true })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+
+  await page.setViewportSize({ width: 768, height: 1024 })
+  await page.goto('/journal/note-lesson')
+  await expect(page.locator('.studio-note-details')).toHaveAttribute('open', '')
+  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeHidden()
+  expect(await page.locator('.journal-studio-editor').evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(650)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await page.goto('/journal/note-lesson')
+  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeHidden()
+  expect(await page.locator('.journal-studio-editor').evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(700)
+})
