@@ -2,11 +2,12 @@ import { CheckCircle2, Circle, Clock3, FileText, Flag, Landmark, MapPin, Pin, Sc
 import { useEffect, useId, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import type { EventCard, NoteCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry } from '../types'
+import type { EventCard, NoteCard, OccasionChoice, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry } from '../types'
 import { destinationPath } from '../lib/navigation'
 import { formatDate, formatTime, progress, TYPE_CONFIG } from '../lib/journey'
 import { occasionLabel, resolveOccasion } from '../lib/occasions'
 import { AvatarStack, ProgressBar, TypeIcon } from './Common'
+import { EventThemePicker } from './EventThemePicker'
 
 const focusable = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
@@ -39,7 +40,7 @@ function ChecklistPreview({ items, label }: { items: TaskCard['subtasks']; label
   </PreviewSection>
 }
 
-function EventPreview({ card }: { card: EventCard }) {
+function EventPreview({ card, onEventBackgroundChange }: { card: EventCard; onEventBackgroundChange?: (card: EventCard, occasion: OccasionChoice) => void }) {
   const occasion = resolveOccasion(card)
   const time = card.allDay ? 'All day' : `${formatTime(card.time) || 'Time not set'}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`
   return <>
@@ -51,6 +52,7 @@ function EventPreview({ card }: { card: EventCard }) {
       {occasion !== 'none' && <Detail label="Background">{occasionLabel(occasion)}</Detail>}
     </DetailGrid>
     {card.context && <PreviewSection title="Context"><p className="timeline-preview-copy">{card.context}</p></PreviewSection>}
+    {onEventBackgroundChange && <PreviewSection title="Event background"><EventThemePicker value={card.occasion ?? 'auto'} title={card.title} holiday={card.holiday} compact onChange={(occasion) => onEventBackgroundChange(card, occasion)} /></PreviewSection>}
   </>
 }
 
@@ -95,7 +97,7 @@ function SourcePreview({ entry }: { entry: TimelineSourceEntry }) {
   </>
 }
 
-export function TimelineCardPreview({ item, onClose }: { item: TimelineItem | null; onClose: () => void }) {
+export function TimelineCardPreview({ item, onClose, onEventBackgroundChange }: { item: TimelineItem | null; onClose: () => void; onEventBackgroundChange?: (card: EventCard, occasion: OccasionChoice) => void }) {
   const headingId = useId()
   const descriptionId = useId()
   const dialogRef = useRef<HTMLElement>(null)
@@ -132,7 +134,7 @@ export function TimelineCardPreview({ item, onClose }: { item: TimelineItem | nu
   const typeLabel = source ? item.sourceLabel : config!.label
   const actionHref = source ? `/calendar?date=${item.date}` : destinationPath({ page: config!.workspace, cardId: item.id })
   const actionLabel = source ? 'View in Calendar' : config!.link
-  const preview = source ? <SourcePreview entry={item} /> : item.type === 'event' ? <EventPreview card={item} /> : item.type === 'task' ? <TaskPreview card={item} /> : item.type === 'project' ? <ProjectPreview card={item} /> : <NotePreview card={item} />
+  const preview = source ? <SourcePreview entry={item} /> : item.type === 'event' ? <EventPreview card={item} onEventBackgroundChange={onEventBackgroundChange} /> : item.type === 'task' ? <TaskPreview card={item} /> : item.type === 'project' ? <ProjectPreview card={item} /> : <NotePreview card={item} />
 
   return <div className="timeline-preview-backdrop" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section ref={dialogRef} className={`timeline-preview-dialog ${source ? 'is-source' : `is-${item.type}`}`} role="dialog" aria-modal="true" aria-labelledby={headingId} aria-describedby={descriptionId}>

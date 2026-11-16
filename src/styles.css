@@ -331,6 +331,17 @@
   .calendar-event-meta > .badge { background: var(--theme-blue-soft, #e4effc); color: var(--theme-blue, #38659b); font-size: 0.5rem; letter-spacing: 0; }
   .calendar-event h4 { margin: 0.5625rem 0 0.3125rem; font-size: 0.875rem; line-height: 1.5; font-weight: 800; letter-spacing: -0.01875rem; }
   .calendar-event p { color: var(--theme-text-secondary, #5d6e82); font-size: 0.625rem; line-height: 1.7; }
+  /* Calendar agenda cards stay deliberately compact; the complete record is in Preview. */
+  .calendar-event.calendar-preview-entry, .calendar-source-event.calendar-preview-entry { min-width: 0; padding: 0; overflow: hidden; }
+  .calendar-preview-card { display: grid; gap: .4375rem; width: 100%; padding: .8125rem .9375rem; background: transparent; color: inherit; text-align: left; }
+  .calendar-preview-card:hover { background: color-mix(in srgb, var(--theme-surface, #fff) 78%, var(--theme-blue-soft, #eaf4fa)); }
+  .calendar-preview-card:active { transform: scale(.99); }
+  .calendar-preview-card .calendar-event-meta, .calendar-preview-card .calendar-source-event-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .375rem .5rem; }
+  .calendar-preview-title { display: flex; align-items: center; gap: .625rem; min-width: 0; }
+  .calendar-preview-title > strong { flex: 1; min-width: 0; color: var(--theme-text-primary, #294b63); font-size: .75rem; line-height: 1.5; font-weight: 800; overflow-wrap: anywhere; }
+  .calendar-preview-title > svg { flex-shrink: 0; color: var(--theme-text-muted, #63798a); }
+  .calendar-source-event.source-school-calendar .calendar-preview-title > strong { color: #215a88; }
+  .calendar-source-event.source-legislated-activity .calendar-preview-title > strong { color: #674414; }
   .calendar-source-event { padding: 1rem; border: 1px solid #cbd9ec; border-radius: 1.0625rem; background: linear-gradient(135deg, #f2f6fc, var(--theme-surface, #fff)); overflow-wrap: anywhere; }
   .calendar-source-event-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
   .calendar-source-event-meta > span:first-child { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.3125rem; color: #31567f; font-size: 0.5625rem; line-height: 1.5; font-weight: 800; text-transform: uppercase; }

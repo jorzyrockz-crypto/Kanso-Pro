@@ -1,20 +1,18 @@
-import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, MapPin, Palette, Plus, School, Users, Zap } from 'lucide-react'
+import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, Plus, School, Users, Zap } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
-import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, Workspace } from '../types'
+import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, isValidDate, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TypeIcon } from './Common'
 import { NotFoundPage, PageCreateButton, PageHeader } from './PageHeader'
 import { destinationPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from '../lib/navigation'
-import { occasionLabel, resolveOccasion } from '../lib/occasions'
-import { OccasionArtwork } from './OccasionArtwork'
-import { EventThemePicker } from './EventThemePicker'
 import { calendarPeriod, monthScene } from '../lib/months'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
 import { calendarSourceEntriesForMonth } from '../lib/calendarSources'
 import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
-import { legislatedActivityIllustration } from '../lib/legislatedActivityVisuals'
+import { TimelineCardPreview } from './TimelineCardPreview'
 
 const workspaceNames: Record<Workspace, string> = {
   calendar: 'Calendar', tasks: 'Personal Tasks', project: 'Projects', journal: 'Journal',
@@ -47,26 +45,13 @@ function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month }: {
   </div>
 }
 
-function CalendarEvent({ card, highlighted, dispatch }: { card: EventCard; highlighted: boolean; dispatch: Dispatch<JourneyAction> }) {
-  const theme = resolveOccasion(card)
-  const choice = card.occasion ?? 'auto'
-  const label = occasionLabel(theme)
-  return <article className={`calendar-event ${highlighted ? 'selected-event' : ''}`} data-event-id={card.id} data-occasion={theme}>
-    <div className={`calendar-event-surface ${theme !== 'none' ? `occasion-surface occasion-${theme}` : card.holiday ? 'holiday-card' : ''}`}>
-      {theme !== 'none' && <OccasionArtwork theme={theme} />}
-      <div className="calendar-event-content">
-        <div className="calendar-event-meta"><span><CalendarDays size="0.75rem" />{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })} <span>·</span> {card.allDay ? 'All day' : `${formatTime(card.time)}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`}</span>
-          <span className="badge">{card.organization}</span></div>
-        <div className="calendar-event-copy"><h4>{card.title}</h4><p>{card.context}</p></div>
-        <div className="event-detail-meta"><span><Avatar name={card.owner} />{card.owner === 'You' ? 'Your calendar' : `Organized by ${card.owner}`}</span>
-          {card.location && <span><MapPin size="0.75rem" />{card.location}</span>}</div>
-      </div>
-    </div>
-    <details className="event-background-editor">
-      <summary aria-label={`Customize background for ${card.title}`}><span><Palette size="0.8125rem" />Background</span><span className="event-background-current">{choice === 'auto' ? `Auto · ${label}` : label}</span><ChevronRight size="0.875rem" /></summary>
-      <div className="event-background-options"><EventThemePicker value={choice} title={card.title} holiday={card.holiday} compact
-        onChange={(occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} /></div>
-    </details>
+function CalendarEvent({ card, highlighted, onPreview }: { card: EventCard; highlighted: boolean; onPreview: () => void }) {
+  const time = card.allDay ? 'All day' : `${formatTime(card.time)}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`
+  return <article className={`calendar-event calendar-preview-entry ${highlighted ? 'selected-event' : ''}`} data-event-id={card.id}>
+    <button type="button" className="calendar-preview-card" onClick={onPreview} aria-label={`Preview ${card.title} details`}>
+      <span className="calendar-event-meta"><span><CalendarDays size="0.75rem" />{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })} <i aria-hidden="true">·</i> {time || 'Time not set'}</span><span className="badge">{card.organization || 'Personal'}</span></span>
+      <span className="calendar-preview-title"><strong>{card.title}</strong><ChevronRight size="1rem" aria-hidden="true" /></span>
+    </button>
   </article>
 }
 
@@ -80,17 +65,16 @@ function sourceEntryDate(entry: CalendarSourceEntry) {
   return `${start} – ${formatDate(entry.endDate, { month: 'short', day: '2-digit' })}`
 }
 
-function CalendarSourceEvent({ entry, source }: { entry: CalendarSourceEntry; source?: CalendarSource }) {
+function CalendarSourceEvent({ entry, source, onPreview }: { entry: CalendarSourceEntry; source?: CalendarSource; onPreview: () => void }) {
   const isSchoolCalendar = source?.id === 'deped-sy-2026-2027'
   const isLegislated = source?.id === 'deped-legislated-activities'
   const SourceIcon = isSchoolCalendar ? School : isLegislated ? Landmark : FileText
   const visualClass = isSchoolCalendar ? 'source-school-calendar' : isLegislated ? 'source-legislated-activity' : 'source-local-memo'
-  const illustration = isLegislated ? legislatedActivityIllustration(entry.title) : undefined
-  return <article className={`calendar-source-event ${visualClass}${illustration ? ` legislated-illustration-${illustration}` : ''}`} data-source-id={entry.sourceId} data-illustration={illustration}>
-    <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{source?.shortLabel ?? 'Calendar source'}</span></div>
-    <h4>{entry.title}</h4>
-    <p>{entry.detail ?? source?.provenance ?? 'Reference date from an enabled calendar source.'}</p>
-    <div className="calendar-source-event-note"><SourceIcon size="0.75rem" aria-hidden="true" />{isLegislated ? 'Legislated annual observance · reference only' : isSchoolCalendar ? 'DepEd school calendar · reference only' : 'Calendar source · reference only, not a personal card'}</div>
+  return <article className={`calendar-source-event calendar-preview-entry ${visualClass}`} data-source-id={entry.sourceId}>
+    <button type="button" className="calendar-preview-card" onClick={onPreview} aria-label={`Preview ${entry.title} reference details`}>
+      <span className="calendar-source-event-meta"><span><SourceIcon size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{source?.shortLabel ?? 'Calendar source'}</span></span>
+      <span className="calendar-preview-title"><strong>{entry.title}</strong><ChevronRight size="1rem" aria-hidden="true" /></span>
+    </button>
   </article>
 }
 
@@ -100,10 +84,22 @@ function isCalendarSourceEntry(entry: CalendarAgendaItem): entry is CalendarSour
   return 'sourceId' in entry
 }
 
+function timelineSourcePreview(entry: CalendarSourceEntry, source?: CalendarSource): TimelineSourceEntry {
+  return {
+    ...entry,
+    sourceLabel: source?.shortLabel ?? 'Calendar source',
+    sourceProvenance: [source?.provenance, source?.reference].filter(Boolean).join(' ') || 'Reference date from an enabled calendar source.',
+    side: 'left',
+    calendarSource: true,
+  }
+}
+
 function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
+  const [preview, setPreview] = useState<TimelineItem | null>(null)
+  const closePreview = useCallback(() => setPreview(null), [])
   const { month, selectedDate } = calendarPeriod(query, initialCard?.date)
   const monthCards = cards.filter((card) => card.date.startsWith(month))
   const events = monthCards.filter((card): card is EventCard => card.type === 'event')
@@ -148,15 +144,16 @@ function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose
       <div className="panel-heading"><h3>{selectedDate ? `${shortDate(selectedDate)} · Connected agenda` : 'Connected calendar details'}</h3>
         {selectedDate && <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All entries</button>}</div>
       {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map((entry) => isCalendarSourceEntry(entry)
-        ? <CalendarSourceEvent key={entry.id} entry={entry} source={sourceById.get(entry.sourceId)} />
+        ? <CalendarSourceEvent key={entry.id} entry={entry} source={sourceById.get(entry.sourceId)} onPreview={() => setPreview(timelineSourcePreview(entry, sourceById.get(entry.sourceId)))} />
         : entry.type === 'event'
-          ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} dispatch={dispatch} />
-          : <Link key={entry.id} className={`agenda-item agenda-item-${entry.type}`} to={destinationPath({ page: TYPE_CONFIG[entry.type].workspace, cardId: entry.id })}>
-            <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ArrowRight size="0.9375rem" />
-          </Link>)}</div>
+          ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} onPreview={() => setPreview(entry)} />
+          : <button key={entry.id} type="button" className={`agenda-item agenda-item-${entry.type}`} onClick={() => setPreview(entry)} aria-label={`Preview ${entry.title || 'Untitled reflection'} details`}>
+            <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ChevronRight size="0.9375rem" aria-hidden="true" />
+          </button>)}</div>
         : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
       {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
     </section>
+    <TimelineCardPreview item={preview} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
   </div>
 }
 

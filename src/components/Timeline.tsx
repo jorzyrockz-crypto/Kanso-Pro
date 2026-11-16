@@ -297,7 +297,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
       <div className="horizon"><button onClick={() => onCompose()}><span className="horizon-dot" />Continue Your Journey <span className="horizon-separator">·</span> Add Next Card<Plus size="0.8125rem" /></button>
         <p>A little structure. A lot of possibility.</p>
       </div>
-      <TimelineCardPreview item={preview} onClose={closePreview} />
+      <TimelineCardPreview item={preview} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
     </section>
   )
 }
