@@ -304,13 +304,14 @@ function DesktopRailItem({ card, detail, trailing }: { card: Exclude<JourneyCard
   </Link>
 }
 
-function DesktopPlanningRail({ cards, today, onCompose }: { cards: JourneyCard[]; today: string; onCompose: (options?: ComposerOptions) => void }) {
+function DesktopPlanningRail({ cards, today, rolloverCandidates, dispatch, onCompose }: { cards: JourneyCard[]; today: string; rolloverCandidates: RolloverCandidate[]; dispatch: Dispatch<JourneyAction>; onCompose: (options?: ComposerOptions) => void }) {
   const scheduledCards = cards.filter((card) => !card.backlog && !card.quiet)
   const actionableCards = scheduledCards.filter((card): card is Exclude<JourneyCard, NoteCard> => card.type !== 'note')
   const todayCards = actionableCards.filter((card) => card.date === today || (card.type === 'project' && card.dueDate === today))
   const upcomingCards = actionableCards.filter((card) => plannedDate(card) > today).sort((first, second) => plannedDate(first).localeCompare(plannedDate(second))).slice(0, 3)
   const unfinishedTasks = scheduledCards.filter((card): card is TaskCard => card.type === 'task' && card.subtasks.some((item) => !item.done)).sort((first, second) => first.date.localeCompare(second.date)).slice(0, 3)
   const activeProjects = scheduledCards.filter((card): card is ProjectCard => card.type === 'project' && progress(card.subtasks).percent < 100).sort((first, second) => first.dueDate.localeCompare(second.dueDate)).slice(0, 3)
+  const triageCards = rolloverCandidates.slice(0, 3)
   const taskDetail = (card: TaskCard) => {
     const { done, total } = progress(card.subtasks)
     return `${total - done} action${total - done === 1 ? '' : 's'} left · ${shortDate(card.date)}`
@@ -329,6 +330,13 @@ function DesktopPlanningRail({ cards, today, onCompose }: { cards: JourneyCard[]
     <section className="desktop-rail-section" aria-labelledby="desktop-focus-title">
       <div className="desktop-rail-section-heading"><span className="desktop-rail-section-icon desktop-rail-focus"><TypeIcon type="task" size={13} /></span><div><span>Focus</span><h3 id="desktop-focus-title">Task lists to finish</h3></div></div>
       {unfinishedTasks.length ? <div className="desktop-rail-list">{unfinishedTasks.map((card) => <DesktopRailItem key={card.id} card={card} detail={taskDetail(card)} />)}</div> : <p className="desktop-rail-empty">Every visible task list is complete. Nice work.</p>}
+    </section>
+    <section className="desktop-rail-section desktop-triage-section" aria-labelledby="desktop-triage-title">
+      <div className="desktop-rail-section-heading"><span className="desktop-rail-section-icon desktop-rail-triage"><ArrowRight size=".8125rem" /></span><div><span>Planning triage</span><h3 id="desktop-triage-title">Carry forward</h3></div>{triageCards.length > 0 && <span className="desktop-triage-count">{triageCards.length}</span>}</div>
+      {triageCards.length ? <div className="desktop-triage-list">{triageCards.map((card) => {
+        const due = card.type === 'project' ? card.dueDate : card.date
+        return <div className={`desktop-triage-item triage-item-${card.type}`} key={card.id}><span className="desktop-triage-icon"><TypeIcon type={card.type} size={14} /></span><span className="desktop-triage-copy"><strong>{card.title}</strong><small>Overdue since {shortDate(due)}</small></span><div className="desktop-triage-actions"><button type="button" className="desktop-triage-move" aria-label={`Move ${card.title} to today`} onClick={() => dispatch({ type: 'rollover-card', id: card.id, date: today })}>Today</button><button type="button" className="desktop-triage-backlog" aria-label={`Move ${card.title} to backlog`} onClick={() => dispatch({ type: 'backlog-card', id: card.id })}>Backlog</button></div></div>
+      })}</div> : <p className="desktop-rail-empty">Nothing overdue. Your plan is clear.</p>}
     </section>
     <section className="desktop-rail-section" aria-labelledby="desktop-project-title">
       <div className="desktop-rail-section-heading"><span className="desktop-rail-section-icon desktop-rail-project"><Zap size=".75rem" /></span><div><span>Projects</span><h3 id="desktop-project-title">Milestone progress</h3></div></div>
@@ -416,7 +424,7 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
         {lastMonth && <TimelineBoundary key={`future-${lastMonth}`} direction="future" month={lastMonth} canLoad={canLoadFuture} onLoad={onLoadFuture} />}
         <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onDeleteCard={onDeleteCard} />
       </section>
-      <DesktopPlanningRail cards={cards} today={rolloverDate} onCompose={onCompose} />
+      <DesktopPlanningRail cards={cards} today={rolloverDate} rolloverCandidates={rolloverCandidates} dispatch={dispatch} onCompose={onCompose} />
     </div>
   )
 }

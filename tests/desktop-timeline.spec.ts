@@ -9,6 +9,7 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   await expect(rail).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'At a glance', exact: true })).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'Task lists to finish', exact: true })).toBeVisible()
+  await expect(rail.getByRole('heading', { name: 'Carry forward', exact: true })).toBeVisible()
   await expect(rail.getByRole('button', { name: 'Task list', exact: true })).toBeVisible()
 
   const [headerBox, streamBox, railBox, viewport] = await Promise.all([
@@ -18,6 +19,12 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   expect(Math.abs(headerBox!.y - railBox!.y)).toBeLessThanOrEqual(1)
   expect(streamBox!.x + streamBox!.width).toBeLessThanOrEqual(railBox!.x)
   expect(viewport).toBeLessThanOrEqual(1280)
+
+  const moveToToday = rail.getByRole('button', { name: /Move .* to today/ }).first()
+  const moveActionName = await moveToToday.getAttribute('aria-label')
+  expect(moveActionName).not.toBeNull()
+  await moveToToday.click()
+  await expect(rail.getByRole('button', { name: moveActionName! })).toHaveCount(0)
 
   await rail.getByRole('button', { name: 'Task list', exact: true }).click()
   await expect(page).toHaveURL(/\/new\?type=task&date=/)
