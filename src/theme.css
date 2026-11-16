@@ -119,6 +119,10 @@
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity p, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #ead8af; }
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #796943; }
     :root[data-theme='dark'] .calendar-preview-card:hover { background: rgb(255 255 255 / 7%); }
+    :root[data-theme='dark'] .timeline-month-empty, :root[data-theme='dark'] .timeline-boundary > button { border-color: #45627c; background: rgb(20 38 57 / 74%); }
+    :root[data-theme='dark'] .timeline-month-empty strong { color: #e1edf8; }
+    :root[data-theme='dark'] .timeline-month-empty span, :root[data-theme='dark'] .timeline-boundary > button { color: #b4c9dd; }
+    :root[data-theme='dark'] .timeline-boundary > button:not(:disabled):hover { border-color: #78b3d6; color: #d4ecfc; background: #1c3851; }
     :root[data-theme='dark'] .calendar-preview-title > strong { color: #e8f0fa; }
     :root[data-theme='dark'] .calendar-preview-title > svg { color: #9eb1c7; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-event { --preview-accent: #8fd2f8; --preview-soft: #19364c; }

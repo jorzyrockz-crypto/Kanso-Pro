@@ -50,3 +50,21 @@ export function monthAtPosition(markers: readonly { month: string; top: number }
   }
   return month
 }
+
+/** Enumerate inclusive calendar months without relying on local timezone arithmetic. */
+export function monthRange(start: string, end: string): string[] {
+  const first = normalizeMonth(start)
+  const last = normalizeMonth(end)
+  if (first > last) return []
+  const months: string[] = []
+  let year = Number(first.slice(0, 4))
+  let month = Number(first.slice(5, 7))
+  const endYear = Number(last.slice(0, 4))
+  const endMonth = Number(last.slice(5, 7))
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    months.push(`${year}-${String(month).padStart(2, '0')}`)
+    month += 1
+    if (month === 13) { year += 1; month = 1 }
+  }
+  return months
+}

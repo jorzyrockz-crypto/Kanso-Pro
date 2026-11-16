@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
 import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
-import { buildTimeline, focusCard, formatDate } from './lib/journey'
+import { buildTimeline, focusCard, formatDate, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
@@ -23,7 +23,7 @@ import { accountError } from './lib/account'
 import { SettingsPage } from './components/SettingsPage'
 import { AccountPage } from './components/AccountPage'
 import { SignInHeader } from './components/SignInPage'
-import { calendarPeriod, monthAtPosition } from './lib/months'
+import { calendarPeriod, monthAtPosition, monthRange } from './lib/months'
 import { MonthBackdrop } from './components/MonthArtwork'
 import { Timeline } from './components/Timeline'
 import { Composer } from './components/Composer'
@@ -38,6 +38,26 @@ const filters: { type: Filter; label: string }[] = [
   { type: 'task', label: 'Tasks' }, { type: 'project', label: 'Projects' },
   { type: 'note', label: 'Journal Notes' },
 ]
+
+const TIMELINE_MONTH_STEP = 1
+const TIMELINE_MIN_MONTH = '1900-01'
+const TIMELINE_MAX_MONTH = '9999-12'
+
+type TimelineWindow = { start: string; end: string }
+
+function timelineWindowFor(cards: JourneyCard[]): TimelineWindow {
+  const months = [...cards.map((card) => card.date.slice(0, 7)), FOCUS_DATE.slice(0, 7)].sort()
+  return { start: months[0], end: months.at(-1)! }
+}
+
+function extendTimelineWindow(window: TimelineWindow, direction: 'past' | 'future'): TimelineWindow {
+  if (direction === 'past') return window.start === TIMELINE_MIN_MONTH
+    ? window
+    : { ...window, start: window.start <= '1900-12' ? TIMELINE_MIN_MONTH : shiftMonth(window.start, -TIMELINE_MONTH_STEP) }
+  return window.end === TIMELINE_MAX_MONTH
+    ? window
+    : { ...window, end: window.end >= '9999-01' ? TIMELINE_MAX_MONTH : shiftMonth(window.end, TIMELINE_MONTH_STEP) }
+}
 
 function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, onFilter, onFocus, onCalendarSourcesChange }: {
   filter: Filter
@@ -70,7 +90,7 @@ function StreamHeader({ filter, count, month, showCalendarSources, calendarSourc
       </button>)}</nav>
       <div className="stream-reference-controls">
         <button type="button" className={`stream-source-toggle ${showCalendarSources ? 'is-active' : ''}`} onClick={() => onCalendarSourcesChange(!showCalendarSources)} aria-pressed={showCalendarSources} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
-          <Landmark size="0.75rem" aria-hidden="true" /><span>{showCalendarSources ? 'Calendar sources shown' : 'Show calendar sources'}</span>{calendarSourceCount > 0 && <span className="stream-source-count">{calendarSourceCount}</span>}
+          <Landmark size="0.75rem" aria-hidden="true" /><span className="stream-source-label">Calendar sources</span><span className="stream-source-state">{showCalendarSources ? 'Shown' : 'Hidden'}</span>{calendarSourceCount > 0 && <span className="stream-source-count">{calendarSourceCount}</span>}
         </button>
         <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
       </div>
@@ -152,11 +172,13 @@ export default function App() {
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const handledFocusKey = useRef<string | null>(null)
   const timelineRef = useRef<HTMLElement>(null)
+  const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
+  const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
+  const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
   const timelineSourceEntries = useMemo<TimelineSourceEntry[]>(() => {
     if (!showCalendarSources) return []
-    const months = [...new Set([...state.cards.map((card) => card.date.slice(0, 7)), FOCUS_DATE.slice(0, 7)])].sort()
     const sourceById = new Map(calendarSources.sources.map((source) => [source.id, source]))
-    return calendarSourceEntriesForMonths(calendarSources.sources, months).flatMap((entry) => {
+    return calendarSourceEntriesForMonths(calendarSources.sources, timelineMonths).flatMap((entry) => {
       const source = sourceById.get(entry.sourceId)
       if (!source) return []
       return [{
@@ -167,11 +189,18 @@ export default function App() {
         calendarSource: true,
       }]
     })
-  }, [calendarSources.sources, showCalendarSources, state.cards])
-  const entries = useMemo(() => buildTimeline(state.cards, filter, timelineSourceEntries), [state.cards, filter, timelineSourceEntries])
-  const firstDate = useMemo(() => [...state.cards].sort((a, b) => a.date.localeCompare(b.date))[0]?.date ?? FOCUS_DATE, [state.cards])
-  const defaultMonth = (entries.find((entry) => entry.kind === 'day')?.date ?? firstDate).slice(0, 7)
-  const timelineMonth = visibleTimelineMonth && entries.some((entry) => entry.kind === 'day' && entry.date.startsWith(visibleTimelineMonth)) ? visibleTimelineMonth : defaultMonth
+  }, [calendarSources.sources, showCalendarSources, timelineMonths])
+  const timelineCards = useMemo(() => state.cards.filter((card) => card.date.slice(0, 7) >= timelineWindow.start && card.date.slice(0, 7) <= timelineWindow.end), [state.cards, timelineWindow])
+  const entries = useMemo(() => buildTimeline(timelineCards, filter, timelineSourceEntries), [timelineCards, filter, timelineSourceEntries])
+  const defaultMonth = entries.find((entry) => entry.kind === 'day')?.date.slice(0, 7) ?? timelineWindow.start
+  const timelineMonth = visibleTimelineMonth && visibleTimelineMonth >= timelineWindow.start && visibleTimelineMonth <= timelineWindow.end ? visibleTimelineMonth : defaultMonth
+
+  useEffect(() => {
+    setTimelineWindow((current) => ({
+      start: cardTimelineWindow.start < current.start ? cardTimelineWindow.start : current.start,
+      end: cardTimelineWindow.end > current.end ? cardTimelineWindow.end : current.end,
+    }))
+  }, [cardTimelineWindow])
   const calendarCard = state.cards.find((card) => card.type === 'event' && card.id === calendarMatch?.params.cardId)
   const calendarVisible = calendarMatch && (!calendarMatch.params.cardId || calendarCard)
   const { month: calendarMonth } = calendarPeriod(new URLSearchParams(location.search), calendarCard?.date)
@@ -274,6 +303,8 @@ export default function App() {
     else navigate('/', { replace: true })
   }
   const createJourneyCard = (card: JourneyCard) => {
+    const month = card.date.slice(0, 7)
+    setTimelineWindow((current) => ({ start: month < current.start ? month : current.start, end: month > current.end ? month : current.end }))
     dispatch({ type: 'add-card', card })
     setFilter('all')
     navigate('/', { replace: true, state: { focusCardId: card.id } })
@@ -288,6 +319,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }
   const toggleGap = (key: string) => setOpenGaps((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])
+  const extendTimeline = useCallback((direction: 'past' | 'future') => setTimelineWindow((current) => extendTimelineWindow(current, direction)), [])
 
   const titlebar = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="titlebar" onOpenAbout={openAboutUpdates} />
   const updateBanner = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="banner" onOpenAbout={openAboutUpdates} />
@@ -302,7 +334,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
           <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} onFilter={changeFilter} onFocus={focusActive} onCalendarSourcesChange={setShowCalendarSources} />
-          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap} />
+          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
+            months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
           element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}

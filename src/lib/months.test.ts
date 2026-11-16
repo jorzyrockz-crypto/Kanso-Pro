@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FOCUS_DATE } from '../data'
-import { calendarPeriod, MONTH_SCENES, monthAtPosition, monthScene, normalizeMonth } from './months'
+import { calendarPeriod, MONTH_SCENES, monthAtPosition, monthRange, monthScene, normalizeMonth } from './months'
 
 describe('twelve original monthly scenes', () => {
   it('defines one distinct scene for every month, in calendar order', () => {
@@ -51,6 +51,14 @@ describe('one calendar period for the page and its background', () => {
     expect(calendarPeriod(new URLSearchParams('date=2026-02-30&month=2026-99'))).toEqual({ month: '2026-11', selectedDate: null })
     expect(calendarPeriod(new URLSearchParams('date=bad&month=2027-04'))).toEqual({ month: '2027-04', selectedDate: null })
     expect(calendarPeriod(new URLSearchParams('date=bad'), '2026-12-05')).toEqual({ month: '2026-12', selectedDate: '2026-12-05' })
+  })
+})
+
+describe('a bounded slice of timeline months', () => {
+  it('lists inclusive months across year boundaries in chronological order', () => {
+    expect(monthRange('2026-11', '2027-02')).toEqual(['2026-11', '2026-12', '2027-01', '2027-02'])
+    expect(monthRange('2026-11', '2026-11')).toEqual(['2026-11'])
+    expect(monthRange('2027-01', '2026-12')).toEqual([])
   })
 })
 
