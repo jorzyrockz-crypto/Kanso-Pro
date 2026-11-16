@@ -1,5 +1,6 @@
 import { ArrowRight, Bell, BellOff, CheckCheck, Clock3, Settings2, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import type { NotificationsController } from '../lib/useNotifications'
 
@@ -10,6 +11,7 @@ export function NotificationMenu({ notifications: n, open, onOpenChange }: {
   onOpenChange: (open: boolean) => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
   const [quietError, setQuietError] = useState('')
@@ -28,11 +30,12 @@ export function NotificationMenu({ notifications: n, open, onOpenChange }: {
 
   useEffect(() => {
     if (!open) return
+    const isInside = (target: EventTarget | null) => target instanceof Node && (rootRef.current?.contains(target) || panelRef.current?.contains(target))
     const outside = (event: PointerEvent) => {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) close(false)
+      if (!isInside(event.target)) close(false)
     }
     const focusOutside = (event: FocusEvent) => {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) close(false)
+      if (!isInside(event.target)) close(false)
     }
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -54,7 +57,7 @@ export function NotificationMenu({ notifications: n, open, onOpenChange }: {
     <button ref={triggerRef} type="button" className="notification-bell header-action" aria-label={n.unread ? `Notifications, ${n.unread} unread` : 'Notifications'} aria-haspopup="dialog" aria-expanded={open} aria-controls={panelId} title="Notifications" onClick={() => onOpenChange(!open)}>
       <Bell size="1.125rem" aria-hidden="true" />{n.unread > 0 && <span className="notification-count" aria-hidden="true">{n.unread > 9 ? '9+' : n.unread}</span>}
     </button>
-    {open && <><div className="notification-menu-scrim" aria-hidden="true" /><section id={panelId} className="notification-menu-panel" role="dialog" aria-label="Notifications">
+    {open && createPortal(<><div className="notification-menu-scrim" aria-hidden="true" /><section ref={panelRef} id={panelId} className="notification-menu-panel" role="dialog" aria-label="Notifications">
       <header className="notification-menu-heading">
         <div><strong>Notifications</strong><span>{n.unread ? `${n.unread} unread` : 'All caught up'}</span></div>
         <div>{n.unread > 0 && <button type="button" className="notification-mark-all" onClick={() => void n.markRead()}><CheckCheck size=".875rem" aria-hidden="true" />Mark all read</button>}<button type="button" className="notification-menu-close" aria-label="Close notifications" onClick={() => close(true)}><X size="1rem" /></button></div>
@@ -81,6 +84,6 @@ export function NotificationMenu({ notifications: n, open, onOpenChange }: {
         </div></details>
       </div>
       <footer className="notification-menu-footer"><Link to="/notifications" onClick={() => close(false)}>Open notification settings <ArrowRight size=".75rem" aria-hidden="true" /></Link></footer>
-    </section></>}
+    </section></>, document.body)}
   </div>
 }

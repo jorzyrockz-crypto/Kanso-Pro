@@ -74,6 +74,8 @@ test('the bell opens a dismissible notification menu with a deeper settings rout
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320)
   expect(bounds!.y).toBeGreaterThanOrEqual(0)
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(740)
+  const scrim = await page.locator('.notification-menu-scrim').boundingBox()
+  expect(scrim).toEqual({ x: 0, y: 0, width: 320, height: 740 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
   await page.keyboard.press('Escape')
   await expect(menu).not.toBeVisible()
