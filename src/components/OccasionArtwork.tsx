@@ -74,5 +74,64 @@ export function OccasionArtwork({ theme, miniature = false }: { theme: OccasionT
       <circle cx="473" cy="74" r="2" fill="#e6d2a9" /><circle cx="564" cy="89" r="2" fill="#ebdbb9" /><circle cx="599" cy="51" r="2" fill="#c2d3bb" />
       <path d="M417 85v10m-5-5h10m156 22v8m-4-4h8" stroke="#dbd8b9" strokeWidth="1.5" strokeLinecap="round" opacity=".7" />
     </>}
+    {theme === 'school' && <>
+      <path d="M367 237h253" stroke="#b9d9ed" strokeWidth="7" strokeLinecap="round" opacity=".75" />
+      <path d="m405 156 104-72 104 72z" fill="#b9e2f5" /><path d="M422 157h174v78H422z" fill="#e8f5fb" />
+      <path d="M447 178h20v47h-20zm48 0h20v47h-20zm48 0h20v47h-20zm48 0h20v47h-20z" fill="#77afd1" />
+      <path d="M501 225h18v-37h-18z" fill="#315f83" /><path d="M508 73v22" stroke="#f4cf79" strokeWidth="5" strokeLinecap="round" /><path d="M494 72h28" stroke="#f4cf79" strokeWidth="4" strokeLinecap="round" />
+      <path d="M573 99c0-15 22-15 22 0v10c0 12-22 12-22 0z" fill="#f8c979" /><path d="M584 121v17" stroke="#f8c979" strokeWidth="3" strokeLinecap="round" />
+      <path d="M378 205c25-29 53-25 73-3-24 19-49 20-73 3z" fill="#76b49a" /><path d="M392 198c7-20 16-28 27-32" fill="none" stroke="#9fd1ae" strokeWidth="6" strokeLinecap="round" />
+      <circle cx="606" cy="61" r="4" fill="#f7d591" /><circle cx="383" cy="93" r="3" fill="#b9e5f2" />
+    </>}
+    {theme === 'learning' && <>
+      <ellipse cx="510" cy="247" rx="109" ry="11" fill="#17214c" opacity=".3" />
+      <path d="M411 171c36-21 69-18 99 7v59c-30-25-63-28-99-7z" fill="#e2eaff" /><path d="M510 178c30-25 63-28 99-7v59c-36-21-69-18-99 7z" fill="#cad9f4" />
+      <path d="M510 181v54" stroke="#94aad3" strokeWidth="4" /><path d="M430 190c22-10 43-7 63 7m-63 13c22-10 43-7 63 7m37-20c20-14 41-17 62-7m-62 27c20-14 41-17 62-7" fill="none" stroke="#8ea4d0" strokeWidth="3" strokeLinecap="round" />
+      <path d="M512 77c-20 27-18 48 0 63 18-15 20-36 0-63" fill="#f8d377" /><path d="M512 93c-8 15-7 27 0 34 7-7 8-19 0-34" fill="#fff3bc" />
+      <path d="m512 140-11 22h22z" fill="#f3c46b" /><path d="M463 104v16m-8-8h16m108-12v15m-7-7h14" stroke="#d5dbff" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="599" cy="73" r="4" fill="#f3b6ba" /><circle cx="421" cy="120" r="3" fill="#a9dce4" />
+    </>}
+    {theme === 'wellbeing' && <>
+      <ellipse cx="520" cy="244" rx="91" ry="11" fill="#10463f" opacity=".28" />
+      <path d="M514 219c-68-52-85-96-51-119 23-16 43 2 51 21 8-19 28-37 51-21 34 23 17 67-51 119z" fill="#f2a8a1" />
+      <path d="M514 203c-42-37-54-69-33-85 15-11 28 4 33 17 5-13 18-28 33-17 21 16 9 48-33 85z" fill="#ffe5d6" />
+      <path d="M514 78v17m-8-8h16m65 70v20m-10-10h20" stroke="#c8f0d5" strokeWidth="5" strokeLinecap="round" />
+      <path d="M428 209c25-42 63-37 82-14-32 5-59 11-82 14z" fill="#82c98d" /><path d="M531 195c24-37 60-33 77-10-31 5-54 8-77 10z" fill="#68b985" />
+      <path d="M451 219c9-34 24-51 46-64m79 60c-10-31-22-49-42-63" fill="none" stroke="#b7e2a6" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="420" cy="111" r="4" fill="#f4d283" /><circle cx="602" cy="111" r="3" fill="#c8f0d5" />
+    </>}
+    {theme === 'community' && <>
+      <ellipse cx="516" cy="243" rx="106" ry="11" fill="#4f1e2b" opacity=".3" />
+      <circle cx="512" cy="129" r="42" fill="#f5cc83" opacity=".35" /><path d="M512 101c20 0 36 14 36 32s-16 32-36 32-36-14-36-32 16-32 36-32z" fill="#f5c577" />
+      <path d="M433 191c17-35 50-48 78-26-15 29-40 46-78 26zm157 0c-17-35-50-48-78-26 15 29 40 46 78 26z" fill="#f3b2a6" />
+      <path d="M448 195c19 18 41 25 64 18m64-18c-19 18-41 25-64 18" fill="none" stroke="#ffd9cf" strokeWidth="6" strokeLinecap="round" />
+      <path d="M473 96c-15-20-37-20-52-2m147 2c15-20 37-20 52-2" fill="none" stroke="#ecc9ad" strokeWidth="7" strokeLinecap="round" />
+      <circle cx="426" cy="89" r="12" fill="#c98f78" /><circle cx="600" cy="89" r="12" fill="#d6a587" />
+      <path d="M510 77v15m-7-7h14m-106 68v13m-6-6h12m186-7v13m-6-6h12" stroke="#f8d49f" strokeWidth="3" strokeLinecap="round" />
+    </>}
+    {theme === 'environment' && <>
+      <circle cx="567" cy="86" r="36" fill="#f6d786" /><path d="M353 220c63-35 121 16 187-3s91-10 100-15v78H353z" fill="#4a9b74" />
+      <path d="M353 238c58-23 110 14 170-2s83-16 117-8v52H353z" fill="#81c38a" />
+      <path d="M511 213V112" stroke="#8d6040" strokeWidth="12" strokeLinecap="round" />
+      <path d="M511 144c-39-29-74-18-78 9 33-10 56-9 78-9zm0 23c-45 0-62 25-52 50 22-24 36-38 52-50zm0-30c34-35 70-25 77 2-34-6-57-3-77-2zm0 34c43-5 63 17 57 44-20-21-36-34-57-44z" fill="#a3d78a" />
+      <path d="M389 197c34-15 58-13 85 3m85-3c26-16 51-17 72-5" fill="none" stroke="#d9f0ca" strokeWidth="3" strokeLinecap="round" />
+      <path d="M588 82v15m-8-7h16m-173 22v14m-7-7h14" stroke="#fff1b8" strokeWidth="3" strokeLinecap="round" />
+    </>}
+    {theme === 'culture' && <>
+      <path d="M389 76c40 27 75 27 112 0m21 0c37 27 72 27 111 0" fill="none" stroke="#e9a68f" strokeWidth="5" strokeLinecap="round" />
+      <path d="M399 106h224v18H399zm0 36h224v18H399zm0 36h224v18H399z" fill="#cf7a79" opacity=".5" />
+      <path d="M416 106v18m24-18v18m24-18v18m24-18v18m24-18v18m24-18v18m24-18v18m24-18v18m24-18v18" stroke="#f5d8a8" strokeWidth="5" />
+      <path d="M446 228c33-51 43-77 43-106v-15" fill="none" stroke="#f7d38b" strokeWidth="7" strokeLinecap="round" /><path d="M489 107h50" stroke="#f7d38b" strokeWidth="7" strokeLinecap="round" />
+      <path d="M540 130v58c0 13 22 13 22 0 0-12-22-11-22 0" fill="#b7d8e1" /><path d="M562 131h35v29c-14-7-24-5-35 1z" fill="#b7d8e1" />
+      <path d="M400 224h220" stroke="#e8bb92" strokeWidth="7" strokeLinecap="round" /><circle cx="600" cy="83" r="4" fill="#f5d8a8" /><circle cx="425" cy="74" r="3" fill="#b7d8e1" />
+    </>}
+    {theme === 'sports' && <>
+      <ellipse cx="514" cy="245" rx="103" ry="10" fill="#102d59" opacity=".35" />
+      <circle cx="561" cy="172" r="38" fill="#f3c568" /><path d="M530 157c23-13 39-4 54 11m-53 30c14-19 38-18 58-4m-28-59c4 21 1 45-8 72" fill="none" stroke="#2d6093" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="461" cy="94" r="17" fill="#f2b59b" /><path d="M462 112c8 26 23 40 47 50l-23 45m23-45 44 16 31 38" fill="none" stroke="#d7e9ef" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m500 202-42 31m80-38 23 37" fill="none" stroke="#93cfe1" strokeWidth="12" strokeLinecap="round" /><path d="M446 80c12-14 25-14 34-3" fill="none" stroke="#f3c568" strokeWidth="7" strokeLinecap="round" />
+      <path d="M394 195c20-30 39-43 62-47m110-38 12 11m-1-20 14 5" fill="none" stroke="#b8e3f0" strokeWidth="4" strokeLinecap="round" />
+      <path d="M398 230h219" stroke="#9dd6e4" strokeWidth="6" strokeLinecap="round" />
+    </>}
   </svg>
 }

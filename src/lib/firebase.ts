@@ -21,14 +21,14 @@ export const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-0HB4V20HF5',
 }
 
-const app = getApps().some((entry) => entry.name === '[DEFAULT]') ? getApp() : initializeApp(firebaseConfig)
+export const firebaseApp = getApps().some((entry) => entry.name === '[DEFAULT]') ? getApp() : initializeApp(firebaseConfig)
 let auth: Auth
 try {
   // No popup iframe or Google scripts are initialized until the user chooses Google.
-  auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence] })
+  auth = initializeAuth(firebaseApp, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence] })
 } catch (error) {
   if (errorCode(error) !== 'auth/already-initialized') throw error
-  auth = getAuth(app)
+  auth = getAuth(firebaseApp)
 }
 auth.languageCode = 'en'
 
@@ -93,4 +93,4 @@ export async function requestVerification() { await sendEmailVerification(signed
 export async function refreshAccount() { await reload(signedInUser()) }
 
 // Analytics is intentionally not initialized: account access does not require tracking.
-// No Firestore, Storage uploads, or workspace content is sent to Firebase by this module.
+// Firestore is loaded separately and only after a Google-authenticated workspace session begins.

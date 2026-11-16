@@ -1,0 +1,34 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    // A private, single-user workspace. No collection-group or cross-account reads are
+    // permitted: every request must be addressed beneath the authenticated UID.
+    match /users/{uid}/workspaces/{workspaceId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.initialized == true
+        && request.resource.data.bezel is bool;
+      allow delete: if false;
+    }
+
+    match /users/{uid}/workspaces/{workspaceId}/cards/{cardId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.id == cardId
+        && request.resource.data.title is string
+        && request.resource.data.date is string
+        && request.resource.data.type in ['event', 'task', 'project', 'note']
+        && request.resource.data.revision is int
+        && request.resource.data.updatedBy is string;
+      allow delete: if false;
+    }
+  }
+}

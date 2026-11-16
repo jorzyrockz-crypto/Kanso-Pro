@@ -1,5 +1,5 @@
 import type {
-  CardType, Filter, JourneyCard, NewCardInput, TimelineEntry, Workspace,
+  CardType, Filter, JourneyCard, NewCardInput, TimelineEntry, TimelineItem, TimelineSourceEntry, Workspace,
 } from '../types'
 import { isOccasionChoice } from './occasions'
 
@@ -72,7 +72,8 @@ export function makeId(prefix = 'card'): string {
 }
 
 /** Quiet notes/actions live inside genuine gaps, never hiding scheduled cards. */
-export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all'): TimelineEntry[] {
+export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all', sourceEntries: TimelineSourceEntry[] = []): TimelineEntry[] {
+  const visibleSources = (filter === 'all' || filter === 'event') ? sourceEntries : []
   const scheduledDates = [...new Set(cards.filter((card) => !card.quiet).map((card) => card.date))].sort()
   const compact = new Set<string>()
   for (const card of cards) {
@@ -82,11 +83,33 @@ export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all'): Tim
     if (previous && next && daysBetween(previous, next) > 3) compact.add(card.id)
   }
 
-  const groups = new Map<string, JourneyCard[]>()
+  const groups = new Map<string, TimelineItem[]>()
   cards.filter((card) => !compact.has(card.id)).forEach((card) => {
     groups.set(card.date, [...(groups.get(card.date) ?? []), card])
   })
+  visibleSources.forEach((entry) => {
+    groups.set(entry.date, [...(groups.get(entry.date) ?? []), entry])
+  })
   const dates = [...groups.keys()].sort()
+
+  // Source references make their own dated rows. Keep compact personal cards visible as
+  // one-day quiet buffers so a reference date never accidentally hides a personal note.
+  if (visibleSources.length) {
+    const quietByDate = new Map<string, JourneyCard[]>()
+    cards.filter((card) => compact.has(card.id) && (filter === 'all' || card.type === filter)).forEach((card) => {
+      quietByDate.set(card.date, [...(quietByDate.get(card.date) ?? []), card])
+    })
+    const allDates = [...new Set([...dates, ...quietByDate.keys()])].sort()
+    return allDates.flatMap((date) => {
+      const visible = (groups.get(date) ?? []).filter((card) => 'calendarSource' in card || filter === 'all' || card.type === filter)
+      const quietCards = quietByDate.get(date) ?? []
+      return [
+        ...(visible.length ? [{ kind: 'day' as const, date, cards: visible }] : []),
+        ...(quietCards.length ? [{ kind: 'gap' as const, start: date, end: date, cards: quietCards }] : []),
+      ]
+    })
+  }
+
   const entries: TimelineEntry[] = []
   dates.forEach((date, index) => {
     const previous = dates[index - 1]
@@ -98,7 +121,7 @@ export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all'): Tim
         entries.push({ kind: 'gap', start: addDays(previous, 1), end: addDays(date, -1), cards: gapCards })
       }
     }
-    const visible = groups.get(date)!.filter((card) => filter === 'all' || card.type === filter)
+    const visible = groups.get(date)!.filter((card): card is JourneyCard => !('calendarSource' in card) && (filter === 'all' || card.type === filter))
     if (visible.length) entries.push({ kind: 'day', date, cards: visible })
   })
   return entries

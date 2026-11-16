@@ -48,7 +48,7 @@ describe('page navigation', () => {
     expect(pageForPath('/SETTINGS/').label).toBe('Settings')
     expect(PAGE_LINKS).toHaveLength(5)
     expect(PAGE_LINKS.map(({ path }) => path)).not.toContain('/settings')
-    expect(SETTINGS_SECTIONS.map(({ id }) => id)).toEqual(['account', 'appearance', 'workspace', 'privacy', 'about'])
+    expect(SETTINGS_SECTIONS.map(({ id }) => id)).toEqual(['account', 'appearance', 'calendar', 'workspace', 'privacy', 'about'])
   })
   it('identifies unknown paths instead of claiming they are workspaces', () => {
     for (const path of ['/missing', '/new/card', '/projects/a/b', '/calendarish', '/account/unknown', '/sign-in/unknown', '/settings/unknown', '/settings/appearance']) {

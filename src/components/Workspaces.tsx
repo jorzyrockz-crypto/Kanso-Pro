@@ -1,17 +1,18 @@
-import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Palette, Plus, Users, Zap } from 'lucide-react'
+import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, Plus, School, Users, Zap } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
-import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, Workspace } from '../types'
+import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, isValidDate, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TypeIcon } from './Common'
 import { NotFoundPage, PageCreateButton, PageHeader } from './PageHeader'
 import { destinationPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from '../lib/navigation'
-import { occasionLabel, resolveOccasion } from '../lib/occasions'
-import { OccasionArtwork } from './OccasionArtwork'
-import { EventThemePicker } from './EventThemePicker'
 import { calendarPeriod, monthScene } from '../lib/months'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
+import { calendarSourceEntriesForMonth } from '../lib/calendarSources'
+import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
+import { TimelineCardPreview } from './TimelineCardPreview'
 
 const workspaceNames: Record<Workspace, string> = {
   calendar: 'Calendar', tasks: 'Personal Tasks', project: 'Projects', journal: 'Journal',
@@ -19,6 +20,7 @@ const workspaceNames: Record<Workspace, string> = {
 
 type WorkspaceProps = {
   cards: JourneyCard[]
+  calendarSources: CalendarSource[]
   cardId?: string
   dispatch: Dispatch<JourneyAction>
   onCompose: (options?: ComposerOptions) => void
@@ -43,43 +45,76 @@ function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month }: {
   </div>
 }
 
-function CalendarEvent({ card, highlighted, dispatch }: { card: EventCard; highlighted: boolean; dispatch: Dispatch<JourneyAction> }) {
-  const theme = resolveOccasion(card)
-  const choice = card.occasion ?? 'auto'
-  const label = occasionLabel(theme)
-  return <article className={`calendar-event ${highlighted ? 'selected-event' : ''}`} data-event-id={card.id} data-occasion={theme}>
-    <div className={`calendar-event-surface ${theme !== 'none' ? `occasion-surface occasion-${theme}` : card.holiday ? 'holiday-card' : ''}`}>
-      {theme !== 'none' && <OccasionArtwork theme={theme} />}
-      <div className="calendar-event-content">
-        <div className="calendar-event-meta"><span><CalendarDays size="0.75rem" />{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })} <span>·</span> {card.allDay ? 'All day' : `${formatTime(card.time)}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`}</span>
-          <span className="badge">{card.organization}</span></div>
-        <div className="calendar-event-copy"><h4>{card.title}</h4><p>{card.context}</p></div>
-        <div className="event-detail-meta"><span><Avatar name={card.owner} />{card.owner === 'You' ? 'Your calendar' : `Organized by ${card.owner}`}</span>
-          {card.location && <span><MapPin size="0.75rem" />{card.location}</span>}</div>
-      </div>
-    </div>
-    <details className="event-background-editor">
-      <summary aria-label={`Customize background for ${card.title}`}><span><Palette size="0.8125rem" />Background</span><span className="event-background-current">{choice === 'auto' ? `Auto · ${label}` : label}</span><ChevronRight size="0.875rem" /></summary>
-      <div className="event-background-options"><EventThemePicker value={choice} title={card.title} holiday={card.holiday} compact
-        onChange={(occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} /></div>
-    </details>
+function CalendarEvent({ card, highlighted, onPreview }: { card: EventCard; highlighted: boolean; onPreview: () => void }) {
+  const time = card.allDay ? 'All day' : `${formatTime(card.time)}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`
+  return <article className={`calendar-event calendar-preview-entry ${highlighted ? 'selected-event' : ''}`} data-event-id={card.id}>
+    <button type="button" className="calendar-preview-card" onClick={onPreview} aria-label={`Preview ${card.title} details`}>
+      <span className="calendar-event-meta"><span><CalendarDays size="0.75rem" />{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })} <i aria-hidden="true">·</i> {time || 'Time not set'}</span><span className="badge">{card.organization || 'Personal'}</span></span>
+      <span className="calendar-preview-title"><strong>{card.title}</strong><ChevronRight size="1rem" aria-hidden="true" /></span>
+    </button>
   </article>
 }
 
-function CalendarWorkspace({ cards, cardId, dispatch, onCompose }: WorkspaceProps) {
+function entryIncludesDate(entry: CalendarSourceEntry, date: string) {
+  return entry.date <= date && (entry.endDate ?? entry.date) >= date
+}
+
+function sourceEntryDate(entry: CalendarSourceEntry) {
+  const start = formatDate(entry.date, { weekday: 'short', month: 'short', day: '2-digit' })
+  if (!entry.endDate || entry.endDate === entry.date) return start
+  return `${start} – ${formatDate(entry.endDate, { month: 'short', day: '2-digit' })}`
+}
+
+function CalendarSourceEvent({ entry, source, onPreview }: { entry: CalendarSourceEntry; source?: CalendarSource; onPreview: () => void }) {
+  const isSchoolCalendar = source?.id === 'deped-sy-2026-2027'
+  const isLegislated = source?.id === 'deped-legislated-activities'
+  const SourceIcon = isSchoolCalendar ? School : isLegislated ? Landmark : FileText
+  const visualClass = isSchoolCalendar ? 'source-school-calendar' : isLegislated ? 'source-legislated-activity' : 'source-local-memo'
+  return <article className={`calendar-source-event calendar-preview-entry ${visualClass}`} data-source-id={entry.sourceId}>
+    <button type="button" className="calendar-preview-card" onClick={onPreview} aria-label={`Preview ${entry.title} reference details`}>
+      <span className="calendar-source-event-meta"><span><SourceIcon size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{source?.shortLabel ?? 'Calendar source'}</span></span>
+      <span className="calendar-preview-title"><strong>{entry.title}</strong><ChevronRight size="1rem" aria-hidden="true" /></span>
+    </button>
+  </article>
+}
+
+type CalendarAgendaItem = JourneyCard | CalendarSourceEntry
+
+function isCalendarSourceEntry(entry: CalendarAgendaItem): entry is CalendarSourceEntry {
+  return 'sourceId' in entry
+}
+
+function timelineSourcePreview(entry: CalendarSourceEntry, source?: CalendarSource): TimelineSourceEntry {
+  return {
+    ...entry,
+    sourceLabel: source?.shortLabel ?? 'Calendar source',
+    sourceProvenance: [source?.provenance, source?.reference].filter(Boolean).join(' ') || 'Reference date from an enabled calendar source.',
+    side: 'left',
+    calendarSource: true,
+  }
+}
+
+function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
+  const [preview, setPreview] = useState<TimelineItem | null>(null)
+  const closePreview = useCallback(() => setPreview(null), [])
   const { month, selectedDate } = calendarPeriod(query, initialCard?.date)
   const monthCards = cards.filter((card) => card.date.startsWith(month))
   const events = monthCards.filter((card): card is EventCard => card.type === 'event')
-  const agenda = selectedDate ? monthCards.filter((card) => card.date === selectedDate) : events
-  const sortedAgenda = [...agenda].sort((a, b) => a.date.localeCompare(b.date))
+  const sourceEntries = calendarSourceEntriesForMonth(calendarSources, month)
+  const sourceById = new Map(calendarSources.map((source) => [source.id, source]))
+  const agenda: CalendarAgendaItem[] = selectedDate
+    ? [...monthCards.filter((card) => card.date === selectedDate), ...sourceEntries.filter((entry) => entryIncludesDate(entry, selectedDate))]
+    : [...events, ...sourceEntries]
+  const sortedAgenda = [...agenda].sort((first, second) => first.date.localeCompare(second.date) || first.title.localeCompare(second.title))
+  const visibleEntryCount = events.length + sourceEntries.length
   const changeMonth = (amount: number) => navigate(`/calendar?month=${shiftMonth(month, amount)}`)
   return <div className="workspace-content calendar-workspace">
     <WorkspaceHero type="event" month={month} eyebrow="Connected Calendar View" title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
-      stat={{ label: events.length === 1 ? 'Event this month' : 'Events this month', value: events.length }}>
-      Your school days, personal plans, and everything in between.
+      stat={{ label: visibleEntryCount === 1 ? 'Entry this month' : 'Entries this month', value: visibleEntryCount }}>
+      Your personal plans and any calendar sources you choose to show.
     </WorkspaceHero>
     <section className="workspace-panel calendar-panel" aria-label="Monthly calendar">
       <div className="panel-heading calendar-toolbar"><h3>{formatDate(`${month}-01`, { month: 'long', year: 'numeric' })}</h3>
@@ -91,26 +126,34 @@ function CalendarWorkspace({ cards, cardId, dispatch, onCompose }: WorkspaceProp
         {calendarDays(month).map((date, index) => {
           if (!date) return <span key={`blank-${index}`} className="calendar-blank" />
           const dateCards = monthCards.filter((card) => card.date === date)
+          const dateSourceEntries = sourceEntries.filter((entry) => entryIncludesDate(entry, date))
+          const labels = [
+            dateCards.length ? `${dateCards.length} personal ${dateCards.length === 1 ? 'card' : 'cards'}` : '',
+            dateSourceEntries.length ? `${dateSourceEntries.length} calendar-source ${dateSourceEntries.length === 1 ? 'entry' : 'entries'}` : '',
+          ].filter(Boolean).join(', ') || 'no entries'
           return <button key={date} className={`calendar-day ${selectedDate === date ? 'is-selected' : ''} ${date === FOCUS_DATE ? 'is-today' : ''}`}
             onClick={() => navigate(`/calendar?date=${date}`)} aria-pressed={selectedDate === date}
-            aria-label={`${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${dateCards.length} ${dateCards.length === 1 ? 'card' : 'cards'}`}>
-            <span>{Number(date.slice(8))}</span><span className="calendar-dots">{[...new Set(dateCards.map((card) => card.type))].map((type) => <i key={type} className={`calendar-dot dot-${type}`} />)}</span>
+            aria-label={`${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${labels}`}>
+            <span>{Number(date.slice(8))}</span><span className="calendar-dots">{[...new Set(dateCards.map((card) => card.type))].map((type) => <i key={type} className={`calendar-dot dot-${type}`} />)}{dateSourceEntries.length > 0 && <i className="calendar-dot dot-source" />}</span>
           </button>
         })}
       </div>
-      <div className="calendar-legend">{(['event', 'task', 'project', 'note'] as const).map((type) => <span key={type}><i className={`calendar-dot dot-${type}`} />{TYPE_CONFIG[type].shortLabel}</span>)}</div>
+      <div className="calendar-legend">{(['event', 'task', 'project', 'note'] as const).map((type) => <span key={type}><i className={`calendar-dot dot-${type}`} />{TYPE_CONFIG[type].shortLabel}</span>)}{sourceEntries.length > 0 && <span><i className="calendar-dot dot-source" />Calendar source</span>}</div>
     </section>
     <section className="workspace-panel agenda-panel">
-      <div className="panel-heading"><h3>{selectedDate ? `${shortDate(selectedDate)} · Connected agenda` : 'Connected event details'}</h3>
-        {selectedDate && <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All events</button>}</div>
-      {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map((card) => card.type === 'event'
-        ? <CalendarEvent key={card.id} card={card} highlighted={card.id === cardId} dispatch={dispatch} />
-        : <Link key={card.id} className={`agenda-item agenda-item-${card.type}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
-          <span className="agenda-item-icon"><TypeIcon type={card.type} size={19} /></span><span><small>{TYPE_CONFIG[card.type].label}</small><strong>{card.title || 'Untitled reflection'}</strong></span><ArrowRight size="0.9375rem" />
-        </Link>)}</div>
-        : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No cards here yet. An open day has its own possibilities.</EmptyState>}
-      {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add an event</button>}
+      <div className="panel-heading"><h3>{selectedDate ? `${shortDate(selectedDate)} · Connected agenda` : 'Connected calendar details'}</h3>
+        {selectedDate && <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All entries</button>}</div>
+      {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map((entry) => isCalendarSourceEntry(entry)
+        ? <CalendarSourceEvent key={entry.id} entry={entry} source={sourceById.get(entry.sourceId)} onPreview={() => setPreview(timelineSourcePreview(entry, sourceById.get(entry.sourceId)))} />
+        : entry.type === 'event'
+          ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} onPreview={() => setPreview(entry)} />
+          : <button key={entry.id} type="button" className={`agenda-item agenda-item-${entry.type}`} onClick={() => setPreview(entry)} aria-label={`Preview ${entry.title || 'Untitled reflection'} details`}>
+            <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ChevronRight size="0.9375rem" aria-hidden="true" />
+          </button>)}</div>
+        : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
+      {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
     </section>
+    <TimelineCardPreview item={preview} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
   </div>
 }
 
@@ -211,9 +254,10 @@ const pageDetails: Record<Workspace, { description: string; action: string }> = 
   journal: { description: 'A quiet corner for the thoughts you want to come back to.', action: 'Write a note' },
 }
 
-export function WorkspacePage({ page, cards, dispatch, onNavigate, onCompose, storageAvailable }: {
+export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
   page: Workspace
   cards: JourneyCard[]
+  calendarSources: CalendarSource[]
   dispatch: Dispatch<JourneyAction>
   onNavigate: (destination: Destination) => void
   onCompose: (options?: ComposerOptions) => void
@@ -223,7 +267,7 @@ export function WorkspacePage({ page, cards, dispatch, onNavigate, onCompose, st
   const [query] = useSearchParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
   if (cardId && !selected) return <NotFoundPage card backTo={WORKSPACE_PATHS[page]} />
-  const props = { cards, cardId, dispatch, onCompose, onNavigate }
+  const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate }
   const queryDate = query.get('date')
   const queryMonth = query.get('month')
   const newDate = isValidDate(queryDate) ? queryDate : selected?.date

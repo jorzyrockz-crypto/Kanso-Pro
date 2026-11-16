@@ -23,6 +23,7 @@ export const PAGE_LINKS = [
 export const SETTINGS_SECTIONS = [
   { id: 'account', label: 'Profile & account' },
   { id: 'appearance', label: 'Appearance' },
+  { id: 'calendar', label: 'Calendar sources' },
   { id: 'workspace', label: 'Workspace & backup' },
   { id: 'privacy', label: 'Privacy & storage' },
   { id: 'about', label: 'About & help' },

@@ -9,4 +9,7 @@ test-results/
 .env.*
 !.env.example
 .vercel/
+/deped-calendar.pdf
+/tmp-deped-pages/
+/tmp-*.png
 .DS_Store

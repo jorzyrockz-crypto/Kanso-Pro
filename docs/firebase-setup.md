@@ -8,13 +8,14 @@ An owner of the project must check these settings in the [Firebase Console](http
 
 1. Open **Build → Authentication → Get started** if Authentication has not yet been initialized.
 2. Under **Sign-in method**, enable **Email/Password** (the password option, not email-link sign-in). Save. This enables account creation, email/password sign-in, and password reset.
-3. To use **Continue with Google**, also enable **Google**, select a project support email, and save. Google is optional; email/password and guest access do not depend on a Google OAuth popup.
-4. Open **Authentication → Settings → Authorized domains**. Add the **exact trusted hostname**, without a scheme, port, slash, or path, for each site where you use Google sign-in:
+3. To use **Continue with Google**, also enable **Google**, select a project support email, and save. Email/password and guest access remain device-local; a Google OAuth session is required before personal workspace data mirrors to Firestore.
+4. Open **Build → Firestore Database** and create the database in the intended production location. Deploy this repository's `firestore.rules` before relying on cloud workspace data; do not use test-mode/public rules.
+5. Open **Authentication → Settings → Authorized domains**. Add the **exact trusted hostname**, without a scheme, port, slash, or path, for each site where you use Google sign-in:
    - Arena: copy the hostname from the current live preview, such as `5173-<sandbox-id>.e2b.app`. New sandbox previews can have new hostnames; add each one you trust. Do not add `.e2b.app` as a blanket domain.
    - Local development: `localhost` and/or `127.0.0.1`, as used in your browser. Do not assume they are already authorized.
    - When deployed later: the actual production `<your-project>.vercel.app` hostname and any custom domain. Add a branch/deployment preview hostname separately only if you intend to use sign-in there. Do not authorize all of `vercel.app`.
-5. If the web API key has HTTP-referrer or API restrictions, ensure the intended domains and Firebase Authentication APIs are allowed. Keep restrictions scoped to your trusted app sites; do not place Admin SDK keys in the frontend.
-6. Review **Authentication → Templates** for verification/password-reset sender names and email templates. The app uses Firebase’s hosted email-action handler and does not hard-code a preview-domain return URL. Complete the action from the email, then return to `/sign-in` (or `/account` if still signed in).
+6. If the web API key has HTTP-referrer or API restrictions, ensure the intended domains and Firebase Authentication APIs are allowed. Keep restrictions scoped to your trusted app sites; do not place Admin SDK keys in the frontend.
+7. Review **Authentication → Templates** for verification/password-reset sender names and email templates. The app uses Firebase’s hosted email-action handler and does not hard-code a preview-domain return URL. Complete the action from the email, then return to `/sign-in` (or `/account` if still signed in).
 
 The authorized-domain list is relevant to Google OAuth and email redirect continuation settings; basic email/password sign-in does not use an OAuth redirect. A disabled provider is a separate configuration problem. The app shows readable setup errors instead of treating a failed request as a successful sign-in.
 
@@ -41,16 +42,18 @@ The full-page wash, decorative vectors, welcome illustration, scene title, and m
 
 ## Data boundary and shared-device privacy
 
-**Authentication is not workspace synchronization or a lock on device data.**
+**Google-authenticated accounts silently sync personal workspace cards through Firestore.** There is deliberately no cloud-sync setting, badge, setup modal, or manual sync control.
 
-- Card content remains in the existing `kanso-pro:journey:v1` browser-origin storage, including legacy migration behavior. No Firestore database, Storage bucket uploads, or cloud card collections are initialized.
-- Sign-in/sign-out does not upload, migrate, overwrite, clear, or partition local cards. Switching accounts in the same browser profile shows the same local workspace.
-- Anyone using that browser profile can open the cards, including while signed out. Use a separate browser profile/device for private plans; signing out alone does not hide local content.
-- Firebase stores the identity and authentication/session information required to sign in. The app’s card state and JSON export never include the password or authentication tokens. Firebase manages its own session storage separately from the workspace key.
-- The supplied Analytics measurement ID is retained as public web configuration, but **Analytics is not initialized**, and no analytics events are sent by the app. Authentication does not require tracking.
-- Moving from the Arena preview to Vercel changes the browser origin. It does not copy either local cards or sign-in state to the new origin. Export important device content before changing hosts.
+- The trigger is a successful Firebase Google sign-in (`google.com` provider). Email/password sessions and guests continue to use only their device workspace.
+- Cards and the Timeline frame preference remain local-first in `kanso-pro:journey:v1`; Firestore mirrors personal cards below `users/{uid}/workspaces/default/cards/{cardId}` once Google sync is active. A blocked/offline Firestore connection leaves planning usable locally and retries when the browser returns online.
+- On a first Google sync, an existing cloud workspace wins for matching card IDs while distinct non-starter device cards are retained. An untouched bundled sample workspace is never uploaded as personal cloud content; a new cloud workspace begins empty.
+- Sign-out does not clear the browser workspace. Anyone using that browser profile can still open local cards, including while signed out; use a separate browser profile/device for private plans.
+- DepEd Annex B and Annex D data, recurring rules, imported PDF bytes, illustrations, and calendar-source content are not uploaded. Built-in DepEd content remains versioned with the application. Calendar-source choices remain device-local.
+- Firebase stores the identity/session required to sign in and, for Google sessions, the private personal workspace data above. JSON exports never contain passwords or authentication tokens.
+- The supplied Analytics measurement ID is retained as public web configuration, but **Analytics is not initialized**, and no analytics events are sent by the app.
+- Moving from the Arena preview to Vercel changes the browser origin and its local cache. Firestore data follows the signed-in Google account, but export important device content before changing hosts.
 
-Cloud workspace storage and per-user access rules would be a separate feature with an explicit migration/guest-data decision. No insecure Firestore rules or pretend cloud-sync indicators are added here.
+Firestore access requires deploying the checked-in `firestore.rules` to the configured Firebase project before enabling this in production. The rules require a Google provider token and permit only that authenticated UID's private workspace path; do not use test-mode or public rules.
 
 ## Configuration and deployment
 
@@ -60,7 +63,7 @@ All Firebase web configuration values, including the web API key, are public cli
 
 The app remains a static Vite build with the existing Vercel SPA fallback. No server function or deployment is needed for the frontend code change. Authentication requires internet access to Firebase, but existing local planning remains usable if those requests fail. No Vercel deployment is performed here.
 
-The package override for `@grpc/grpc-js` pins a patched compatible 1.x release: Firebase’s umbrella package pulls an older gRPC dependency through the unused Firestore Node build. Only `firebase/app` and `firebase/auth` are imported and bundled by Kanso Pro.
+The package override for `@grpc/grpc-js` pins a patched compatible 1.x release. Kanso Pro loads `firebase/firestore` only after a Google-authenticated session is present; the Firestore chunk is not part of guest startup.
 
 ## Verification
 
@@ -71,7 +74,7 @@ npm run test:e2e
 npm audit
 ```
 
-Date/clock unit tests cover local month selection, leap/year boundaries, and daylight-saving scheduling. Sign-in browser tests cover all twelve scenes, live midnight rollover without losing typed inputs, local timezones, tab restoration, and all palette/accessibility checks. Auth unit tests mock the SDK boundary to verify configuration, input handling, profile partial-success recovery, reset privacy, observer cleanup, and provider calls. Browser tests run the **real Firebase web SDK** with intercepted REST responses for sign-in/create/verify/reset/profile, reload/cross-tab sessions, blocked persistence, no card uploads, duplicate-submit protection, backup downloads, accessibility, and responsive layout. Their test helper intercepts all external requests, so tests do not create production accounts or send real email. There is no auth bypass/test switch in the shipped application.
+Date/clock unit tests cover local month selection, leap/year boundaries, and daylight-saving scheduling. Sign-in browser tests cover all twelve scenes, live midnight rollover without losing typed inputs, local timezones, tab restoration, and all palette/accessibility checks. Auth and workspace-sync unit tests cover provider gating, starter-workspace protection, cloud/device merge behavior, and changed-card writes. Browser tests run the **real Firebase web SDK** with intercepted REST responses for sign-in/create/verify/reset/profile, reload/cross-tab sessions, blocked persistence, duplicate-submit protection, backup downloads, accessibility, and responsive layout. Their test helper intercepts all external requests, so tests do not create production accounts or send real email. There is no auth bypass/test switch in the shipped application.
 
 These automated results do **not** verify the live project’s provider/domain settings or real Google consent/email delivery. After completing the Console setup, manually check in a trusted browser:
 

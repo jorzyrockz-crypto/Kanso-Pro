@@ -5,7 +5,14 @@
   .occasion-celebration { --occasion-start: #34306e; --occasion-end: #6d53af; }
   .occasion-holiday { --occasion-start: #124957; --occasion-end: #2a7778; }
   .occasion-remembrance { --occasion-start: #1b3448; --occasion-end: #37645e; }
-  .occasion-artwork { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+  .occasion-school { --occasion-start: #17395d; --occasion-end: #367aa5; }
+  .occasion-learning { --occasion-start: #30326b; --occasion-end: #5a76ad; }
+  .occasion-wellbeing { --occasion-start: #17635d; --occasion-end: #4da78a; }
+  .occasion-community { --occasion-start: #7d3f4a; --occasion-end: #bd7165; }
+  .occasion-environment { --occasion-start: #1f644c; --occasion-end: #67a762; }
+  .occasion-culture { --occasion-start: #69364d; --occasion-end: #ab5d67; }
+  .occasion-sports { --occasion-start: #244c82; --occasion-end: #4e8fbd; }
+  .occasion-artwork {  position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; pointer-events: none; user-select: none; }
   /* Screen-relative scrim stays behind the copy even when the SVG is cropped on phones. */
   .occasion-surface::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, var(--occasion-start), color-mix(in srgb, var(--occasion-start) 94%, transparent) 35%, color-mix(in srgb, var(--occasion-start) 80%, transparent) 76%, color-mix(in srgb, var(--occasion-start) 10%, transparent)); }
   .illustrated-event-card { border: 1px solid rgb(255 255 255 / 42%); box-shadow: 0 15px 32px -10px rgb(29 48 77 / 25%); }

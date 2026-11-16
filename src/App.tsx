@@ -1,11 +1,15 @@
-import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Link2, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Landmark, Link2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
-import type { ComposerOptions, Destination, Filter, JourneyCard, Workspace } from './types'
-import { buildTimeline, focusCard, formatDate } from './lib/journey'
+import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
+import { buildTimeline, focusCard, formatDate, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
+import { useWorkspaceSync } from './lib/useWorkspaceSync'
+import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
+import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
+import { DEPED_LEGISLATED_ACTIVITY_RULES } from './data/depedLegislatedActivities'
 import { useAccount } from './lib/useAccount'
 import { useAppearance } from './lib/useAppearance'
 import { usePwa } from './lib/usePwa'
@@ -14,11 +18,12 @@ import { confirmNotificationNavigation, safeNotificationPath } from './lib/notif
 import { updateSurface } from './lib/updates'
 import { NotificationsPage } from './components/NotificationsPage'
 import { UpdateChrome, WhatsNewPage } from './components/AppUpdates'
+import { AboutUpdatesDialog } from './components/AboutUpdatesDialog'
 import { accountError } from './lib/account'
 import { SettingsPage } from './components/SettingsPage'
 import { AccountPage } from './components/AccountPage'
 import { SignInHeader } from './components/SignInPage'
-import { calendarPeriod, monthAtPosition } from './lib/months'
+import { calendarPeriod, monthAtPosition, monthRange } from './lib/months'
 import { MonthBackdrop } from './components/MonthArtwork'
 import { Timeline } from './components/Timeline'
 import { Composer } from './components/Composer'
@@ -34,12 +39,35 @@ const filters: { type: Filter; label: string }[] = [
   { type: 'note', label: 'Journal Notes' },
 ]
 
-function StreamHeader({ filter, count, month, onFilter, onFocus }: {
+const TIMELINE_MONTH_STEP = 1
+const TIMELINE_MIN_MONTH = '1900-01'
+const TIMELINE_MAX_MONTH = '9999-12'
+
+type TimelineWindow = { start: string; end: string }
+
+function timelineWindowFor(cards: JourneyCard[]): TimelineWindow {
+  const months = [...cards.map((card) => card.date.slice(0, 7)), FOCUS_DATE.slice(0, 7)].sort()
+  return { start: months[0], end: months.at(-1)! }
+}
+
+function extendTimelineWindow(window: TimelineWindow, direction: 'past' | 'future'): TimelineWindow {
+  if (direction === 'past') return window.start === TIMELINE_MIN_MONTH
+    ? window
+    : { ...window, start: window.start <= '1900-12' ? TIMELINE_MIN_MONTH : shiftMonth(window.start, -TIMELINE_MONTH_STEP) }
+  return window.end === TIMELINE_MAX_MONTH
+    ? window
+    : { ...window, end: window.end >= '9999-01' ? TIMELINE_MAX_MONTH : shiftMonth(window.end, TIMELINE_MONTH_STEP) }
+}
+
+function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, onFilter, onFocus, onCalendarSourcesChange }: {
   filter: Filter
   count: number
   month: string
+  showCalendarSources: boolean
+  calendarSourceCount: number
   onFilter: (type: Filter) => void
   onFocus: () => void
+  onCalendarSourcesChange: (show: boolean) => void
 }) {
   return <header className="stream-header">
     <div className="header-main">
@@ -60,7 +88,12 @@ function StreamHeader({ filter, count, month, onFilter, onFocus }: {
       <nav className="filter-bar" aria-label="Filter journey cards">{filters.map(({ type, label }) => <button key={type} className={`filter-pill ${filter === type ? 'is-active' : ''}`} onClick={() => onFilter(type)} aria-pressed={filter === type}>
         {type !== 'all' && <span className={`filter-dot dot-${type}`} />}<span>{label}</span>{type === 'all' && <span className="filter-count">{count}</span>}
       </button>)}</nav>
-      <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
+      <div className="stream-reference-controls">
+        <button type="button" className={`stream-source-toggle ${showCalendarSources ? 'is-active' : ''}`} onClick={() => onCalendarSourcesChange(!showCalendarSources)} aria-pressed={showCalendarSources} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
+          <Landmark size="0.75rem" aria-hidden="true" /><span className="stream-source-label">Calendar sources</span><span className="stream-source-state">{showCalendarSources ? 'Shown' : 'Hidden'}</span>{calendarSourceCount > 0 && <span className="stream-source-count">{calendarSourceCount}</span>}
+        </button>
+        <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
+      </div>
     </div>
   </header>
 }
@@ -80,7 +113,9 @@ function NewCardPage({ cards, onCancel, onCreate }: {
 
 export default function App() {
   const { state, dispatch, storageAvailable } = useJourneyStore()
+  const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const account = useAccount()
+  useWorkspaceSync(account.user, state, dispatch)
   const appearance = useAppearance()
   const pwa = usePwa()
   const notifications = useNotifications(state.cards)
@@ -93,7 +128,9 @@ export default function App() {
   const signInLayout = !!(accountMatch || signInMatch) && !account.user
   const [visibleTimelineMonth, setVisibleTimelineMonth] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
+  const [showCalendarSources, setShowCalendarSources] = useState(true)
   const [openGaps, setOpenGaps] = useState<string[]>([])
+  const [aboutUpdatesOpen, setAboutUpdatesOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; id: number; kind?: 'error'; href?: string; label?: string; action?: 'update'; notificationId?: string } | null>(null)
   const announcedUpdate = useRef('')
   useEffect(() => {
@@ -107,7 +144,7 @@ export default function App() {
     if (pwa.coarse && account.user) void notifications.addUpdate(pwa.updateVersion, 'Restart from About when you are ready. Your saved plans stay on this device.')
     if (updateSurface(pwa.overlay, pwa.coarse, !!account.user) === 'toast' && !pwa.updateDismissed && announcedUpdate.current !== pwa.updateVersion) {
       announcedUpdate.current = pwa.updateVersion
-      setToast({ message: 'A new version of Kanso Pro is ready.', id: Date.now(), action: 'update', label: 'Restart' })
+      setToast({ message: 'A new version of Kanso Pro is ready.', id: Date.now(), action: 'update', label: 'Review' })
     }
   }, [pwa.updateReady, pwa.updateVersion, pwa.overlay, pwa.coarse, pwa.updateDismissed, account.user, notifications.addUpdate])
   useEffect(() => {
@@ -135,10 +172,35 @@ export default function App() {
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const handledFocusKey = useRef<string | null>(null)
   const timelineRef = useRef<HTMLElement>(null)
-  const entries = useMemo(() => buildTimeline(state.cards, filter), [state.cards, filter])
-  const firstDate = useMemo(() => [...state.cards].sort((a, b) => a.date.localeCompare(b.date))[0]?.date ?? FOCUS_DATE, [state.cards])
-  const defaultMonth = (entries.find((entry) => entry.kind === 'day')?.date ?? firstDate).slice(0, 7)
-  const timelineMonth = visibleTimelineMonth && entries.some((entry) => entry.kind === 'day' && entry.date.startsWith(visibleTimelineMonth)) ? visibleTimelineMonth : defaultMonth
+  const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
+  const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
+  const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
+  const timelineSourceEntries = useMemo<TimelineSourceEntry[]>(() => {
+    if (!showCalendarSources) return []
+    const sourceById = new Map(calendarSources.sources.map((source) => [source.id, source]))
+    return calendarSourceEntriesForMonths(calendarSources.sources, timelineMonths).flatMap((entry) => {
+      const source = sourceById.get(entry.sourceId)
+      if (!source) return []
+      return [{
+        ...entry,
+        sourceLabel: source.shortLabel,
+        sourceProvenance: source.provenance,
+        side: entry.sourceId === 'deped-legislated-activities' ? 'right' : 'left',
+        calendarSource: true,
+      }]
+    })
+  }, [calendarSources.sources, showCalendarSources, timelineMonths])
+  const timelineCards = useMemo(() => state.cards.filter((card) => card.date.slice(0, 7) >= timelineWindow.start && card.date.slice(0, 7) <= timelineWindow.end), [state.cards, timelineWindow])
+  const entries = useMemo(() => buildTimeline(timelineCards, filter, timelineSourceEntries), [timelineCards, filter, timelineSourceEntries])
+  const defaultMonth = entries.find((entry) => entry.kind === 'day')?.date.slice(0, 7) ?? timelineWindow.start
+  const timelineMonth = visibleTimelineMonth && visibleTimelineMonth >= timelineWindow.start && visibleTimelineMonth <= timelineWindow.end ? visibleTimelineMonth : defaultMonth
+
+  useEffect(() => {
+    setTimelineWindow((current) => ({
+      start: cardTimelineWindow.start < current.start ? cardTimelineWindow.start : current.start,
+      end: cardTimelineWindow.end > current.end ? cardTimelineWindow.end : current.end,
+    }))
+  }, [cardTimelineWindow])
   const calendarCard = state.cards.find((card) => card.type === 'event' && card.id === calendarMatch?.params.cardId)
   const calendarVisible = calendarMatch && (!calendarMatch.params.cardId || calendarCard)
   const { month: calendarMonth } = calendarPeriod(new URLSearchParams(location.search), calendarCard?.date)
@@ -228,6 +290,8 @@ export default function App() {
   }
 
   const openDestination = (destination: Destination) => navigate(destinationPath(destination))
+  const openAboutUpdates = useCallback(() => setAboutUpdatesOpen(true), [])
+  const closeAboutUpdates = useCallback(() => setAboutUpdatesOpen(false), [])
   const openComposer = (options: ComposerOptions = {}) => {
     const active = pageForPath(location.pathname).page
     const defaultType = active in WORKSPACE_TYPES ? WORKSPACE_TYPES[active as Workspace] : filter === 'all' ? 'event' : filter
@@ -239,6 +303,8 @@ export default function App() {
     else navigate('/', { replace: true })
   }
   const createJourneyCard = (card: JourneyCard) => {
+    const month = card.date.slice(0, 7)
+    setTimelineWindow((current) => ({ start: month < current.start ? month : current.start, end: month > current.end ? month : current.end }))
     dispatch({ type: 'add-card', card })
     setFilter('all')
     navigate('/', { replace: true, state: { focusCardId: card.id } })
@@ -253,9 +319,10 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }
   const toggleGap = (key: string) => setOpenGaps((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])
+  const extendTimeline = useCallback((direction: 'past' | 'future') => setTimelineWindow((current) => extendTimelineWindow(current, direction)), [])
 
-  const titlebar = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="titlebar" />
-  const updateBanner = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="banner" />
+  const titlebar = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="titlebar" onOpenAbout={openAboutUpdates} />
+  const updateBanner = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="banner" onOpenAbout={openAboutUpdates} />
   const artworkVisible = location.pathname === '/' || !!calendarVisible
 
   return <div className={`application ${signInLayout ? 'application-auth' : ''}`}>
@@ -266,14 +333,15 @@ export default function App() {
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} onFilter={changeFilter} onFocus={focusActive} />
-          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap} />
+          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} onFilter={changeFilter} onFocus={focusActive} onCalendarSourcesChange={setShowCalendarSources} />
+          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
+            months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
-        <Route path="/whats-new" element={<WhatsNewPage />} />
-        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} />} />
+        <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
+        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
         <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />
@@ -281,7 +349,8 @@ export default function App() {
       </Routes>
     </div>
     <AppFooter />
+    <AboutUpdatesDialog open={aboutUpdatesOpen} onClose={closeAboutUpdates} pwa={pwa} />
     <RouteEffects updateReady={pwa.updateReady && !pwa.coarse} />
-    <div className="toast-region" role={toast?.kind === 'error' ? 'alert' : 'status'} aria-live={toast?.kind === 'error' ? 'assertive' : 'polite'}>{toast && <div className={`toast ${toast.kind === 'error' ? 'is-error' : ''}`} key={toast.id}><span className="toast-icon">{toast.kind === 'error' ? <AlertCircle size="1rem" /> : <Check size="1rem" />}</span><span>{toast.message}</span>{toast.href && <Link className="toast-action" to={toast.href} onClick={event => { if (!confirmNotificationNavigation(event)) { event.preventDefault(); return }; if (toast.notificationId) void notifications.markRead(toast.notificationId) }}>{toast.label ?? 'View'}</Link>}{toast.action === 'update' && <button type="button" className="toast-action" onClick={pwa.update}>Restart</button>}<button className="icon-button" aria-label={toast.action === 'update' ? 'Remind me about this update later' : 'Dismiss notification'} onClick={() => { if (toast.action === 'update') pwa.dismissUpdate(); setToast(null) }}><X size="0.875rem" /></button></div>}</div>
+    <div className="toast-region" role={toast?.kind === 'error' ? 'alert' : 'status'} aria-live={toast?.kind === 'error' ? 'assertive' : 'polite'}>{toast && <div className={`toast ${toast.kind === 'error' ? 'is-error' : ''}`} key={toast.id}><span className="toast-icon">{toast.kind === 'error' ? <AlertCircle size="1rem" /> : <Check size="1rem" />}</span><span>{toast.message}</span>{toast.href && <Link className="toast-action" to={toast.href} onClick={event => { if (!confirmNotificationNavigation(event)) { event.preventDefault(); return }; if (toast.notificationId) void notifications.markRead(toast.notificationId) }}>{toast.label ?? 'View'}</Link>}{toast.action === 'update' && <button type="button" className="toast-action" onClick={openAboutUpdates}>Review</button>}<button className="icon-button" aria-label={toast.action === 'update' ? 'Remind me about this update later' : 'Dismiss notification'} onClick={() => { if (toast.action === 'update') pwa.dismissUpdate(); setToast(null) }}><X size="0.875rem" /></button></div>}</div>
   </div>
 }

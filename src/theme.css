@@ -92,6 +92,9 @@
     :root[data-theme='dark'] .topbar.has-backdrop { background: rgb(14 29 44 / 62%); }
     :root[data-theme='dark'] .bottom-bar { background: linear-gradient(180deg, transparent, rgb(12 23 36 / 88%) 80%); }
     :root[data-theme='dark'] .bottom-navigation { background: rgb(20 37 55 / 96%); box-shadow: 0 10px 35px rgb(0 0 0 / 35%); }
+    :root[data-theme='dark'] .stream-source-toggle { border-color: #675c42; color: #d9c99d; background: #2f2b21; }
+    :root[data-theme='dark'] .stream-source-toggle:hover, :root[data-theme='dark'] .stream-source-toggle.is-active { border-color: #a88c4c; color: #f3d99d; background: #41351f; }
+    :root[data-theme='dark'] .stream-source-count { background: rgb(245 209 135 / 16%); }
     :root[data-theme='dark'] .month-backdrop > .month-artwork { opacity: .16; }
     :root[data-theme='dark'] .month-calendar-hero > .month-hero-artwork { opacity: .23; }
     :root[data-theme='dark'] .settings-month-art { opacity: .3; }
@@ -99,6 +102,34 @@
     :root[data-theme='dark'] .sign-in-hero-art { opacity: .68; }
     :root[data-theme='dark'] .ipad-frame-active { border-color: #455d75; }
     :root[data-theme='dark'] input:is(:autofill, :-webkit-autofill) { -webkit-text-fill-color: #e6eff8; box-shadow: 0 0 0 1000px #19364c inset; caret-color: #e6eff8; }
+    :root[data-theme='dark'] .calendar-source-event { border-color: #3e5875; background: linear-gradient(135deg, #1b2d43, #162537); }
+    :root[data-theme='dark'] .calendar-source-event-meta > span:first-child, :root[data-theme='dark'] .calendar-source-event h4, :root[data-theme='dark'] .calendar-source-event.timeline-source-card h3 { color: #c8e1f8; }
+    :root[data-theme='dark'] .calendar-source-event-meta > .badge { border-color: #4a6684; background: #223d59; color: #c9e3fa; }
+    :root[data-theme='dark'] .calendar-source-event p, :root[data-theme='dark'] .calendar-source-event-note { color: #b8c9db; }
+    :root[data-theme='dark'] .calendar-source-event-note { border-color: #3a526d; }
+    /* Source cards keep a full, even surface in dark mode — no inset left stripe. */
+    :root[data-theme='dark'] .calendar-source-event.source-school-calendar { border-color: #3d7198; background: radial-gradient(circle at 91% 14%, rgb(106 191 239 / 19%) 0 0.1875rem, transparent 0.21875rem), radial-gradient(circle at 82% 27%, rgb(106 191 239 / 12%) 0 0.125rem, transparent 0.15625rem), linear-gradient(135deg, #1b3d58, #183249); }
+    :root[data-theme='dark'] .calendar-source-event.source-school-calendar .calendar-source-event-meta > .badge { border-color: #477fa5; background: #1e4864; color: #c3e7fb; }
+    :root[data-theme='dark'] .calendar-source-event.source-school-calendar .calendar-preview-title > strong { color: #c3e7fb; }
+    :root[data-theme='dark'] .calendar-source-event.source-school-calendar .calendar-source-event-note { border-color: #365f7c; color: #b5d7eb; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity { border-color: #89754b; background-color: #3c3526; background-image: linear-gradient(106deg, rgb(67 58 40 / 88%) 0%, rgb(61 54 39 / 80%) 58%, rgb(49 44 34 / 46%) 100%), var(--legislated-illustration); background-position: center, center; background-size: 100% 100%, cover; background-repeat: no-repeat; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-meta > span:first-child, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity h4, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity.timeline-source-card h3 { color: #f6dca8; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-meta > .badge { border-color: #927b4d; background: #4e432d; color: #f6dca8; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-preview-title > strong { color: #f6dca8; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity p, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #ead8af; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #796943; }
+    :root[data-theme='dark'] .calendar-preview-card:hover { background: rgb(255 255 255 / 7%); }
+    :root[data-theme='dark'] .timeline-month-empty, :root[data-theme='dark'] .timeline-boundary > button { border-color: #45627c; background: rgb(20 38 57 / 74%); }
+    :root[data-theme='dark'] .timeline-month-empty strong { color: #e1edf8; }
+    :root[data-theme='dark'] .timeline-month-empty span, :root[data-theme='dark'] .timeline-boundary > button { color: #b4c9dd; }
+    :root[data-theme='dark'] .timeline-boundary > button:not(:disabled):hover { border-color: #78b3d6; color: #d4ecfc; background: #1c3851; }
+    :root[data-theme='dark'] .calendar-preview-title > strong { color: #e8f0fa; }
+    :root[data-theme='dark'] .calendar-preview-title > svg { color: #9eb1c7; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-event { --preview-accent: #8fd2f8; --preview-soft: #19364c; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-task { --preview-accent: #8edbb9; --preview-soft: #1a3735; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-project { --preview-accent: #c5bbfa; --preview-soft: #302d49; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-note { --preview-accent: #f3b2c9; --preview-soft: #3b2940; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-source { --preview-accent: #efd293; --preview-soft: #38301f; }
   }
   @media (max-width: 960px) and (min-width: 761px), (max-width: 420px) {
     .appearance-options { gap: 0.5rem; }
@@ -129,7 +160,7 @@
   @media print {
     :root { color-scheme: light; color: #142139; background: #fff; }
     body { background: #fff; }
-    .topbar, .bottom-bar, .skip-link, .sign-in-back { display: none; }
+    .topbar, .bottom-bar, .skip-link, .sign-in-back, .timeline-preview-backdrop { display: none; }
     .application { padding: 0; }
     .appearance-options { display: none; }
     .settings-section, .workspace-panel, .journey-card, .account-card, .sign-in-card { box-shadow: none; }

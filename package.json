@@ -17,6 +17,7 @@
     "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
     "firebase": "^12.19.0",
     "lucide-react": "^0.553.0",
+    "pdfjs-dist": "^5.7.284",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.18.5"
