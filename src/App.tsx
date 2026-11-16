@@ -88,25 +88,27 @@ function StreamHeader({ filter, count, month, showCalendarSources, calendarSourc
       </div>
     </div>
     <div className="header-bottom">
-      <nav className="filter-bar" aria-label="Filter journey cards">{filters.map(({ type, label }) => <button key={type} className={`filter-pill ${filter === type ? 'is-active' : ''}`} onClick={() => onFilter(type)} aria-pressed={filter === type}>
-        {type !== 'all' && <span className={`filter-dot dot-${type}`} />}<span>{label}</span>{type === 'all' && <span className="filter-count">{count}</span>}
-      </button>)}</nav>
-      <div className="stream-filter-select">
-        <label htmlFor="timeline-filter-select">Filter</label>
-        <select id="timeline-filter-select" aria-label="Filter journey cards" value={filter} onChange={(event) => onFilter(event.currentTarget.value as Filter)}>
-          {filters.map(({ type, label }) => <option key={type} value={type}>{label}{type === 'all' ? ` · ${count}` : ''}</option>)}
-        </select>
-      </div>
-      <div className="stream-reference-controls">
-        <div className="stream-source-select">
-          <Landmark size="0.75rem" aria-hidden="true" />
-          <label htmlFor="timeline-calendar-sources">Calendar sources</label>
-          <select id="timeline-calendar-sources" value={showCalendarSources ? 'shown' : 'hidden'} onChange={(event) => onCalendarSourcesChange(event.currentTarget.value === 'shown')} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
-            <option value="shown">Shown{calendarSourceCount > 0 ? ` · ${calendarSourceCount} dates` : ''}</option>
-            <option value="hidden">Hidden</option>
+      <div className="stream-controls">
+        <nav className="filter-bar" aria-label="Filter journey cards">{filters.map(({ type, label }) => <button key={type} className={`filter-pill ${filter === type ? 'is-active' : ''}`} onClick={() => onFilter(type)} aria-pressed={filter === type}>
+          {type !== 'all' && <span className={`filter-dot dot-${type}`} />}<span>{label}</span>{type === 'all' && <span className="filter-count">{count}</span>}
+        </button>)}</nav>
+        <div className="stream-filter-select">
+          <label className="sr-only" htmlFor="timeline-filter-select">Filter journey cards</label>
+          <select id="timeline-filter-select" aria-label="Filter journey cards" value={filter} onChange={(event) => onFilter(event.currentTarget.value as Filter)}>
+            {filters.map(({ type, label }) => <option key={type} value={type}>{label}{type === 'all' ? ` · ${count}` : ''}</option>)}
           </select>
         </div>
-        <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
+        <div className="stream-reference-controls">
+          <div className="stream-source-select">
+            <Landmark size="0.75rem" aria-hidden="true" />
+            <label className="sr-only" htmlFor="timeline-calendar-sources">Calendar sources</label>
+            <select id="timeline-calendar-sources" value={showCalendarSources ? 'shown' : 'hidden'} onChange={(event) => onCalendarSourcesChange(event.currentTarget.value === 'shown')} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
+              <option value="shown">Calendar sources · Shown{calendarSourceCount > 0 ? ` · ${calendarSourceCount}` : ''}</option>
+              <option value="hidden">Calendar sources · Hidden</option>
+            </select>
+          </div>
+          <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
+        </div>
       </div>
     </div>
   </header>
