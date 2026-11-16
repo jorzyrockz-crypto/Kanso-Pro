@@ -109,6 +109,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose
     ? [...monthCards.filter((card) => card.date === selectedDate), ...sourceEntries.filter((entry) => entryIncludesDate(entry, selectedDate))]
     : [...events, ...sourceEntries]
   const sortedAgenda = [...agenda].sort((first, second) => first.date.localeCompare(second.date) || first.title.localeCompare(second.title))
+  const previewItems: TimelineItem[] = sortedAgenda.map((entry) => isCalendarSourceEntry(entry) ? timelineSourcePreview(entry, sourceById.get(entry.sourceId)) : entry)
   const visibleEntryCount = events.length + sourceEntries.length
   const changeMonth = (amount: number) => navigate(`/calendar?month=${shiftMonth(month, amount)}`)
   return <div className="workspace-content calendar-workspace">
@@ -153,7 +154,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose
         : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
       {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
     </section>
-    <TimelineCardPreview item={preview} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
+    <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
   </div>
 }
 

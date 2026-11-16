@@ -106,6 +106,24 @@ test('responsive Timeline menus provide styled filters and individual Calendar s
   await expect(sourcesMenu).not.toBeVisible()
 })
 
+test('preview dialogs browse nearby timeline entries with desktop buttons and touch swipes', async ({ page }) => {
+  await card(page, 'evt-holiday').locator('.card-open').click({ position: { x: 10, y: 10 } })
+  const dialog = page.getByRole('dialog')
+  const title = dialog.getByRole('heading', { level: 2 })
+  const firstTitle = await title.textContent()
+  await expect(dialog.getByRole('button', { name: 'Next preview', exact: true })).toBeEnabled()
+  await dialog.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 1, clientX: 280, clientY: 360 })
+  await dialog.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 1, clientX: 120, clientY: 360 })
+  await expect(title).not.toHaveText(firstTitle!)
+  await dialog.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 2, clientX: 120, clientY: 360 })
+  await dialog.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 2, clientX: 280, clientY: 360 })
+  await expect(title).toHaveText(firstTitle!)
+  await dialog.getByRole('button', { name: 'Next preview', exact: true }).click()
+  await expect(title).not.toHaveText(firstTitle!)
+  await dialog.getByRole('button', { name: 'Previous preview', exact: true }).click()
+  await expect(title).toHaveText(firstTitle!)
+})
+
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {
   for (const [name, path, heading] of [
     ['Calendar', '/calendar', 'Calendar'], ['Tasks', '/tasks', 'Personal Tasks'],

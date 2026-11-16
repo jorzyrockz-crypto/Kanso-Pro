@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Folder, Landmark, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, ReactNode, RefObject } from 'react'
 import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
@@ -333,6 +333,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
   onLoadFuture: () => void
 }) {
   const [preview, setPreview] = useState<TimelineItem | null>(null)
+  const previewItems = useMemo(() => entries.flatMap((entry) => entry.cards), [entries])
   const openPreview = useCallback((item: TimelineItem) => setPreview(item), [])
   const closePreview = useCallback(() => setPreview(null), [])
   const entriesForMonth = (month: string) => entries.filter((entry) => (entry.kind === 'day' ? entry.date : entry.start).startsWith(month))
@@ -361,7 +362,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
         <p>A little structure. A lot of possibility.</p>
       </div>
       {lastMonth && <TimelineBoundary key={`future-${lastMonth}`} direction="future" month={lastMonth} canLoad={canLoadFuture} onLoad={onLoadFuture} />}
-      <TimelineCardPreview item={preview} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
+      <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
     </section>
   )
 }

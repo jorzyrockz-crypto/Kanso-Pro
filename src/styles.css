@@ -442,18 +442,24 @@
 
   /* Timeline cards open a complete preview first, keeping the journey in view. */
   .timeline-preview-backdrop { position: fixed; z-index: 130; inset: 0; display: grid; place-items: center; padding: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); overflow-y: auto; overscroll-behavior: contain; background: rgb(8 23 39 / 58%); backdrop-filter: blur(.75rem) saturate(.9); -webkit-backdrop-filter: blur(.75rem) saturate(.9); }
-  .timeline-preview-dialog { --preview-accent: #276fa8; --preview-soft: #eaf5fc; display: flex; width: min(100%, 39rem); max-height: min(47rem, calc(100dvh - 2.5rem)); flex-direction: column; overflow: hidden; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.5rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); box-shadow: 0 1.5rem 5rem rgb(4 20 36 / 38%); }
+  .timeline-preview-dialog { --preview-accent: #276fa8; --preview-soft: #eaf5fc; display: flex; width: min(100%, 39rem); max-height: min(47rem, calc(100dvh - 2.5rem)); flex-direction: column; overflow: hidden; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.5rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); box-shadow: 0 1.5rem 5rem rgb(4 20 36 / 38%); touch-action: pan-y; }
   .timeline-preview-dialog.is-task { --preview-accent: #168364; --preview-soft: #e7f7ef; }
   .timeline-preview-dialog.is-project { --preview-accent: #6259c8; --preview-soft: #eeecfc; }
   .timeline-preview-dialog.is-note { --preview-accent: #b84b69; --preview-soft: #fceef2; }
   .timeline-preview-dialog.is-source { --preview-accent: #87631f; --preview-soft: #fbf4df; }
   .timeline-preview-header { display: flex; align-items: flex-start; gap: .75rem; padding: 1.25rem 1.375rem 1rem; border-bottom: 1px solid var(--theme-border, #d4e5ed); background: linear-gradient(135deg, var(--preview-soft), var(--theme-surface, #fff)); }
   .timeline-preview-type-icon { display: grid; place-items: center; flex-shrink: 0; width: 2.5rem; height: 2.5rem; border-radius: .8125rem; background: var(--preview-accent); color: #fff; box-shadow: 0 .25rem .625rem color-mix(in srgb, var(--preview-accent) 24%, transparent); }
-  .timeline-preview-header > div { min-width: 0; flex: 1; }
-  .timeline-preview-header > div > span { display: block; color: var(--preview-accent); font-size: .5625rem; font-weight: 800; letter-spacing: .0625rem; line-height: 1.5; text-transform: uppercase; }
+  .timeline-preview-heading { min-width: 0; flex: 1; }
+  .timeline-preview-heading > span { display: block; color: var(--preview-accent); font-size: .5625rem; font-weight: 800; letter-spacing: .0625rem; line-height: 1.5; text-transform: uppercase; }
   .timeline-preview-header h2 { margin-top: .1875rem; color: var(--theme-text-primary, #294b63); font-family: var(--serif); font-size: clamp(1.5rem, 3.5vw, 2rem); font-weight: 550; letter-spacing: -.03rem; line-height: 1.15; overflow-wrap: anywhere; }
+  .timeline-preview-navigation { display: inline-flex; align-items: center; flex-shrink: 0; gap: .125rem; margin-left: auto; }
+  .timeline-preview-navigation > .icon-button { width: 2.125rem; height: 2.125rem; border: 1px solid var(--theme-border, #d4e5ed); border-radius: .625rem; background: var(--theme-surface, #fff); color: var(--theme-text-secondary, #526f83); }
+  .timeline-preview-navigation > .icon-button:not(:disabled):hover { border-color: var(--preview-accent); color: var(--preview-accent); background: var(--preview-soft); }
+  .timeline-preview-navigation > .icon-button:disabled { cursor: not-allowed; opacity: .38; }
+  .timeline-preview-navigation > span:not(.sr-only) { min-width: 2.25rem; color: var(--theme-text-secondary, #5e7689); font-size: .5625rem; font-weight: 750; text-align: center; white-space: nowrap; }
   .timeline-preview-close { display: grid; place-items: center; flex-shrink: 0; width: 2.375rem; height: 2.375rem; margin: -.25rem -.25rem 0 0; border-radius: 50%; background: var(--theme-surface, #fff); color: var(--theme-text-secondary, #526f83); }
   .timeline-preview-close:hover { background: var(--theme-blue-soft, #eaf4fa); color: var(--theme-text-primary, #294b63); }
+  @media (pointer: coarse) { .timeline-preview-navigation { display: none; } }
   .timeline-preview-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1.25rem 1.375rem; }
   .timeline-preview-intro { margin-bottom: 1.125rem; color: var(--theme-text-secondary, #526f83); font-size: .6875rem; line-height: 1.8; }
   .timeline-preview-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: 0; }

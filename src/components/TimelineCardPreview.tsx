@@ -1,7 +1,7 @@
-import { CheckCircle2, Circle, Clock3, FileText, Flag, Landmark, MapPin, Pin, School, Tag, X } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, FileText, Flag, Landmark, MapPin, Pin, School, Tag, X } from 'lucide-react'
 import { useEffect, useId, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import type { EventCard, NoteCard, OccasionChoice, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry } from '../types'
 import { destinationPath } from '../lib/navigation'
 import { formatDate, formatTime, progress, TYPE_CONFIG } from '../lib/journey'
@@ -97,20 +97,38 @@ function SourcePreview({ entry }: { entry: TimelineSourceEntry }) {
   </>
 }
 
-export function TimelineCardPreview({ item, onClose, onEventBackgroundChange }: { item: TimelineItem | null; onClose: () => void; onEventBackgroundChange?: (card: EventCard, occasion: OccasionChoice) => void }) {
+export function TimelineCardPreview({ item, items = [], onClose, onEventBackgroundChange, onItemChange }: {
+  item: TimelineItem | null
+  items?: readonly TimelineItem[]
+  onClose: () => void
+  onEventBackgroundChange?: (card: EventCard, occasion: OccasionChoice) => void
+  onItemChange?: (item: TimelineItem) => void
+}) {
   const headingId = useId()
   const descriptionId = useId()
   const dialogRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const swipeStart = useRef<{ pointerId: number; x: number; y: number } | null>(null)
+  const activeIndex = item ? items.findIndex((candidate) => candidate.id === item.id && isSource(candidate) === isSource(item)) : -1
+  const previous = activeIndex > 0 ? items[activeIndex - 1] : undefined
+  const next = activeIndex >= 0 && activeIndex < items.length - 1 ? items[activeIndex + 1] : undefined
+  const navigatePreview = (direction: -1 | 1) => {
+    const target = direction === -1 ? previous : next
+    if (target) onItemChange?.(target)
+  }
+  const open = !!item
 
   useEffect(() => {
-    if (!item) return
+    if (!open) return
     const focusedBeforeOpen = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     closeRef.current?.focus({ preventScroll: true })
     const keyboard = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+      const nativeField = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
+      if (!nativeField && event.key === 'ArrowLeft' && previous) { event.preventDefault(); navigatePreview(-1); return }
+      if (!nativeField && event.key === 'ArrowRight' && next) { event.preventDefault(); navigatePreview(1); return }
       if (event.key !== 'Tab') return
       const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusable) ?? [])
       if (!controls.length) return
@@ -125,9 +143,22 @@ export function TimelineCardPreview({ item, onClose, onEventBackgroundChange }: 
       document.removeEventListener('keydown', keyboard)
       if (focusedBeforeOpen?.isConnected) focusedBeforeOpen.focus({ preventScroll: true })
     }
-  }, [item, onClose])
+  }, [next, onClose, open, previous])
 
   if (!item) return null
+
+  const onSwipeStart = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'touch') swipeStart.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY }
+  }
+  const onSwipeEnd = (event: ReactPointerEvent<HTMLElement>) => {
+    const start = swipeStart.current
+    swipeStart.current = null
+    if (!start || start.pointerId !== event.pointerId) return
+    const horizontal = event.clientX - start.x
+    const vertical = event.clientY - start.y
+    if (Math.abs(horizontal) < 48 || Math.abs(horizontal) <= Math.abs(vertical)) return
+    navigatePreview(horizontal < 0 ? 1 : -1)
+  }
 
   const source = isSource(item)
   const config = source ? null : TYPE_CONFIG[item.type]
@@ -137,8 +168,8 @@ export function TimelineCardPreview({ item, onClose, onEventBackgroundChange }: 
   const preview = source ? <SourcePreview entry={item} /> : item.type === 'event' ? <EventPreview card={item} onEventBackgroundChange={onEventBackgroundChange} /> : item.type === 'task' ? <TaskPreview card={item} /> : item.type === 'project' ? <ProjectPreview card={item} /> : <NotePreview card={item} />
 
   return <div className="timeline-preview-backdrop" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section ref={dialogRef} className={`timeline-preview-dialog ${source ? 'is-source' : `is-${item.type}`}`} role="dialog" aria-modal="true" aria-labelledby={headingId} aria-describedby={descriptionId}>
-      <header className="timeline-preview-header"><span className="timeline-preview-type-icon">{source ? <Landmark size="1.125rem" aria-hidden="true" /> : <TypeIcon type={item.type} size={18} />}</span><div><span>{typeLabel}</span><h2 id={headingId}>{item.title || 'Untitled reflection'}</h2></div><button ref={closeRef} type="button" className="timeline-preview-close" aria-label="Close card preview" onClick={onClose}><X size="1rem" aria-hidden="true" /></button></header>
+    <section ref={dialogRef} className={`timeline-preview-dialog ${source ? 'is-source' : `is-${item.type}`}`} role="dialog" aria-modal="true" aria-labelledby={headingId} aria-describedby={descriptionId} onPointerDown={onSwipeStart} onPointerUp={onSwipeEnd}>
+      <header className="timeline-preview-header"><span className="timeline-preview-type-icon">{source ? <Landmark size="1.125rem" aria-hidden="true" /> : <TypeIcon type={item.type} size={18} />}</span><div className="timeline-preview-heading"><span>{typeLabel}</span><h2 id={headingId}>{item.title || 'Untitled reflection'}</h2></div>{items.length > 1 && <div className="timeline-preview-navigation"><button type="button" className="icon-button timeline-preview-previous" aria-label="Previous preview" disabled={!previous} onClick={() => navigatePreview(-1)}><ChevronLeft size="1rem" aria-hidden="true" /></button><span aria-live="polite">{activeIndex + 1} of {items.length}</span><button type="button" className="icon-button timeline-preview-next" aria-label="Next preview" disabled={!next} onClick={() => navigatePreview(1)}><ChevronRight size="1rem" aria-hidden="true" /></button><span className="sr-only">Swipe left or right to browse nearby entries.</span></div>}<button ref={closeRef} type="button" className="timeline-preview-close" aria-label="Close card preview" onClick={onClose}><X size="1rem" aria-hidden="true" /></button></header>
       <div className="timeline-preview-body"><p id={descriptionId} className="timeline-preview-intro">{source ? 'A calendar reference kept separate from your personal cards.' : 'A complete preview of this card, without leaving your timeline.'}</p>{preview}</div>
       <footer className="timeline-preview-actions"><button type="button" className="button timeline-preview-dismiss" onClick={onClose}>Close</button><Link className="button timeline-preview-open" to={actionHref} onClick={onClose}>{actionLabel}</Link></footer>
     </section>
