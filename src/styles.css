@@ -159,7 +159,9 @@
   .stream-source-action { display: inline-flex; align-items: center; justify-content: flex-end; gap: .1875rem; color: var(--theme-text-secondary, #647b8e); font-size: .53125rem; font-weight: 750; }
   .stream-sources-list > button.is-shown .stream-source-action { color: var(--theme-blue, #20658c); }
   /* Fluid timeline and date nodes */
+  .timeline-layout { min-width: 0; }
   .timeline { position: relative; flex: 1; padding: 2rem 1.5rem 1.5rem; --scroll-progress: 35%; }
+  .desktop-planning-rail { display: none; }
   .timeline-spine, .timeline-glow { position: absolute; top: 0; left: 50%; width: 0.25rem; transform: translateX(-50%); border-radius: 1.25rem; pointer-events: none; }
   .timeline-spine { bottom: 3.25rem; background: linear-gradient(180deg, rgb(46 188 250 / 24%), rgb(46 188 250 / 85%) 8%, rgb(46 188 250 / 85%) 92%, rgb(46 188 250 / 10%)); }
   .timeline-glow { height: min(var(--scroll-progress), calc(100% - 3.25rem)); background: linear-gradient(180deg, #38bdf8, #078cc9 65%, #7270ef); box-shadow: 0 0 12px rgb(41 182 246 / 45%); transition: height .15s ease-out; }
