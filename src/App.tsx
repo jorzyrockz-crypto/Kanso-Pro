@@ -2,12 +2,12 @@ import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, Chevron
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
-import { FOCUS_DATE } from './data'
-import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
-import { buildTimeline, focusCard, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
+import type { ComposerOptions, Destination, EventCard, Filter, JourneyCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
+import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
+import { removeJournalAttachment } from './lib/journalAttachments'
 import { googleSyncUser } from './lib/workspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
 import type { CalendarSource } from './lib/calendarSources'
@@ -49,9 +49,19 @@ const TIMELINE_MAX_MONTH = '9999-12'
 
 type TimelineWindow = { start: string; end: string }
 
+function currentLocalDate() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 function timelineWindowFor(cards: JourneyCard[]): TimelineWindow {
-  const months = [...cards.map((card) => card.date.slice(0, 7)), FOCUS_DATE.slice(0, 7)].sort()
+  const months = [...cards.map((card) => card.date.slice(0, 7)), currentLocalDate().slice(0, 7)].sort()
   return { start: months[0], end: months.at(-1)! }
+}
+
+function cardOnDate(cards: JourneyCard[], date: string) {
+  return cards.find((card) => card.date === date && !card.quiet && !card.backlog)
+    ?? cards.find((card) => card.type === 'project' && card.dueDate === date && !card.backlog)
 }
 
 function extendTimelineWindow(window: TimelineWindow, direction: 'past' | 'future'): TimelineWindow {
@@ -179,16 +189,22 @@ function StreamHeader({ calendarSources, count, filter, month, onFilter, onSourc
   </header>
 }
 
-function NewCardPage({ cards, onCancel, onCreate }: {
+function NewCardPage({ cards, onCancel, onCreate, onUpdate }: {
   cards: JourneyCard[]
   onCancel: () => void
   onCreate: (card: JourneyCard) => void
+  onUpdate: (card: EventCard | TaskCard) => void
 }) {
   const location = useLocation()
+  const editId = new URLSearchParams(location.search).get('edit')
+  const candidate = editId ? cards.find((card) => card.id === editId) : undefined
+  const editingCard = candidate?.type === 'event' || candidate?.type === 'task' ? candidate : undefined
+  if (editId && !editingCard) return <main id="main-content" tabIndex={-1} className="create-page" aria-label="Card not found"><NotFoundPage card backTo="/" /></main>
+  const typeLabel = editingCard?.type === 'event' ? 'Event' : editingCard?.type === 'task' ? 'Task' : 'card'
   return <main id="main-content" tabIndex={-1} className="create-page" aria-labelledby="page-title">
-    <PageHeader title="New card" description="An event, a small step, a bigger idea, or a thought worth keeping." />
+    <PageHeader title={editingCard ? `Edit ${typeLabel}` : 'New card'} description={editingCard ? 'Update the details that keep this card useful across your planning space.' : 'An event, a small step, a bigger idea, or a thought worth keeping.'} />
     <button className="text-button return-to-page" onClick={onCancel}><ArrowLeft size="0.8125rem" />Back to your workspace</button>
-    <Composer key={location.key} options={composerOptions(location.search)} cards={cards} onCancel={onCancel} onCreate={onCreate} />
+    <Composer key={location.key} options={composerOptions(location.search)} cards={cards} editingCard={editingCard} onCancel={onCancel} onCreate={onCreate} onUpdate={onUpdate} />
   </main>
 }
 
@@ -253,9 +269,10 @@ export default function App() {
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const handledFocusKey = useRef<string | null>(null)
   const timelineRef = useRef<HTMLElement>(null)
-  const jumpTarget = useMemo(() => focusCard(state.cards, FOCUS_DATE), [state.cards])
+  const today = currentLocalDate()
+  const todayTarget = useMemo(() => cardOnDate(state.cards, today), [state.cards, today])
   const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
-  const [pendingToday, setPendingToday] = useState(false)
+  const [pendingToday, setPendingToday] = useState<string | null>(null)
   const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
   const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
   const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
@@ -275,7 +292,7 @@ export default function App() {
   }, [calendarSources.sources, timelineMonths])
   const timelineCards = useMemo(() => state.cards.filter((card) => card.date.slice(0, 7) >= timelineWindow.start && card.date.slice(0, 7) <= timelineWindow.end), [state.cards, timelineWindow])
   const entries = useMemo(() => buildTimeline(timelineCards, filter, timelineSourceEntries), [timelineCards, filter, timelineSourceEntries])
-  const overdueCards = useMemo(() => rolloverCandidates(state.cards, FOCUS_DATE), [state.cards])
+  const overdueCards = useMemo(() => rolloverCandidates(state.cards, today), [state.cards, today])
   const defaultMonth = entries.find((entry) => entry.kind === 'day')?.date.slice(0, 7) ?? timelineWindow.start
   const timelineMonth = visibleTimelineMonth && visibleTimelineMonth >= timelineWindow.start && visibleTimelineMonth <= timelineWindow.end ? visibleTimelineMonth : defaultMonth
 
@@ -331,8 +348,8 @@ export default function App() {
     let frame = 0
     const updateDirection = () => {
       frame = 0
-      const target = (jumpTarget && document.getElementById(`card-${jumpTarget.id}`))
-        ?? document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${FOCUS_DATE.slice(0, 7)}"]`)
+      const target = (todayTarget && document.getElementById(`card-${todayTarget.id}`))
+        ?? document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${today.slice(0, 7)}"]`)
       const headerBottom = document.querySelector('.stream-header')?.getBoundingClientRect().bottom ?? 0
       const nextDirection = target && target.getBoundingClientRect().bottom < headerBottom ? 'up' : 'down'
       setJumpDirection((current) => current === nextDirection ? current : nextDirection)
@@ -346,7 +363,7 @@ export default function App() {
       window.removeEventListener('resize', requestUpdate)
       cancelAnimationFrame(frame)
     }
-  }, [filter, jumpTarget, location.pathname, entries])
+  }, [filter, todayTarget, location.pathname, entries, today])
 
   useEffect(() => {
     const cardId: unknown = location.state?.focusCardId
@@ -376,9 +393,9 @@ export default function App() {
   useEffect(() => {
     if (!pendingToday || location.pathname !== '/') return
     const frame = requestAnimationFrame(() => {
-      const month = document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${FOCUS_DATE.slice(0, 7)}"]`)
+      const month = document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${pendingToday.slice(0, 7)}"]`)
       month?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
-      setPendingToday(false)
+      setPendingToday(null)
     })
     return () => cancelAnimationFrame(frame)
   }, [entries, filter, location.pathname, pendingToday, timelineMonths])
@@ -426,12 +443,25 @@ export default function App() {
     navigate('/', { replace: true, state: { focusCardId: card.id } })
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
+  const updateJourneyCard = (card: EventCard | TaskCard) => {
+    dispatch({ type: 'update-card', card })
+    navigate(destinationPath({ page: card.type === 'event' ? 'calendar' : 'tasks', cardId: card.id }), { replace: true })
+    setToast({ message: `${card.type === 'event' ? 'Event' : 'Task card'} updated.`, id: Date.now() })
+  }
+  const deleteJourneyCard = (card: JourneyCard) => {
+    dispatch({ type: 'delete-card', id: card.id })
+    if (card.type === 'note' && card.attachment?.kind === 'audio') void removeJournalAttachment(card.attachment.id).catch(() => {})
+    if (card.type === 'note' && card.attachment?.kind === 'image' && card.attachment.storage === 'firestore' && firestoreUserId) void import('./lib/firestore').then(({ deleteJournalImage }) => deleteJournalImage(firestoreUserId, card.attachment!.id)).catch(() => {})
+    setToast({ message: `${card.type === 'event' ? 'Event' : card.type === 'task' ? 'Task card' : 'Journal note'} deleted.`, id: Date.now() })
+  }
   const jumpToToday = () => {
-    const focusMonth = FOCUS_DATE.slice(0, 7)
+    const currentDate = currentLocalDate()
+    const focusMonth = currentDate.slice(0, 7)
+    const target = cardOnDate(state.cards, currentDate)
     setFilter('all')
     setTimelineWindow((current) => ({ start: focusMonth < current.start ? focusMonth : current.start, end: focusMonth > current.end ? focusMonth : current.end }))
-    if (jumpTarget) setPendingScroll(jumpTarget.id)
-    else setPendingToday(true)
+    if (target) setPendingScroll(target.id)
+    else setPendingToday(currentDate)
   }
   const changeFilter = (type: Filter) => {
     setFilter(type)
@@ -454,16 +484,16 @@ export default function App() {
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
           <StreamHeader calendarSources={calendarSources.sources} count={state.cards.length} filter={filter} month={`${timelineMonth}-01`} onFilter={changeFilter} onSourceEnabled={calendarSources.setSourceEnabled} />
-          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
-            rolloverCandidates={overdueCards} rolloverDate={FOCUS_DATE} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
+          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
+            rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} journalUserId={firestoreUserId} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} onDeleteCard={deleteJourneyCard} storageAvailable={storageAvailable} journalUserId={firestoreUserId} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
         <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
         <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
-        <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} />} />
+        <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} onUpdate={updateJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -156,6 +156,35 @@
     :root[data-theme='dark'] .notification-type.notification-task { color: #9be0bd; background: #1a4038; }
     :root[data-theme='dark'] .notification-type.notification-project { color: #c8c0fb; background: #342e50; }
     :root[data-theme='dark'] .notification-type.notification-update { color: #f0d090; background: #423824; }
+    /* The Journal stays calm and readable after dark-mode color-scheme changes native fields. */
+    :root[data-theme='dark'] .journal-paper { background-color: #202a36; background-image: linear-gradient(to bottom, transparent 25px, rgb(236 181 113 / 9%) 26px); }
+    :root[data-theme='dark'] .journal-editor { border-color: #485c70; box-shadow: 0 .75rem 1.75rem rgb(0 0 0 / 18%); }
+    :root[data-theme='dark'] .journal-title-input, :root[data-theme='dark'] .journal-body-input { color: #e5edf5; }
+    :root[data-theme='dark'] .journal-title-input { border-color: #4a6072; }
+    :root[data-theme='dark'] .journal-editor-footer, :root[data-theme='dark'] .journal-voice-editor, :root[data-theme='dark'] .journal-image-editor { border-color: #405365; }
+    :root[data-theme='dark'] .journal-metadata-fields > label, :root[data-theme='dark'] .journal-card-fields input { border-color: #475d70; background: #182634; color: #bfd0df; }
+    :root[data-theme='dark'] .journal-metadata-fields input, :root[data-theme='dark'] .journal-metadata-fields select { color: #e6eef6; }
+    :root[data-theme='dark'] .journal-card-fields > label { color: #bfd0df; }
+    :root[data-theme='dark'] .journal-detail-label + textarea { border-color: #475d70; background: #142331; color: #e0ebf5; }
+    :root[data-theme='dark'] .journal-detail-label + textarea::placeholder, :root[data-theme='dark'] .journal-body-input::placeholder, :root[data-theme='dark'] .journal-title-input::placeholder { color: #91a6b9; opacity: 1; }
+    :root[data-theme='dark'] .journal-create-trigger { border-color: #84546b; background: #4a2e41; color: #ffe3ed; }
+    :root[data-theme='dark'] .journal-create-trigger:hover { border-color: #bd7c9c; background: #603a52; }
+    :root[data-theme='dark'] .journal-type-card.type-voice { border-color: #3f7196; background: #1a3349; }
+    :root[data-theme='dark'] .journal-type-card.type-voice > svg { color: #9fd7ff; background: #224967; }
+    :root[data-theme='dark'] .journal-type-card.type-image { border-color: #66557e; background: #2b2943; }
+    :root[data-theme='dark'] .journal-type-card.type-image > svg { color: #d2bdf6; background: #403760; }
+    :root[data-theme='dark'] .journal-type-card.type-ai { background: linear-gradient(135deg, #332638, #292d43); }
+    :root[data-theme='dark'] .journal-type-card.type-ai > svg { color: #f1b7cf; background: #4a3145; }
+    :root[data-theme='dark'] .note-voice .journal-note-kind { background: #1c405b; color: #a9dcff; }
+    :root[data-theme='dark'] .note-image .journal-note-kind { background: #382f56; color: #d6c1f8; }
+    :root[data-theme='dark'] .journal-waveform { background: linear-gradient(135deg, #17344a, #2b2b49); }
+    :root[data-theme='dark'] .journal-waveform > i { background: #82c6ff; }
+    :root[data-theme='dark'] .journal-image-dropzone { border-color: #7f6998; background: #2a263b; color: #d9c7f1; }
+    :root[data-theme='dark'] .journal-image-sign-in { border-color: #465c70; background: #172a3a; color: #bdcfdf; }
+    :root[data-theme='dark'] .journal-image-dropzone span, :root[data-theme='dark'] .journal-image-sign-in span { color: #b9c7d5; }
+    :root[data-theme='dark'] .journal-ai-future { border-color: #6b516d; background: linear-gradient(135deg, #30263a, #252d3c); }
+    :root[data-theme='dark'] .journal-ai-future p { color: #c4b9ca; }
+    :root[data-theme='dark'] .journal-ai-future > span { background: #50394b; color: #f1c2d6; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-event { --preview-accent: #8fd2f8; --preview-soft: #19364c; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-task { --preview-accent: #8edbb9; --preview-soft: #1a3735; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-project { --preview-accent: #c5bbfa; --preview-soft: #302d49; }

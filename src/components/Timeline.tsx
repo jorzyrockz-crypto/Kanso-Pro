@@ -315,11 +315,12 @@ function DawnRollover({ candidates, today, filter, dispatch }: { candidates: Rol
   </section>
 }
 
-export function Timeline({ entries, filter, onCompose, dispatch, highlightId, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture }: {
+export function Timeline({ entries, filter, onCompose, dispatch, onDeleteCard, highlightId, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture }: {
   entries: TimelineEntry[]
   filter: Filter
   onCompose: (options?: ComposerOptions) => void
   dispatch: Dispatch<JourneyAction>
+  onDeleteCard: (card: JourneyCard) => void
   highlightId: string | null
   containerRef: RefObject<HTMLElement | null>
   openGaps: string[]
@@ -362,7 +363,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
         <p>A little structure. A lot of possibility.</p>
       </div>
       {lastMonth && <TimelineBoundary key={`future-${lastMonth}`} direction="future" month={lastMonth} canLoad={canLoadFuture} onLoad={onLoadFuture} />}
-      <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
+      <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} onDeleteCard={onDeleteCard} />
     </section>
   )
 }

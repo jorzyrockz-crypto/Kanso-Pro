@@ -75,11 +75,25 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
     case 'add-card': return state.cards.some((card) => card.id === action.card.id) ? state : {
       ...state, cards: [...state.cards, action.card],
     }
+    // A replacement must keep its identity and kind. This prevents a stale editor from
+    // accidentally overwriting a different card after a cross-tab update.
+    case 'update-card': {
+      const exists = state.cards.some((card) => card.id === action.card.id && card.type === action.card.type)
+      return !exists || !isCard(action.card) ? state : {
+        ...state,
+        cards: state.cards.map((card) => card.id === action.card.id ? action.card : card),
+      }
+    }
+    case 'delete-card': return state.cards.some((card) => card.id === action.id) ? {
+      ...state, cards: state.cards.filter((card) => card.id !== action.id),
+    } : state
     case 'update-note': return {
       ...state,
       cards: state.cards.map((card) => card.type === 'note' && card.id === action.id ? {
         ...card,
         ...(action.title !== undefined ? { title: action.title } : {}),
+        ...(action.date !== undefined && isValidDate(action.date) ? { date: action.date } : {}),
+        ...(action.context !== undefined ? { context: action.context } : {}),
         ...(action.body !== undefined ? { body: action.body } : {}),
         ...(action.tags !== undefined ? { tags: action.tags } : {}),
         ...(action.category !== undefined ? { category: action.category } : {}),

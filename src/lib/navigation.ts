@@ -53,7 +53,7 @@ export function composerOptions(search: string): ComposerOptions {
 
 export function pageForPath(path: string, search = '') {
   const pathname = path.replace(/\/+$/, '').toLowerCase() || '/'
-  if (pathname === '/new') return { label: 'New card', page: 'new' as const }
+  if (pathname === '/new') return { label: new URLSearchParams(search).get('edit') ? 'Edit card' : 'New card', page: 'new' as const }
   if (pathname === '/notifications') return { label: 'Notifications', page: 'notifications' as const }
   if (pathname === '/whats-new') return { label: 'What’s new', page: 'whats-new' as const }
   if (pathname === '/settings') return { label: 'Settings', page: 'settings' as const }

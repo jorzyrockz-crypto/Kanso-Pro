@@ -61,12 +61,12 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
             pendingFingerprintRef.current = workspaceFingerprint(next)
             void client.createWorkspace(uid, next).catch(() => {})
           } else {
-            next = mergeInitialWorkspace(remote.state, local, !switchedGoogleUser && !localIsStarter)
+            next = mergeInitialWorkspace(remote.state, local, !switchedGoogleUser && !localIsStarter, remote.deletedCardIds)
             remoteRef.current = next
             const additions = workspaceChangesSince(remote.state, next)
-            if (additions.cards.length || additions.bezelChanged) {
+            if (additions.cards.length || additions.deletedCardIds.length || additions.bezelChanged) {
               pendingFingerprintRef.current = workspaceFingerprint(next)
-              void client.writeWorkspace(uid, next, additions.cards).catch(() => {})
+              void client.writeWorkspace(uid, next, additions.cards, additions.deletedCardIds).catch(() => {})
             }
           }
           applyingRemoteRef.current = workspaceFingerprint(next)
@@ -115,12 +115,12 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
       return
     }
     const changes = workspaceChangesSince(remoteRef.current, state)
-    if (!changes.cards.length && !changes.bezelChanged) return
+    if (!changes.cards.length && !changes.deletedCardIds.length && !changes.bezelChanged) return
     const timer = window.setTimeout(() => {
       const client = clientRef.current
       if (!client) return
       pendingFingerprintRef.current = currentFingerprint
-      void client.writeWorkspace(uid, state, changes.cards).catch(() => {})
+      void client.writeWorkspace(uid, state, changes.cards, changes.deletedCardIds).catch(() => {})
     }, 350)
     return () => window.clearTimeout(timer)
   }, [state, ready, uid, retry])

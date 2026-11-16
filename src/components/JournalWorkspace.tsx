@@ -8,6 +8,7 @@ import { blobAsDataUrl, JournalImageError, optimizeJournalImage } from '../lib/j
 import { formatDate, makeId, shortDate } from '../lib/journey'
 import type { Destination, JournalAttachment, JournalNoteKind, JourneyAction, JourneyCard, NoteCard } from '../types'
 import { SaveIndicator } from './Common'
+import { CardDeleteAction } from './CardDeleteAction'
 
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024
 const categoryOptions = ['Personal', 'School', 'Work', 'Ideas']
@@ -199,23 +200,24 @@ function ImageEditor({ note, dispatch, firestoreUserId }: { note: NoteCard; disp
   </section>
 }
 
-function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null }) {
+function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDelete }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onDelete: (note: NoteCard) => void }) {
   const kind = note.noteKind ?? 'text'
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   const words = note.body.trim() ? note.body.trim().split(/\s+/).length : 0
   return <div className="journal-detail">
-    <div className="journal-detail-topbar"><Link className="text-button" to="/journal"><ArrowLeft size=".75rem" />All notes</Link><span>{noteLabel(kind)}</span><SaveIndicator available={storageAvailable} /></div>
+    <div className="journal-detail-topbar"><Link className="text-button" to="/journal"><ArrowLeft size=".75rem" />All notes</Link><span>{noteLabel(kind)}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
     <section className="journal-editor journal-paper">
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Updated just now' : 'Private to this browser'}</span></div>
       <label htmlFor="journal-title" className="sr-only">Note title</label><input id="journal-title" className="journal-title-input" value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(kind).toLowerCase()}`} onChange={(event) => update({ title: event.target.value })} />
       <MetadataFields note={note} dispatch={dispatch} />
+      <div className="journal-card-fields"><label>Entry date<input aria-label="Journal entry date" type="date" value={note.date} min="1900-01-01" max="2100-12-31" onChange={(event) => update({ date: event.target.value })} /></label><label>Timeline context<input aria-label="Journal timeline context" value={note.context} maxLength={240} placeholder="A private note to yourself" onChange={(event) => update({ context: event.target.value })} /></label></div>
       {kind === 'voice' ? <VoiceEditor note={note} dispatch={dispatch} /> : kind === 'image' ? <ImageEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} /> : <><label className="journal-detail-label" htmlFor="journal-body">Your reflection</label><textarea id="journal-body" className="journal-body-input" rows={12} value={note.body} maxLength={20000} placeholder="What’s on your mind today?" onChange={(event) => update({ body: event.target.value })} /><div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · Private to this browser</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div></>}
     </section>
     <section className="journal-ai-future" aria-labelledby="journal-ai-heading"><Sparkles size="1rem" /><div><span className="eyebrow">Future upgrade</span><h2 id="journal-ai-heading">AI Assist</h2><p>Summaries, rewrites, and transcription are planned for a future release. Nothing from this note is sent anywhere today.</p></div><span>Coming soon</span></section>
   </div>
 }
 
-export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, storageAvailable, firestoreUserId }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; storageAvailable: boolean; firestoreUserId: string | null }) {
+export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDeleteCard, storageAvailable, firestoreUserId }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; onDeleteCard: (card: JourneyCard) => void; storageAvailable: boolean; firestoreUserId: string | null }) {
   const notes = cards.filter((card): card is NoteCard => card.type === 'note')
   const selected = cardId ? notes.find((note) => note.id === cardId) : undefined
   const create = (kind: JournalNoteKind) => {
@@ -223,6 +225,6 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, storageA
     dispatch({ type: 'add-card', card })
     onNavigate({ page: 'journal', cardId: card.id })
   }
-  if (selected) return <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} />
+  if (selected) return <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} />
   return <JournalHub notes={notes} onCreate={create} imageUploadAvailable={!!firestoreUserId} />
 }

@@ -1,0 +1,56 @@
+import { expect, test } from '@playwright/test'
+
+test('Calendar events and task cards can be edited without replacing task checklist progress', async ({ page }) => {
+  await page.goto('/calendar')
+  await page.getByRole('button', { name: 'Preview Faculty Alignment & Curriculum Sync details', exact: true }).click()
+  await page.getByRole('link', { name: 'Edit event', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit Event', exact: true })).toBeVisible()
+  await page.locator('#card-title').fill('Updated faculty alignment')
+  await page.locator('#card-location').fill('Library meeting room')
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+  await expect(page).toHaveURL('/calendar/evt-oquendo')
+  await expect(page.getByText('Updated faculty alignment', { exact: true })).toBeVisible()
+
+  await page.goto('/tasks/task-grades')
+  await page.getByRole('link', { name: 'Edit task', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit Task', exact: true })).toBeVisible()
+  await page.locator('#card-title').fill('Updated advisory record')
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+  await expect(page).toHaveURL('/tasks/task-grades')
+  await expect(page.getByRole('heading', { name: 'Updated advisory record', exact: true })).toBeVisible()
+  await expect(page.getByRole('checkbox').first()).toBeChecked()
+  await expect(page.getByRole('checkbox').nth(1)).not.toBeChecked()
+})
+
+test('Calendar event cards can be deleted deliberately', async ({ page }) => {
+  await page.goto('/calendar')
+  await page.getByRole('button', { name: "Preview All Souls’ Day (Additional Special Non-Working Holiday) details", exact: true }).click()
+  await page.getByRole('button', { name: 'Delete event', exact: true }).click()
+  const confirmation = page.getByRole('group', { name: 'Delete event', exact: true })
+  await confirmation.getByRole('button', { name: 'Yes, delete event', exact: true }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: "Preview All Souls’ Day (Additional Special Non-Working Holiday) details", exact: true })).toHaveCount(0)
+})
+
+test('Journal cards remain editable and can be deleted deliberately', async ({ page }) => {
+  await page.goto('/journal/note-lesson')
+  await page.getByLabel('Journal entry date', { exact: true }).fill('2026-11-12')
+  await page.getByLabel('Journal timeline context', { exact: true }).fill('Updated private context')
+  await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-12')
+  await expect(page.getByLabel('Journal timeline context', { exact: true })).toHaveValue('Updated private context')
+  await page.getByRole('button', { name: 'Delete journal note', exact: true }).click()
+  const confirmation = page.getByRole('group', { name: 'Delete journal note', exact: true })
+  await expect(confirmation).toContainText('Delete this journal note?')
+  await confirmation.getByRole('button', { name: 'Yes, delete journal note', exact: true }).click()
+  await expect(page).toHaveURL('/journal')
+  await expect(page.getByRole('link', { name: 'Open Text note: Q2 Reading Comprehension Rubric Ideas', exact: true })).toHaveCount(0)
+})
+
+test('Task cards can be deleted from their workspace with a confirmation step', async ({ page }) => {
+  await page.goto('/tasks/task-prep')
+  await page.getByRole('button', { name: 'Delete task card', exact: true }).click()
+  const confirmation = page.getByRole('group', { name: 'Delete task card', exact: true })
+  await confirmation.getByRole('button', { name: 'Yes, delete task card', exact: true }).click()
+  await expect(page).toHaveURL('/tasks')
+  await expect(page.getByRole('option', { name: 'Weekly Classroom Supply Inventory', exact: true })).toHaveCount(0)
+})

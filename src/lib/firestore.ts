@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getFirestore, increment, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getFirestore, increment, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
 import type { Firestore, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { firebaseApp } from './firebase'
 import { parseSavedState } from './store'
@@ -23,6 +23,8 @@ try {
 export interface RemoteWorkspaceSnapshot {
   exists: boolean
   state: JourneyState
+  /** IDs whose tombstones must win over an older local copy during first-device merging. */
+  deletedCardIds: string[]
   fromCache: boolean
   pendingWrites: boolean
 }
@@ -58,6 +60,10 @@ export async function readJournalImage(uid: string, id: string) {
   return typeof data.dataUrl === 'string' && data.dataUrl.startsWith('data:image/') ? data.dataUrl : null
 }
 
+export async function deleteJournalImage(uid: string, id: string) {
+  await deleteDoc(journalImageRef(uid, id))
+}
+
 function cleanCard(value: Record<string, unknown>): JourneyCard | null {
   const { revision: _revision, updatedAt: _updatedAt, updatedBy: _updatedBy, deletedAt, ...card } = value
   if (deletedAt) return null
@@ -84,10 +90,12 @@ export function subscribeWorkspace(uid: string, onValue: (snapshot: RemoteWorksp
 
   const publish = () => {
     if (!workspaceData || !cardData) return
+    const deletedCardIds = cardData.filter((entry) => !!entry.data().deletedAt).map((entry) => entry.id)
     const parsedCards = cardData.map((entry) => cleanCard(entry.data())).filter((card): card is JourneyCard => !!card)
     onValue({
       exists: workspaceExists || cardData.length > 0,
       state: { version: 1, bezel: workspaceData.bezel === true, cards: parsedCards.sort((a, b) => a.id.localeCompare(b.id)) },
+      deletedCardIds,
       fromCache: workspaceFromCache || cardsFromCache,
       pendingWrites: workspacePendingWrites || cardsPendingWrites,
     })
@@ -123,7 +131,20 @@ async function writeCardBatch(uid: string, cards: JourneyCard[]) {
   await batch.commit()
 }
 
-export async function writeWorkspace(uid: string, state: JourneyState, cards: JourneyCard[]) {
+async function deleteCardBatch(uid: string, cardIds: string[]) {
+  const batch = writeBatch(database)
+  for (const id of cardIds) {
+    batch.set(doc(workspaceRef(uid), 'cards', id), {
+      revision: increment(1),
+      updatedAt: serverTimestamp(),
+      updatedBy: 'browser',
+      deletedAt: serverTimestamp(),
+    }, { merge: true })
+  }
+  await batch.commit()
+}
+
+export async function writeWorkspace(uid: string, state: JourneyState, cards: JourneyCard[], deletedCardIds: string[] = []) {
   const workspace = workspaceRef(uid)
   // Keep a real parent document even when the first personal change is a card. Firestore
   // permits orphaned subcollections, but a root document makes first-device hydration safe.
@@ -134,6 +155,7 @@ export async function writeWorkspace(uid: string, state: JourneyState, cards: Jo
     updatedAt: serverTimestamp(),
   }, { merge: true })
   for (let start = 0; start < cards.length; start += CARD_BATCH_SIZE) await writeCardBatch(uid, cards.slice(start, start + CARD_BATCH_SIZE))
+  for (let start = 0; start < deletedCardIds.length; start += CARD_BATCH_SIZE) await deleteCardBatch(uid, deletedCardIds.slice(start, start + CARD_BATCH_SIZE))
 }
 
 export async function createWorkspace(uid: string, state: JourneyState) {

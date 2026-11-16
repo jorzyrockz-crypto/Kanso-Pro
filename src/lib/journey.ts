@@ -1,5 +1,5 @@
 import type {
-  CardType, Filter, JourneyCard, NewCardInput, RolloverCandidate, TimelineEntry, TimelineItem, TimelineSourceEntry, Workspace,
+  CardType, EventCard, Filter, JourneyCard, NewCardInput, RolloverCandidate, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry, Workspace,
 } from '../types'
 import { isOccasionChoice } from './occasions'
 
@@ -159,6 +159,7 @@ export function createCard(input: NewCardInput, existing: JourneyCard[]): Journe
   if (!title || title.length > 160) throw new Error('Please enter a title between 1 and 160 characters.')
   if (!isValidDate(input.date)) throw new Error('Please choose a valid date.')
   if (input.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time)) throw new Error('Please choose a valid time.')
+  if (input.endTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.endTime)) throw new Error('Please choose a valid end time.')
   if (input.type === 'project' && (!isValidDate(input.dueDate) || input.dueDate < input.date)) {
     throw new Error('The project due date must be on or after its journey date.')
   }
@@ -181,8 +182,8 @@ export function createCard(input: NewCardInput, existing: JourneyCard[]): Journe
   switch (input.type) {
     case 'event': return {
       ...base, type: 'event', allDay: input.allDay, holiday: false, occasion: input.occasion ?? 'auto',
-      time: input.allDay ? undefined : input.time || '09:00',
-      owner: 'You', organization: input.context.trim() || 'Personal Calendar', location: '',
+      time: input.allDay ? undefined : input.time || '09:00', endTime: input.allDay ? undefined : input.endTime || undefined,
+      owner: input.owner?.trim() || 'You', organization: input.organization?.trim() || 'Personal Calendar', location: input.location?.trim() || '',
     }
     case 'task': return { ...base, type: 'task', reminder: input.time || undefined, subtasks: checklist() }
     case 'project': return {
@@ -193,6 +194,32 @@ export function createCard(input: NewCardInput, existing: JourneyCard[]): Journe
       ...base, type: 'note', body: input.details.trim(), tags: [], pinned: false,
     }
   }
+}
+
+/** Applies the shared card form without resetting a task's existing checklist progress. */
+export function updateCardFromInput(card: EventCard | TaskCard, input: NewCardInput) {
+  const created = createCard({ ...input, type: card.type }, [])
+  if (card.type === 'event' && created.type === 'event') return {
+    ...card,
+    title: created.title,
+    date: created.date,
+    context: created.context,
+    allDay: created.allDay,
+    time: created.time,
+    endTime: created.endTime,
+    occasion: created.occasion,
+    owner: created.owner,
+    organization: created.organization,
+    location: created.location,
+  }
+  if (card.type === 'task' && created.type === 'task') return {
+    ...card,
+    title: created.title,
+    date: created.date,
+    context: created.context,
+    reminder: created.reminder,
+  }
+  return card
 }
 
 export function calendarDays(month: string): (string | null)[] {

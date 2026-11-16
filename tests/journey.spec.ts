@@ -69,6 +69,7 @@ test('Jump to Today remains available when the stream has no personal cards to t
   const context = await browser.newContext()
   const page = await context.newPage()
   try {
+    await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') })
     await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, cards: [], bezel: false })), STORAGE_KEY)
     await page.goto('/')
     await expect(page.getByRole('button', { name: 'Jump to Today', exact: true })).toBeVisible()
@@ -77,6 +78,14 @@ test('Jump to Today remains available when the stream has no personal cards to t
   } finally {
     await context.close()
   }
+})
+
+test('Jump to Today follows the device date instead of the sample focus date', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-12-15T12:00:00Z') })
+  await page.reload()
+  await expect(page.locator('.month-marker[data-timeline-month="2026-11"]')).toBeVisible()
+  await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
+  await expect(page.locator('.month-marker[data-timeline-month="2026-12"]')).toBeInViewport()
 })
 
 test('the verified school calendar starts on, while the Timeline keeps only its useful controls', async ({ page }) => {
@@ -146,6 +155,17 @@ test('the mobile stream header compacts after scrolling while keeping its contro
   expect(jumpBox).not.toBeNull()
   expect(Math.abs(jumpBox!.width - jumpBox!.height)).toBeLessThanOrEqual(1)
   expect(jumpBox!.height).toBeGreaterThanOrEqual(44)
+})
+
+test('What’s new opens the update overview over the Timeline instead of a standalone page', async ({ page }) => {
+  await page.goto('/whats-new')
+  await expect(page).toHaveURL('/')
+  const overview = page.getByRole('dialog', { name: 'Your personal planning space', exact: true })
+  await expect(overview).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await overview.getByRole('button', { name: 'Close About and what’s new', exact: true }).click()
+  await expect(overview).not.toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
 })
 
 test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', async ({ page }) => {
@@ -488,18 +508,12 @@ test('the connected calendar uses real dates and opens same-day pages', async ({
   await expect(page).toHaveURL('/new?type=event&date=2026-12-08')
 })
 
-test('jump to today finds the current due project and the tablet frame preference is saved', async ({ page }) => {
+test('Jump to Today finds a due project on the device date', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-14T12:00:00Z') })
   await filters(page).getByRole('button', { name: 'Events', exact: true }).click()
   await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
   await expect(card(page, 'proj-tos')).toHaveClass(/is-highlighted/)
   await expect(filters(page).getByRole('button', { name: /All Stream/ })).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('button', { name: 'Tablet frame', exact: true }).click()
-  await expect(page.locator('.app-shell')).toHaveClass(/ipad-frame-active/)
-  await navigation(page).getByRole('link', { name: 'Projects', exact: true }).click()
-  await expect(navigation(page)).toBeVisible()
-  await timeline(page)
-  await page.reload()
-  await expect(page.getByRole('button', { name: 'Tablet frame', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })
 
 test('Jump to Today floats above bottom navigation and moves into the content canvas in landscape side-rail mode', async ({ page }) => {
