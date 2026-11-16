@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { LEGACY_STORAGE_KEY, STORAGE_KEY } from '../src/data'
+import { CALENDAR_SOURCES_STORAGE_KEY } from '../src/lib/calendarSources'
 
 const navigation = (page: Page) => page.getByRole('navigation', { name: 'Main navigation' })
 const filters = (page: Page) => page.getByRole('navigation', { name: 'Filter journey cards' })
@@ -25,6 +26,9 @@ const audit = async (page: Page) => {
 }
 
 test.beforeEach(async ({ page }) => {
+  // Most journey assertions concern personal cards. Keep this explicit local preference
+  // off here; the dedicated test below covers the product default for a new browser.
+  await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, depedEnabled: false, legislatedEnabled: false, localSources: [] })), CALENDAR_SOURCES_STORAGE_KEY)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
@@ -61,6 +65,19 @@ test('timeline boundaries load one month only after an explicit action, never fr
   await expect(page.locator('.month-marker')).toHaveCount(before + 1)
 })
 
+test('the verified school calendar starts on, while the Timeline keeps only its useful controls', async ({ page }) => {
+  await expect(page.locator('.stream-reference-controls')).not.toContainText('All your pages, connected')
+  await page.evaluate((key) => localStorage.removeItem(key), CALENDAR_SOURCES_STORAGE_KEY)
+  const fresh = await page.context().newPage()
+  try {
+    await fresh.goto('/settings#calendar')
+    await expect(fresh.getByRole('switch', { name: 'Hide DepEd Calendar in Calendar', exact: true })).toHaveAttribute('aria-checked', 'true')
+    await expect(fresh.getByRole('switch', { name: 'Show Legislated activities & celebrations in Calendar', exact: true })).toHaveAttribute('aria-checked', 'false')
+  } finally {
+    await fresh.close()
+  }
+})
+
 test('mobile condenses Timeline filters while Calendar sources remains its own dropdown at every size', async ({ page }) => {
   const sourceSelect = page.getByLabel('Calendar sources', { exact: true })
   await expect(filters(page)).toBeVisible()
@@ -73,7 +90,7 @@ test('mobile condenses Timeline filters while Calendar sources remains its own d
   expect(filterBox).not.toBeNull()
   expect(sourceBox).not.toBeNull()
   expect(Math.abs(filterBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
-  expect(filterBox!.right).toBeLessThanOrEqual(sourceBox!.x)
+  expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(sourceBox!.x)
   await filterSelect.selectOption('task')
   await expect(filterSelect).toHaveValue('task')
   await sourceSelect.selectOption('hidden')

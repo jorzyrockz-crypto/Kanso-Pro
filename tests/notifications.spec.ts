@@ -5,7 +5,7 @@ import { mockFirebase } from './helpers/firebase'
 
 test.use({ timezoneId: 'Asia/Manila' })
 
-const bell = (page: import('@playwright/test').Page) => page.getByRole('link', { name: /^Notifications(?:,|$)/ })
+const bell = (page: import('@playwright/test').Page) => page.getByRole('button', { name: /^Notifications(?:,|$)/ })
 const openNewCard = async (page: import('@playwright/test').Page) => {
   await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('button', { name: 'New card', exact: true }).click()
 }
@@ -47,14 +47,40 @@ test('no initial flood or permission prompt; due reminders group, badge, link an
   await expect(page).toHaveURL('/tasks/due-1')
   await expect(bell(page)).toHaveAttribute('aria-label', 'Notifications, 10 unread')
   await bell(page).click()
+  await expect(page.getByRole('dialog', { name: 'Notifications' })).toBeVisible()
+  await expect(bell(page)).toHaveAttribute('aria-expanded', 'true')
   await page.getByRole('button', { name: 'Mark all read', exact: true }).click()
   await expect(bell(page)).toHaveAttribute('aria-label', 'Notifications')
   await expect(page.locator('html')).toHaveAttribute('data-badge', '0')
+  await page.getByRole('link', { name: 'Open notification settings', exact: true }).click()
+  await expect(page).toHaveURL('/notifications')
   await page.clock.fastForward(60_001)
   await expect(page.locator('.notification-item')).toHaveCount(11)
   await expect(page.locator('html')).not.toHaveAttribute('data-permission-asked')
   expect(firebase.requests).toEqual([])
   expect(firebase.unexpectedRequests).toEqual([])
+})
+
+test('the bell opens a dismissible notification menu with a deeper settings route', async ({ page, context }) => {
+  await mockFirebase(context)
+  await page.setViewportSize({ width: 320, height: 740 })
+  await page.goto('/')
+  await bell(page).click()
+  const menu = page.getByRole('dialog', { name: 'Notifications' })
+  await expect(menu).toBeVisible()
+  await expect(menu.getByText('Quiet hours', { exact: true })).toBeVisible()
+  const bounds = await menu.boundingBox()
+  expect(bounds!.x).toBeGreaterThanOrEqual(0)
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320)
+  expect(bounds!.y).toBeGreaterThanOrEqual(0)
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(740)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+  await page.keyboard.press('Escape')
+  await expect(menu).not.toBeVisible()
+  await expect(bell(page)).toBeFocused()
+  await bell(page).click()
+  await menu.getByRole('link', { name: 'Open notification settings', exact: true }).click()
+  await expect(page).toHaveURL('/notifications')
 })
 
 test.describe('touch notification preferences', () => {

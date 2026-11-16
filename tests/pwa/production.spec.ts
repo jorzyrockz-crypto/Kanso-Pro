@@ -65,7 +65,8 @@ test('manifest, transparent branding, maskable icons, and install affordance', a
   expect(activeVersion).toBe(version)
   await page.getByRole('button', { name: 'Check for updates', exact: true }).click()
   await expect(page.locator('.pwa-update')).toContainText('Kanso Pro is up to date.')
-  await page.getByRole('link', { name: /^Notifications(?:,|$)/ }).click()
+  await page.getByRole('button', { name: /^Notifications(?:,|$)/ }).click()
+  await page.getByRole('dialog', { name: 'Notifications' }).getByRole('link', { name: 'Open notification settings', exact: true }).click()
   await page.evaluate(() => Object.defineProperty(window, 'Notification', { configurable: true, value: class {
     static permission = 'default'
     static async requestPermission() { document.body.dataset.askedPermission = 'true'; return 'denied' }

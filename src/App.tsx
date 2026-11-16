@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, Clock3, Landmark, Link2, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, Clock3, Landmark, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
@@ -107,7 +107,6 @@ function StreamHeader({ filter, count, month, showCalendarSources, calendarSourc
               <option value="hidden">Calendar sources · Hidden</option>
             </select>
           </div>
-          <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
         </div>
       </div>
     </div>
@@ -368,7 +367,7 @@ export default function App() {
     <AppSplash />
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
-    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} updateReady={pwa.updateReady} unread={notifications.unread} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={() => openComposer()} /></>}
+    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} updateReady={pwa.updateReady} notifications={notifications} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={() => openComposer()} /></>}
     {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size="0.9375rem" /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
     <div className="page-outlet">
       <Routes>
