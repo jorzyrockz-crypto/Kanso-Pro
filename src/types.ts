@@ -52,12 +52,29 @@ export interface ProjectCard extends BaseCard {
   featured?: boolean
 }
 
+export type JournalNoteKind = 'text' | 'voice' | 'image'
+
+/** Attachment bytes live in browser IndexedDB; this metadata remains in the local Journey record. */
+export interface JournalAttachment {
+  id: string
+  kind: 'audio' | 'image'
+  name: string
+  mimeType: string
+  size: number
+  durationSeconds?: number
+}
+
 export interface NoteCard extends BaseCard {
   type: 'note'
   body: string
   tags: string[]
   pinned: boolean
   time?: string
+  noteKind?: JournalNoteKind
+  category?: string
+  reminderAt?: string
+  attachment?: JournalAttachment
+  updatedAt?: string
 }
 
 export type JourneyCard = EventCard | TaskCard | ProjectCard | NoteCard
@@ -87,7 +104,7 @@ export interface JourneyState {
 
 export type JourneyAction =
   | { type: 'add-card'; card: JourneyCard }
-  | { type: 'update-note'; id: string; title?: string; body?: string }
+  | { type: 'update-note'; id: string; title?: string; body?: string; tags?: string[]; category?: string; reminderAt?: string; noteKind?: JournalNoteKind; attachment?: JournalAttachment; updatedAt?: string }
   | { type: 'update-event-background'; id: string; occasion: OccasionChoice }
   | { type: 'rollover-card'; id: string; date: string }
   | { type: 'backlog-card'; id: string }

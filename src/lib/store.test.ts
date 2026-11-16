@@ -45,6 +45,17 @@ describe('the single journey store', () => {
     if (note?.type === 'note') expect(note.body).toBe('A quiet idea.')
     expect(next.cards.find((card) => card.id === 'note-observation')).toEqual(state.cards.find((card) => card.id === 'note-observation'))
   })
+  it('keeps Journal attachment metadata local to its note while blob bytes stay outside the Journey state', () => {
+    const state = createInitialState()
+    const next = journeyReducer(state, { type: 'update-note', id: 'note-lesson', noteKind: 'voice', category: 'Personal', tags: ['private', 'voice'], reminderAt: '2026-11-14T09:00', attachment: { id: 'audio-local-1', kind: 'audio', name: 'Voice note', mimeType: 'audio/webm', size: 2048, durationSeconds: 12 }, updatedAt: '2026-11-14T09:00:00.000Z' })
+    const note = next.cards.find((card) => card.id === 'note-lesson')
+    if (note?.type === 'note') {
+      expect(note.noteKind).toBe('voice')
+      expect(note.attachment?.id).toBe('audio-local-1')
+      expect(note.tags).toEqual(['private', 'voice'])
+    }
+    expect(parseSavedState(JSON.stringify(next))).toEqual(next)
+  })
   it('does not add duplicate cards', () => {
     const state = createInitialState()
     expect(journeyReducer(state, { type: 'add-card', card: state.cards[0] })).toBe(state)

@@ -1,5 +1,5 @@
 import { BookOpen, CalendarDays, CircleCheck, Plus, Waypoints, Zap } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { PAGE_LINKS, pageForPath } from '../lib/navigation'
 import { FOCUS_DATE } from '../data'
 import { isValidDate } from '../lib/journey'
@@ -19,6 +19,7 @@ const composerForPage = {
 export function BottomNavigation({ onCompose }: { onCompose: (options?: ComposerOptions) => void }) {
   const ref = useChromeHeight<HTMLDivElement>('--navigation-height')
   const location = useLocation()
+  const navigate = useNavigate()
   const page = pageForPath(location.pathname, location.search).page
   const create = page in composerForPage ? composerForPage[page as keyof typeof composerForPage] : { label: 'New card' }
   const calendarQuery = new URLSearchParams(location.search)
@@ -39,7 +40,7 @@ export function BottomNavigation({ onCompose }: { onCompose: (options?: Composer
           <Icon size="1.3125rem" strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
         </NavLink>
       })}
-      <button type="button" className={`bottom-nav-link bottom-nav-create${'type' in create ? ` is-${create.type}` : ''}`} onClick={() => onCompose(options)}>
+      <button type="button" className={`bottom-nav-link bottom-nav-create${'type' in create ? ` is-${create.type}` : ''}`} onClick={() => page === 'journal' ? navigate('/journal?create=menu') : onCompose(options)}>
         <Plus size="1.3125rem" strokeWidth={2} aria-hidden="true" /><span>{create.label}</span>
       </button>
     </nav>
