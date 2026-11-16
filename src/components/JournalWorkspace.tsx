@@ -106,7 +106,7 @@ function JournalHub({ notes, onCreate, imageUploadAvailable }: { notes: NoteCard
   const showPicker = query.get('create') === 'menu'
   return <div className="journal-hub">
     <div className="journal-hub-bar">
-      <span><span className="eyebrow">Your private library</span><strong className="journal-hub-title">Notes</strong></span>
+      <span><span className="eyebrow">Your private library</span><strong className="journal-hub-title">Journal</strong></span>
       <button type="button" className="button journal-create-trigger" onClick={() => navigate('/journal?create=menu')}><Plus size=".875rem" />Create note</button>
     </div>
 
@@ -374,7 +374,7 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
   const words = journalRichTextWordCount(richText)
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   return <main className="journal-detail journal-studio-editor">
-    <div className="journal-detail-topbar"><Link className="text-button studio-back-to-notes" to="/journal"><ArrowLeft size=".75rem" />All notes</Link><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
+    <div className="journal-detail-topbar"><Link className="text-button studio-back-to-notes" to="/journal"><ArrowLeft size=".75rem" />Journal</Link><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
     <section className="journal-editor journal-paper" aria-label="Note studio">
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
       <label htmlFor="journal-title" className="sr-only">Note title</label><input id="journal-title" className="journal-title-input" value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onChange={(event) => update({ title: event.target.value })} />
@@ -387,7 +387,7 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
 
 function JournalStudio({ notes, selected, dispatch, storageAvailable, firestoreUserId, onCreate, onDelete }: { notes: NoteCard[]; selected: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void; onDelete: (note: NoteCard) => void }) {
   return <div className="journal-studio">
-    <aside className="journal-studio-rail" aria-label="Journal notes"><div className="journal-studio-rail-heading"><div><span className="eyebrow">Note-taking studio</span><h2>Notes</h2></div><button type="button" className="icon-button" aria-label="Create text note" title="Create text note" onClick={() => onCreate('text')}><Plus size=".875rem" /></button></div><NoteList notes={notes} selectedId={selected.id} compact /><div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo note' : 'Sign in with Google to create a photo note'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div></aside>
+    <aside className="journal-studio-rail" aria-label="Journal entries"><div className="journal-studio-rail-heading"><div><span className="eyebrow">Journal studio</span><h2>Journal</h2></div><button type="button" className="icon-button" aria-label="Create text note" title="Create text note" onClick={() => onCreate('text')}><Plus size=".875rem" /></button></div><NoteList notes={notes} selectedId={selected.id} compact /><div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo note' : 'Sign in with Google to create a photo note'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div></aside>
     <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onDelete={onDelete} />
   </div>
 }

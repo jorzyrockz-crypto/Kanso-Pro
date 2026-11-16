@@ -20,7 +20,7 @@ test('Journal offers the responsive note studio with local voice and private Fir
   await expect(reflection.locator('input[type="checkbox"]')).toHaveCount(1)
   await page.getByLabel('Tags, separated by commas', { exact: true }).fill('private, journal')
   await page.getByLabel('Note category', { exact: true }).selectOption('Personal')
-  await page.getByRole('link', { name: 'All notes', exact: true }).click()
+  await page.locator('.studio-back-to-notes').click()
   await expect(page.getByRole('link', { name: 'Open Text note: A local journal note', exact: true })).toBeVisible()
 
   await navigation(page).getByRole('button', { name: 'New note', exact: true }).click()
@@ -37,12 +37,12 @@ test('Journal offers the responsive note studio with local voice and private Fir
 test('note studio uses a rail on larger screens and a focused editor on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/journal/note-lesson')
-  await expect(page.getByRole('complementary', { name: 'Journal notes', exact: true })).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeVisible()
   await expect(page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Your reflection', exact: true })).toBeVisible()
 
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.getByRole('complementary', { name: 'Journal notes', exact: true })).toBeHidden()
-  await expect(page.getByRole('link', { name: 'All notes', exact: true })).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeHidden()
+  await expect(page.locator('.studio-back-to-notes')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Add photo', exact: true })).toBeDisabled()
 })
