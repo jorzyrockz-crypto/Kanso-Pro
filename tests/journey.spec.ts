@@ -148,6 +148,17 @@ test('the mobile stream header compacts after scrolling while keeping its contro
   expect(jumpBox!.height).toBeGreaterThanOrEqual(44)
 })
 
+test('What’s new opens the update overview over the Timeline instead of a standalone page', async ({ page }) => {
+  await page.goto('/whats-new')
+  await expect(page).toHaveURL('/')
+  const overview = page.getByRole('dialog', { name: 'Your personal planning space', exact: true })
+  await expect(overview).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await overview.getByRole('button', { name: 'Close About and what’s new', exact: true }).click()
+  await expect(overview).not.toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+})
+
 test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', async ({ page }) => {
   await navigation(page).getByRole('link', { name: 'Calendar', exact: true }).click()
   const hero = page.locator('.month-calendar-hero')

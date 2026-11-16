@@ -1,11 +1,9 @@
 import { ArrowRight, RefreshCw, X } from 'lucide-react'
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { PwaController } from '../lib/usePwa'
 import { updateSurface } from '../lib/updates'
-import { PageHeader } from './PageHeader'
 import { KansoMark } from './AppHeader'
-import releases from '../lib/whats-new.json'
 
 export function UpdateChrome({ pwa, signedIn, position, onOpenAbout }: { pwa: PwaController; signedIn: boolean; position: 'titlebar' | 'banner'; onOpenAbout: () => void }) {
   const surface = updateSurface(pwa.overlay, pwa.coarse, signedIn)
@@ -20,10 +18,10 @@ export function UpdateChrome({ pwa, signedIn, position, onOpenAbout }: { pwa: Pw
 }
 
 export function WhatsNewPage({ onOpenAbout }: { onOpenAbout: () => void }) {
-  useEffect(() => { onOpenAbout() }, [onOpenAbout])
-  return <main id="main-content" tabIndex={-1} className="workspace-page whats-new-page" aria-labelledby="page-title">
-    <PageHeader title="What’s new" description="Thoughtful changes, with your local plans left just as they are." action={<Link to="/settings#about" className="button settings-secondary">Settings</Link>} />
-    <section className="whats-new-hero-card"><img src="/images/kanso-pro-web-banner.jpg" alt="Kanso Pro — Your simplified workspace" /><div><span className="eyebrow">Kanso Pro</span><h2>About &amp; what’s new</h2><p>The update overview is open now. See recent releases, check for updates, or share Kanso Pro.</p><button type="button" className="button settings-secondary" onClick={onOpenAbout}>Open update overview<ArrowRight size=".875rem" aria-hidden="true" /></button></div></section>
-    <div className="release-list">{releases.map(release => <article className="release-card" key={release.version}><span className="eyebrow">Version {release.version} · {release.date}</span><h2>{release.title}</h2><ul>{release.changes.map(change => <li key={change}>{change}</li>)}</ul></article>)}</div>
-  </main>
+  const navigate = useNavigate()
+  useEffect(() => {
+    onOpenAbout()
+    navigate('/', { replace: true })
+  }, [navigate, onOpenAbout])
+  return null
 }
