@@ -1,7 +1,7 @@
 import { CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, FileText, Flag, Landmark, MapPin, Pin, School, Tag, X } from 'lucide-react'
 import { useEffect, useId, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode, TouchEvent as ReactTouchEvent } from 'react'
 import type { EventCard, NoteCard, OccasionChoice, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry } from '../types'
 import { destinationPath } from '../lib/navigation'
 import { formatDate, formatTime, progress, TYPE_CONFIG } from '../lib/journey'
@@ -147,17 +147,39 @@ export function TimelineCardPreview({ item, items = [], onClose, onEventBackgrou
 
   if (!item) return null
 
-  const onSwipeStart = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.pointerType === 'touch') swipeStart.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY }
-  }
-  const onSwipeEnd = (event: ReactPointerEvent<HTMLElement>) => {
+  const beginSwipe = (pointerId: number, x: number, y: number) => { swipeStart.current = { pointerId, x, y } }
+  const finishSwipe = (pointerId: number, x: number, y: number) => {
     const start = swipeStart.current
     swipeStart.current = null
-    if (!start || start.pointerId !== event.pointerId) return
-    const horizontal = event.clientX - start.x
-    const vertical = event.clientY - start.y
+    if (!start || start.pointerId !== pointerId) return
+    const horizontal = x - start.x
+    const vertical = y - start.y
     if (Math.abs(horizontal) < 48 || Math.abs(horizontal) <= Math.abs(vertical)) return
     navigatePreview(horizontal < 0 ? 1 : -1)
+  }
+  const onSwipeStart = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'touch') return
+    beginSwipe(event.pointerId, event.clientX, event.clientY)
+    // Some test/embedded WebViews reject capture for synthetic pointers; the swipe still
+    // works from the dialog handlers, while real touch pointers stay captured off-target.
+    try { event.currentTarget.setPointerCapture?.(event.pointerId) } catch { /* no pointer capture available */ }
+  }
+  const onSwipeEnd = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'touch') return
+    finishSwipe(event.pointerId, event.clientX, event.clientY)
+    try { if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId) } catch { /* capture was not established */ }
+  }
+  // Older mobile WebViews can expose touch events without PointerEvent. Avoid duplicate
+  // navigation on modern browsers, where the pointer handlers above already own the gesture.
+  const onTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
+    if (typeof window !== 'undefined' && 'PointerEvent' in window) return
+    const touch = event.touches[0]
+    if (touch) beginSwipe(touch.identifier, touch.clientX, touch.clientY)
+  }
+  const onTouchEnd = (event: ReactTouchEvent<HTMLElement>) => {
+    if (typeof window !== 'undefined' && 'PointerEvent' in window) return
+    const touch = event.changedTouches[0]
+    if (touch) finishSwipe(touch.identifier, touch.clientX, touch.clientY)
   }
 
   const source = isSource(item)
@@ -168,7 +190,7 @@ export function TimelineCardPreview({ item, items = [], onClose, onEventBackgrou
   const preview = source ? <SourcePreview entry={item} /> : item.type === 'event' ? <EventPreview card={item} onEventBackgroundChange={onEventBackgroundChange} /> : item.type === 'task' ? <TaskPreview card={item} /> : item.type === 'project' ? <ProjectPreview card={item} /> : <NotePreview card={item} />
 
   return <div className="timeline-preview-backdrop" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section ref={dialogRef} className={`timeline-preview-dialog ${source ? 'is-source' : `is-${item.type}`}`} role="dialog" aria-modal="true" aria-labelledby={headingId} aria-describedby={descriptionId} onPointerDown={onSwipeStart} onPointerUp={onSwipeEnd}>
+    <section ref={dialogRef} className={`timeline-preview-dialog ${source ? 'is-source' : `is-${item.type}`}`} role="dialog" aria-modal="true" aria-labelledby={headingId} aria-describedby={descriptionId} onPointerDown={onSwipeStart} onPointerUp={onSwipeEnd} onPointerCancel={() => { swipeStart.current = null }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <header className="timeline-preview-header"><span className="timeline-preview-type-icon">{source ? <Landmark size="1.125rem" aria-hidden="true" /> : <TypeIcon type={item.type} size={18} />}</span><div className="timeline-preview-heading"><span>{typeLabel}</span><h2 id={headingId}>{item.title || 'Untitled reflection'}</h2></div>{items.length > 1 && <div className="timeline-preview-navigation"><button type="button" className="icon-button timeline-preview-previous" aria-label="Previous preview" disabled={!previous} onClick={() => navigatePreview(-1)}><ChevronLeft size="1rem" aria-hidden="true" /></button><span aria-live="polite">{activeIndex + 1} of {items.length}</span><button type="button" className="icon-button timeline-preview-next" aria-label="Next preview" disabled={!next} onClick={() => navigatePreview(1)}><ChevronRight size="1rem" aria-hidden="true" /></button><span className="sr-only">Swipe left or right to browse nearby entries.</span></div>}<button ref={closeRef} type="button" className="timeline-preview-close" aria-label="Close card preview" onClick={onClose}><X size="1rem" aria-hidden="true" /></button></header>
       <div className="timeline-preview-body"><p id={descriptionId} className="timeline-preview-intro">{source ? 'A calendar reference kept separate from your personal cards.' : 'A complete preview of this card, without leaving your timeline.'}</p>{preview}</div>
       <footer className="timeline-preview-actions"><button type="button" className="button timeline-preview-dismiss" onClick={onClose}>Close</button><Link className="button timeline-preview-open" to={actionHref} onClick={onClose}>{actionLabel}</Link></footer>

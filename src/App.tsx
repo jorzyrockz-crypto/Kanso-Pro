@@ -8,6 +8,7 @@ import { buildTimeline, focusCard, formatDate, rolloverCandidates, shiftMonth } 
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
+import { googleSyncUser } from './lib/workspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
 import type { CalendarSource } from './lib/calendarSources'
 import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
@@ -129,10 +130,17 @@ function StreamHeader({ calendarSources, count, filter, month, onFilter, onSourc
   onSourceEnabled: (sourceId: string, enabled: boolean) => void
 }) {
   const [openMenu, setOpenMenu] = useState<'filter' | 'sources' | null>(null)
+  const [condensed, setCondensed] = useState(false)
   const activeFilter = filters.find((item) => item.type === filter)!
+  useEffect(() => {
+    const update = () => setCondensed(window.scrollY > 80)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
   const shownSources = calendarSources.filter((source) => source.enabled).length
 
-  return <header className="stream-header">
+  return <header className={`stream-header ${condensed && !openMenu ? 'is-condensed' : ''}`}>
     <div className="header-main">
       <div className="header-identity">
         <div className="month-icon" aria-label={formatDate(month, { month: 'long', year: 'numeric' })}>
@@ -155,7 +163,7 @@ function StreamHeader({ calendarSources, count, filter, month, onFilter, onSourc
           </div>
         </StreamMenu>
         <div className="stream-reference-controls">
-          <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<>Calendar sources <span className="stream-dropdown-count">{shownSources} shown</span></>}>
+          <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<><span className="source-summary-label">Calendar sources</span><span className="source-summary-label-compact">Sources</span><span className="stream-dropdown-count">{shownSources} <span className="source-summary-shown">shown</span></span></>}>
             <div className="stream-sources-heading"><strong>Calendar sources</strong><span>Choose what appears as reference-only entries.</span></div>
             <div className="stream-sources-list" role="group" aria-label="Calendar sources">
               {calendarSources.map((source) => <button key={source.id} type="button" role="checkbox" aria-checked={source.enabled} aria-label={`${source.enabled ? 'Hide' : 'Show'} ${source.label} in Calendar and Timeline`} className={source.enabled ? 'is-shown' : ''} onClick={() => onSourceEnabled(source.id, !source.enabled)}>
@@ -188,6 +196,7 @@ export default function App() {
   const { state, dispatch, storageAvailable } = useJourneyStore()
   const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const account = useAccount()
+  const firestoreUserId = googleSyncUser(account.user)
   useWorkspaceSync(account.user, state, dispatch)
   const appearance = useAppearance()
   const pwa = usePwa()
@@ -246,6 +255,7 @@ export default function App() {
   const timelineRef = useRef<HTMLElement>(null)
   const jumpTarget = useMemo(() => focusCard(state.cards, FOCUS_DATE), [state.cards])
   const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
+  const [pendingToday, setPendingToday] = useState(false)
   const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
   const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
   const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
@@ -321,7 +331,8 @@ export default function App() {
     let frame = 0
     const updateDirection = () => {
       frame = 0
-      const target = jumpTarget && document.getElementById(`card-${jumpTarget.id}`)
+      const target = (jumpTarget && document.getElementById(`card-${jumpTarget.id}`))
+        ?? document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${FOCUS_DATE.slice(0, 7)}"]`)
       const headerBottom = document.querySelector('.stream-header')?.getBoundingClientRect().bottom ?? 0
       const nextDirection = target && target.getBoundingClientRect().bottom < headerBottom ? 'up' : 'down'
       setJumpDirection((current) => current === nextDirection ? current : nextDirection)
@@ -361,6 +372,16 @@ export default function App() {
     })
     return () => cancelAnimationFrame(frame)
   }, [pendingScroll, filter, openGaps, location.pathname, state.cards])
+
+  useEffect(() => {
+    if (!pendingToday || location.pathname !== '/') return
+    const frame = requestAnimationFrame(() => {
+      const month = document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${FOCUS_DATE.slice(0, 7)}"]`)
+      month?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
+      setPendingToday(false)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [entries, filter, location.pathname, pendingToday, timelineMonths])
 
   useEffect(() => {
     if (!highlightId) return
@@ -406,7 +427,11 @@ export default function App() {
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
   const jumpToToday = () => {
-    if (jumpTarget) { setFilter('all'); setPendingScroll(jumpTarget.id) }
+    const focusMonth = FOCUS_DATE.slice(0, 7)
+    setFilter('all')
+    setTimelineWindow((current) => ({ start: focusMonth < current.start ? focusMonth : current.start, end: focusMonth > current.end ? focusMonth : current.end }))
+    if (jumpTarget) setPendingScroll(jumpTarget.id)
+    else setPendingToday(true)
   }
   const changeFilter = (type: Filter) => {
     setFilter(type)
@@ -433,7 +458,7 @@ export default function App() {
             rolloverCandidates={overdueCards} rolloverDate={FOCUS_DATE} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} journalUserId={firestoreUserId} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
         <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
         <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />
@@ -443,7 +468,7 @@ export default function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
-    {location.pathname === '/' && jumpTarget && <JumpToToday direction={jumpDirection} onJump={jumpToToday} />}
+    {location.pathname === '/' && <JumpToToday direction={jumpDirection} onJump={jumpToToday} />}
     <AppFooter />
     <AboutUpdatesDialog open={aboutUpdatesOpen} onClose={closeAboutUpdates} pwa={pwa} />
     <RouteEffects updateReady={pwa.updateReady && !pwa.coarse} />

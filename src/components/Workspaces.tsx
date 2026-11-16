@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
-import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
+import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TypeIcon } from './Common'
 import { NotFoundPage } from './PageHeader'
@@ -13,6 +13,7 @@ import { MonthArtwork, monthPalette } from './MonthArtwork'
 import { calendarSourceEntriesForMonth } from '../lib/calendarSources'
 import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
 import { TimelineCardPreview } from './TimelineCardPreview'
+import { JournalWorkspace } from './JournalWorkspace'
 
 const workspaceNames: Record<Workspace, string> = {
   calendar: 'Calendar', tasks: 'Personal Tasks', project: 'Projects', journal: 'Journal',
@@ -220,35 +221,7 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
   </div>
 }
 
-function JournalWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, storageAvailable }: WorkspaceProps & { storageAvailable: boolean }) {
-  const notes = cards.filter((card): card is NoteCard => card.type === 'note')
-  const activeId = cardId ?? 'note-observation'
-  const selected = notes.find((card) => card.id === activeId) ?? notes[0]
-  if (!selected) return <EmptyState title="A fresh page is waiting" action={<button className="button button-dark" onClick={() => onCompose({ type: 'note' })}><Plus size="0.875rem" />Write a note</button>}>Catch a thought, notice a moment, or leave a note for your future self.</EmptyState>
-  const wordCount = selected.body.trim() ? selected.body.trim().split(/\s+/).length : 0
-  return <div className="workspace-content journal-workspace">
-    <WorkspaceHero type="note" eyebrow="Personal Journal & Written Notes" title="Reflective Journal Studio">
-      A quiet place for your thoughts. Your words stay connected to your journey.
-    </WorkspaceHero>
-    {notes.length > 1 && <div className="workspace-selector"><label htmlFor="journal-select">Open reflection</label><select id="journal-select" value={selected.id} onChange={(event) => onNavigate({ page: 'journal', cardId: event.target.value })}>
-      {notes.map((card) => <option key={card.id} value={card.id}>{card.title || 'Untitled reflection'}</option>)}
-    </select></div>}
-    <section className="journal-editor journal-paper">
-      <div className="journal-editor-meta"><span>{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}{selected.time ? ` · ${formatTime(selected.time)}` : ''}</span><SaveIndicator available={storageAvailable} /></div>
-      <label htmlFor="journal-title" className="sr-only">Note title</label>
-      <input id="journal-title" className="journal-title-input" value={selected.title} maxLength={160} placeholder="Untitled reflection"
-        onChange={(event) => dispatch({ type: 'update-note', id: selected.id, title: event.target.value })} />
-      <div className="editor-tags">{selected.tags.length ? selected.tags.map((tag) => <span key={tag}>#{tag}</span>) : <span>Your own words, your own pace.</span>}</div>
-      <label htmlFor="journal-body" className="sr-only">Your reflection</label>
-      <textarea id="journal-body" className="journal-body-input" rows={9} value={selected.body} maxLength={20000} placeholder="What’s on your mind today?"
-        onChange={(event) => dispatch({ type: 'update-note', id: selected.id, body: event.target.value })} />
-      <div className="journal-editor-footer"><span>{wordCount} {wordCount === 1 ? 'word' : 'words'} · Private to this browser</span><Link className="button button-accent" to="/" state={{ focusCardId: selected.id }}>View on timeline<ArrowRight size="0.8125rem" /></Link></div>
-    </section>
-    <p className="workspace-fineprint">Changes appear immediately on your journey card. No save button needed.</p>
-  </div>
-}
-
-export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
+export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable, journalUserId }: {
   page: Workspace
   cards: JourneyCard[]
   calendarSources: CalendarSource[]
@@ -256,6 +229,7 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
   onNavigate: (destination: Destination) => void
   onCompose: (options?: ComposerOptions) => void
   storageAvailable: boolean
+  journalUserId: string | null
 }) {
   const { cardId } = useParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
@@ -267,7 +241,7 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
       {page === 'calendar' && <CalendarWorkspace {...props} />}
       {page === 'tasks' && <TaskWorkspace {...props} />}
       {page === 'project' && <ProjectWorkspace {...props} />}
-      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} />}
+      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} firestoreUserId={journalUserId} />}
       <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} />
         <Link to="/" state={cardId ? { focusCardId: cardId } : null} className="text-button">View your timeline<ArrowRight size="0.75rem" /></Link>
       </div>

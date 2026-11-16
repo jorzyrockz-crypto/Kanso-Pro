@@ -36,6 +36,20 @@ function isCard(value: unknown): value is JourneyCard {
     && (card.featured === undefined || typeof card.featured === 'boolean')
   if (card.type === 'note') return isString(card.body) && typeof card.pinned === 'boolean'
     && Array.isArray(card.tags) && card.tags.every(isString) && (card.time === undefined || isString(card.time))
+    && (card.noteKind === undefined || ['text', 'voice', 'image'].includes(String(card.noteKind)))
+    && (card.category === undefined || isString(card.category))
+    && (card.reminderAt === undefined || isString(card.reminderAt))
+    && (card.updatedAt === undefined || isString(card.updatedAt))
+    && (card.attachment === undefined || (!!card.attachment && typeof card.attachment === 'object'
+      && isString((card.attachment as Record<string, unknown>).id)
+      && ['audio', 'image'].includes(String((card.attachment as Record<string, unknown>).kind))
+      && isString((card.attachment as Record<string, unknown>).name)
+      && isString((card.attachment as Record<string, unknown>).mimeType)
+      && typeof (card.attachment as Record<string, unknown>).size === 'number'
+      && ((card.attachment as Record<string, unknown>).durationSeconds === undefined || typeof (card.attachment as Record<string, unknown>).durationSeconds === 'number')
+      && ((card.attachment as Record<string, unknown>).width === undefined || typeof (card.attachment as Record<string, unknown>).width === 'number')
+      && ((card.attachment as Record<string, unknown>).height === undefined || typeof (card.attachment as Record<string, unknown>).height === 'number')
+      && ((card.attachment as Record<string, unknown>).storage === undefined || (card.attachment as Record<string, unknown>).storage === 'firestore')))
   return false
 }
 
@@ -67,6 +81,12 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
         ...card,
         ...(action.title !== undefined ? { title: action.title } : {}),
         ...(action.body !== undefined ? { body: action.body } : {}),
+        ...(action.tags !== undefined ? { tags: action.tags } : {}),
+        ...(action.category !== undefined ? { category: action.category } : {}),
+        ...(action.reminderAt !== undefined ? { reminderAt: action.reminderAt } : {}),
+        ...(action.noteKind !== undefined ? { noteKind: action.noteKind } : {}),
+        ...(action.attachment !== undefined ? { attachment: action.attachment } : {}),
+        ...(action.updatedAt !== undefined ? { updatedAt: action.updatedAt } : {}),
       } : card),
     }
     case 'update-event-background': return !isOccasionChoice(action.occasion) ? state : {

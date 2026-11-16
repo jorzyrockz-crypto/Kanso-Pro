@@ -65,6 +65,20 @@ test('timeline boundaries load one month only after an explicit action, never fr
   await expect(page.locator('.month-marker')).toHaveCount(before + 1)
 })
 
+test('Jump to Today remains available when the stream has no personal cards to target', async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  try {
+    await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, cards: [], bezel: false })), STORAGE_KEY)
+    await page.goto('/')
+    await expect(page.getByRole('button', { name: 'Jump to Today', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
+    await expect(page.locator('.month-marker[data-timeline-month="2026-11"]')).toBeVisible()
+  } finally {
+    await context.close()
+  }
+})
+
 test('the verified school calendar starts on, while the Timeline keeps only its useful controls', async ({ page }) => {
   await expect(page.locator('.stream-reference-controls')).not.toContainText('All your pages, connected')
   await page.evaluate((key) => localStorage.removeItem(key), CALENDAR_SOURCES_STORAGE_KEY)
@@ -92,10 +106,15 @@ test('responsive Timeline menus provide styled filters and individual Calendar s
   expect(Math.abs(filterBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
   expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(sourceBox!.x)
   await filterTrigger.click()
-  await page.getByRole('dialog', { name: 'Filter journey cards' }).getByRole('option', { name: 'Tasks', exact: true }).click()
+  const filterMenu = page.getByRole('dialog', { name: 'Filter journey cards' })
+  const filterMenuBox = await filterMenu.boundingBox()
+  expect(filterMenuBox!.width).toBeLessThanOrEqual(190)
+  await filterMenu.getByRole('option', { name: 'Tasks', exact: true }).click()
   await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: Tasks')
   await sourceTrigger.click()
   const sourcesMenu = page.getByRole('dialog', { name: 'Calendar sources' })
+  const sourcesMenuBox = await sourcesMenu.boundingBox()
+  expect(sourcesMenuBox!.width).toBeLessThanOrEqual(304)
   const depEdSource = sourcesMenu.getByRole('checkbox', { name: 'Show DepEd Calendar in Calendar and Timeline', exact: true })
   await expect(depEdSource).toHaveAttribute('aria-checked', 'false')
   await depEdSource.click()
@@ -104,6 +123,29 @@ test('responsive Timeline menus provide styled filters and individual Calendar s
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
   await page.keyboard.press('Escape')
   await expect(sourcesMenu).not.toBeVisible()
+})
+
+test('the mobile stream header compacts after scrolling while keeping its controls readable', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  const header = page.locator('.stream-header')
+  await expect(header).not.toHaveClass(/is-condensed/)
+  await page.evaluate(() => window.scrollTo(0, 180))
+  await expect(header).toHaveClass(/is-condensed/)
+  await expect(page.locator('.stream-sources-menu .source-summary-label-compact')).toBeVisible()
+  await expect(page.locator('.stream-sources-menu .source-summary-label-compact')).toHaveText('Sources')
+  const create = navigation(page).getByRole('button', { name: 'New card', exact: true })
+  await expect(create).toBeVisible()
+  const createBox = await create.boundingBox()
+  expect(createBox).not.toBeNull()
+  expect(Math.abs(createBox!.width - createBox!.height)).toBeLessThanOrEqual(1)
+  expect(createBox!.height).toBeGreaterThanOrEqual(44)
+  const jump = page.getByRole('button', { name: 'Jump to Today', exact: true })
+  await expect(jump).toBeVisible()
+  await expect(jump.locator('span')).toBeHidden()
+  const jumpBox = await jump.boundingBox()
+  expect(jumpBox).not.toBeNull()
+  expect(Math.abs(jumpBox!.width - jumpBox!.height)).toBeLessThanOrEqual(1)
+  expect(jumpBox!.height).toBeGreaterThanOrEqual(44)
 })
 
 test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', async ({ page }) => {
@@ -143,9 +185,9 @@ test('preview dialogs browse nearby timeline entries with desktop buttons and to
 })
 
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {
-  for (const [name, path] of [
-    ['Calendar', '/calendar'], ['Tasks', '/tasks'], ['Projects', '/projects'], ['Journal', '/journal'],
-    ['Timeline', '/'],
+  for (const [name, path, mainName] of [
+    ['Calendar', '/calendar', 'Calendar'], ['Tasks', '/tasks', 'Personal Tasks'], ['Projects', '/projects', 'Projects'], ['Journal', '/journal', 'Journal'],
+    ['Timeline', '/', 'Journey Stream'],
   ]) {
     const link = navigation(page).getByRole('link', { name, exact: true })
     await expect(link).toHaveAttribute('href', path)
@@ -155,7 +197,7 @@ test('the bottom navigation opens ordinary pages with URLs, active links, titles
     await expect(link).toHaveAttribute('aria-current', 'page')
     await expect(navigation(page).locator('[aria-current="page"]')).toHaveCount(1)
     await expect(content(page)).toHaveCount(1)
-    await expect(content(page)).toHaveAccessibleName(name)
+    await expect(content(page)).toHaveAccessibleName(mainName)
     await expect(content(page)).toBeFocused()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     expect(await page.evaluate(() => document.body.style.overflow)).toBe('')
@@ -178,10 +220,10 @@ test('card-specific URLs work on direct visits and refresh', async ({ page }) =>
     await expect(navigation(page).getByRole('link', { name: active, exact: true })).toHaveAttribute('aria-current', 'page')
     await expect(content(page)).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    if (active === 'Calendar') await expect(page.locator('.selected-event h4')).toHaveText('Faculty Alignment & Curriculum Sync')
+    if (active === 'Calendar') await expect(page.locator('.selected-event strong')).toHaveText('Faculty Alignment & Curriculum Sync')
     if (active === 'Tasks') await expect(page.getByLabel('Your task list', { exact: true })).toHaveValue('task-prep')
     if (active === 'Projects') await expect(content(page).getByRole('checkbox')).toHaveCount(8)
-    if (active === 'Journal') await expect(page.getByLabel('Open reflection', { exact: true })).toHaveValue('note-lesson')
+    if (active === 'Journal') await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('Q2 Reading Comprehension Rubric Ideas')
   }
   expect(errors).toEqual([])
 })
@@ -357,7 +399,7 @@ test('the reading festival opens its own eight milestones, not the assessment pr
 })
 
 test('journal editing is live, local, and safely renders entered markup as text', async ({ page }) => {
-  await openCard(page, 'note-observation')
+  await page.goto('/journal/note-observation')
   const title = '<img src=x onerror=alert(1)> A good teaching day'
   const body = 'A small win: every student shared an idea today.'
   await page.getByLabel('Note title', { exact: true }).fill(title)
@@ -367,8 +409,7 @@ test('journal editing is live, local, and safely renders entered markup as text'
   await expect(card(page, 'note-observation').locator('h3')).toHaveText(title)
   await expect(card(page, 'note-observation').locator('.note-excerpt')).toHaveText(body)
   await expect(card(page, 'note-observation').locator('img')).toHaveCount(0)
-  await page.reload()
-  await openCard(page, 'note-observation')
+  await page.goto('/journal/note-observation')
   await expect(page.getByLabel('Note title', { exact: true })).toHaveValue(title)
   await expect(page.getByLabel('Your reflection', { exact: true })).toHaveValue(body)
 })
