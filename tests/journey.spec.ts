@@ -125,6 +125,22 @@ test('responsive Timeline menus provide styled filters and individual Calendar s
   await expect(sourcesMenu).not.toBeVisible()
 })
 
+test('the mobile stream header compacts after scrolling while keeping its controls readable', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  const header = page.locator('.stream-header')
+  await expect(header).not.toHaveClass(/is-condensed/)
+  await page.evaluate(() => window.scrollTo(0, 180))
+  await expect(header).toHaveClass(/is-condensed/)
+  await expect(page.locator('.stream-sources-menu .source-summary-label-compact')).toBeVisible()
+  await expect(page.locator('.stream-sources-menu .source-summary-label-compact')).toHaveText('Sources')
+  const create = navigation(page).getByRole('button', { name: 'New card', exact: true })
+  await expect(create).toBeVisible()
+  const createBox = await create.boundingBox()
+  expect(createBox).not.toBeNull()
+  expect(Math.abs(createBox!.width - createBox!.height)).toBeLessThanOrEqual(1)
+  expect(createBox!.height).toBeGreaterThanOrEqual(44)
+})
+
 test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', async ({ page }) => {
   await navigation(page).getByRole('link', { name: 'Calendar', exact: true }).click()
   const hero = page.locator('.month-calendar-hero')

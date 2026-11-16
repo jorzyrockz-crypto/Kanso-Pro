@@ -40,7 +40,7 @@ export function BottomNavigation({ onCompose }: { onCompose: (options?: Composer
           <Icon size="1.3125rem" strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
         </NavLink>
       })}
-      <button type="button" className={`bottom-nav-link bottom-nav-create${'type' in create ? ` is-${create.type}` : ''}`} onClick={() => page === 'journal' ? navigate('/journal?create=menu') : onCompose(options)}>
+      <button type="button" aria-label={create.label} className={`bottom-nav-link bottom-nav-create${'type' in create ? ` is-${create.type}` : ''}`} onClick={() => page === 'journal' ? navigate('/journal?create=menu') : onCompose(options)}>
         <Plus size="1.3125rem" strokeWidth={2} aria-hidden="true" /><span>{create.label}</span>
       </button>
     </nav>

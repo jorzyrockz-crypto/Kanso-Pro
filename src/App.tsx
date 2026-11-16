@@ -130,10 +130,17 @@ function StreamHeader({ calendarSources, count, filter, month, onFilter, onSourc
   onSourceEnabled: (sourceId: string, enabled: boolean) => void
 }) {
   const [openMenu, setOpenMenu] = useState<'filter' | 'sources' | null>(null)
+  const [condensed, setCondensed] = useState(false)
   const activeFilter = filters.find((item) => item.type === filter)!
+  useEffect(() => {
+    const update = () => setCondensed(window.scrollY > 80)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
   const shownSources = calendarSources.filter((source) => source.enabled).length
 
-  return <header className="stream-header">
+  return <header className={`stream-header ${condensed && !openMenu ? 'is-condensed' : ''}`}>
     <div className="header-main">
       <div className="header-identity">
         <div className="month-icon" aria-label={formatDate(month, { month: 'long', year: 'numeric' })}>
@@ -156,7 +163,7 @@ function StreamHeader({ calendarSources, count, filter, month, onFilter, onSourc
           </div>
         </StreamMenu>
         <div className="stream-reference-controls">
-          <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<>Calendar sources <span className="stream-dropdown-count">{shownSources} shown</span></>}>
+          <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<><span className="source-summary-label">Calendar sources</span><span className="source-summary-label-compact">Sources</span><span className="stream-dropdown-count">{shownSources} <span className="source-summary-shown">shown</span></span></>}>
             <div className="stream-sources-heading"><strong>Calendar sources</strong><span>Choose what appears as reference-only entries.</span></div>
             <div className="stream-sources-list" role="group" aria-label="Calendar sources">
               {calendarSources.map((source) => <button key={source.id} type="button" role="checkbox" aria-checked={source.enabled} aria-label={`${source.enabled ? 'Hide' : 'Show'} ${source.label} in Calendar and Timeline`} className={source.enabled ? 'is-shown' : ''} onClick={() => onSourceEnabled(source.id, !source.enabled)}>

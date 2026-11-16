@@ -61,6 +61,13 @@
   /* Glass timeline toolbar */
   .stream-header { position: sticky; top: 2.125rem; z-index: 30; margin: 0.25rem 1.5rem 0; padding: 0.9375rem 1.1875rem 0.75rem; border: 1px solid var(--theme-border, rgb(255 255 255 / 95%)); border-radius: 1.1875rem; background: var(--theme-glass, rgb(255 255 255 / 77%)); box-shadow: var(--card-shadow); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
   .header-main { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .stream-header, .stream-header .month-icon, .stream-header .header-copy p, .stream-header .header-bottom { transition: padding .2s ease, margin .2s ease, width .2s ease, height .2s ease, opacity .15s ease; }
+  .stream-header.is-condensed { padding: .625rem .8125rem .5625rem; }
+  .stream-header.is-condensed .month-icon { width: 2rem; height: 2rem; border-radius: .625rem; }
+  .stream-header.is-condensed .month-icon > span { font-size: .375rem; }
+  .stream-header.is-condensed .month-icon > strong { font-size: .6875rem; }
+  .stream-header.is-condensed .header-copy p { max-height: 0; margin: 0; overflow: hidden; opacity: 0; }
+  .stream-header.is-condensed .header-bottom { margin-top: .5rem; padding-top: .5rem; }
   .header-identity { display: flex; align-items: center; gap: 0.8125rem; min-width: 0; }
   .month-icon { display: flex; flex-shrink: 0; flex-direction: column; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; color: white; border-radius: 0.9375rem; background: linear-gradient(140deg, #39c2f6, #0ea5e9 48%, #2862de); box-shadow: 0 5px 12px rgb(14 165 233 / 20%); }
   .month-icon > span { font-size: 0.5rem; font-weight: 800; letter-spacing: 0.10625rem; text-transform: uppercase; opacity: .9; }
@@ -121,6 +128,7 @@
   .stream-dropdown-trigger[aria-expanded='true'] > svg { transform: rotate(180deg); }
   .stream-dropdown-trigger-copy { display: inline-flex; align-items: center; min-width: 0; gap: .375rem; overflow: hidden; text-overflow: ellipsis; }
   .stream-dropdown-trigger-copy > svg { flex: 0 0 auto; color: #9a7940; }
+  .source-summary-label-compact { display: none; }
   .stream-dropdown-count, .stream-dropdown-option-count { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 1.125rem; padding: 0 .3125rem; border-radius: 999px; background: var(--theme-blue-soft, #deeff9); color: var(--theme-blue, #286f97); font-size: .5rem; line-height: 1; }
   .stream-sources-menu .stream-dropdown-trigger { min-width: 11.5rem; }
   .stream-dropdown-panel { position: absolute; z-index: 45; top: calc(100% + .4375rem); right: 0; width: max-content; min-width: 100%; max-width: min(24rem, calc(100vw - 1.5rem)); overflow: hidden; border: 1px solid var(--theme-border, #cfdeeb); border-radius: .875rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); box-shadow: 0 .875rem 2rem rgb(24 65 96 / 19%), 0 .125rem .5rem rgb(24 65 96 / 8%); }
@@ -695,6 +703,7 @@
     .stream-dropdown { width: 100%; }
     .stream-dropdown-trigger { width: 100%; min-height: 2.5rem; padding: .5rem .5625rem; font-size: .59375rem; }
     .stream-sources-menu .stream-dropdown-trigger { min-width: 0; }
+    .source-summary-label-compact { display: none; }
     /* Keep compact filters close to their trigger; source choices get room without becoming a full-width sheet. */
     .stream-dropdown-panel { max-width: calc(100vw - 2rem); }
     .stream-filter-menu .stream-dropdown-panel { right: auto; left: 0; width: max(100%, 11.5rem); }
@@ -706,6 +715,9 @@
     .card-column:empty { display: none; }
     .day-row:has(.card-col-left:not(:empty)) .card-col-right:not(:empty) { margin-top: 0.875rem; }
     .journey-card { max-width: none; padding: 1.125rem; border-radius: 1.3125rem; }
+    .timeline-source-card { padding: .9375rem; }
+    .timeline-source-card > p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .timeline-source-card .calendar-source-event-note { margin-top: .5625rem; padding-top: .5625rem; }
     .date-node-wrapper { position: absolute; left: 1.375rem; top: 1.5rem; width: 3.25rem; transform: translateX(-50%); }
     .date-node { width: 3.0625rem; height: 3.0625rem; }
     .date-node > strong { font-size: 1rem; }
@@ -809,6 +821,11 @@
     @media (max-width: 680px) {
       .form-field > input, .form-field > textarea, .quick-add-form > input, .workspace-selector > select { font-size: 1rem; }
     }
+  }
+  @media (max-width: 420px) {
+    .stream-sources-menu .source-summary-label { display: none; }
+    .stream-sources-menu .source-summary-label-compact { display: inline; }
+    .stream-sources-menu .source-summary-shown { display: none; }
   }
   @media (max-width: 360px) {
     .header-copy h1 { font-size: 1rem; }
