@@ -4,9 +4,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
 import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
-import { calendarDays, formatDate, formatTime, isValidDate, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
+import { calendarDays, formatDate, formatTime, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TypeIcon } from './Common'
-import { NotFoundPage, PageCreateButton, PageHeader } from './PageHeader'
+import { NotFoundPage, PageHeader } from './PageHeader'
 import { destinationPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from '../lib/navigation'
 import { calendarPeriod, monthScene } from '../lib/months'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
@@ -27,7 +27,7 @@ type WorkspaceProps = {
   onNavigate: (destination: Destination) => void
 }
 
-function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month, pageTitle, pageDescription, pageAction }: {
+function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month }: {
   type: 'event' | 'task' | 'project' | 'note'
   eyebrow: string
   title: string
@@ -35,13 +35,9 @@ function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month, pag
   stat?: { label: string; value: string | number }
   extra?: ReactNode
   month?: string
-  pageTitle?: string
-  pageDescription?: string
-  pageAction?: ReactNode
 }) {
-  return <div className={`workspace-hero hero-${type} ${month ? 'month-calendar-hero' : ''} ${pageTitle ? 'has-page-heading' : ''}`} style={month ? monthPalette(monthScene(month)) : undefined}>
+  return <div className={`workspace-hero hero-${type} ${month ? 'month-calendar-hero' : ''}`} style={month ? monthPalette(monthScene(month)) : undefined}>
     {month && <MonthArtwork month={month} side="right" className="month-hero-artwork" />}
-    {pageTitle && <header className="workspace-hero-page-heading"><div><h1 id="page-title">{pageTitle}</h1>{pageDescription && <p>{pageDescription}</p>}</div>{pageAction}</header>}
     <div className="hero-copy"><div className="hero-eyebrows"><span className="hero-eyebrow"><TypeIcon type={type} size={11} />{eyebrow}</span>{extra}</div>
       <h2>{title}</h2><p>{children}</p>
     </div>
@@ -117,7 +113,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose
   const visibleEntryCount = events.length + sourceEntries.length
   const changeMonth = (amount: number) => navigate(`/calendar?month=${shiftMonth(month, amount)}`)
   return <div className="workspace-content calendar-workspace">
-    <WorkspaceHero type="event" month={month} pageTitle="Calendar" pageDescription="Make space for your plans, and see how your days connect." pageAction={<PageCreateButton label="New event" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })} />} eyebrow="Connected Calendar View" title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
+    <WorkspaceHero type="event" month={month} eyebrow="Connected Calendar View" title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
       stat={{ label: visibleEntryCount === 1 ? 'Entry this month' : 'Entries this month', value: visibleEntryCount }}>
       Your personal plans and any calendar sources you choose to show.
     </WorkspaceHero>
@@ -252,11 +248,11 @@ function JournalWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, stor
   </div>
 }
 
-const pageDetails: Record<Workspace, { description: string; action: string }> = {
-  calendar: { description: 'Make space for your plans, and see how your days connect.', action: 'New event' },
-  tasks: { description: 'Small steps, clear priorities. A little more room to breathe.', action: 'New task list' },
-  project: { description: 'Bring the bigger picture into focus, one milestone at a time.', action: 'New project' },
-  journal: { description: 'A quiet corner for the thoughts you want to come back to.', action: 'Write a note' },
+const pageDetails: Record<Workspace, { description: string }> = {
+  calendar: { description: 'Make space for your plans, and see how your days connect.' },
+  tasks: { description: 'Small steps, clear priorities. A little more room to breathe.' },
+  project: { description: 'Bring the bigger picture into focus, one milestone at a time.' },
+  journal: { description: 'A quiet corner for the thoughts you want to come back to.' },
 }
 
 export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
@@ -269,18 +265,12 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
   storageAvailable: boolean
 }) {
   const { cardId } = useParams()
-  const [query] = useSearchParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
   if (cardId && !selected) return <NotFoundPage card backTo={WORKSPACE_PATHS[page]} />
   const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate }
-  const queryDate = query.get('date')
-  const queryMonth = query.get('month')
-  const newDate = isValidDate(queryDate) ? queryDate : selected?.date
-    ?? (isValidDate(`${queryMonth}-01`) ? `${queryMonth}-14` : FOCUS_DATE)
 
-  return <main id="main-content" tabIndex={-1} className={`workspace-page workspace-${page}`} aria-labelledby="page-title">
-    {page !== 'calendar' && <PageHeader title={workspaceNames[page]} description={pageDetails[page].description}
-      action={<PageCreateButton label={pageDetails[page].action} onClick={() => onCompose({ type: WORKSPACE_TYPES[page], date: newDate })} />} />}
+  return <main id="main-content" tabIndex={-1} className={`workspace-page workspace-${page}`} aria-labelledby={page === 'calendar' ? undefined : 'page-title'} aria-label={page === 'calendar' ? 'Calendar' : undefined}>
+    {page !== 'calendar' && <PageHeader title={workspaceNames[page]} description={pageDetails[page].description} />}
     <div className="workspace-body" key={`${page}-${cardId ?? 'default'}`}>
       {page === 'calendar' && <CalendarWorkspace {...props} />}
       {page === 'tasks' && <TaskWorkspace {...props} />}

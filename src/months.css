@@ -11,12 +11,6 @@
   .workspace-hero.month-calendar-hero { position: relative; isolation: isolate; overflow: hidden; border: 1px solid var(--theme-border, rgb(255 255 255 / 90%)); background: linear-gradient(105deg, var(--theme-surface-muted, #f5faff) 8%, color-mix(in srgb, var(--month-adaptive-canvas, var(--month-canvas)) 70%, var(--theme-surface, white)) 56%, var(--month-adaptive-wash, var(--month-wash))); box-shadow: 0 8px 22px rgb(37 77 109 / 5%); }
   .month-calendar-hero > .month-hero-artwork { position: absolute; z-index: -1; top: 50%; right: 5%; width: 19.375rem; height: 19.375rem; transform: translateY(-46%); opacity: .48; }
   .month-calendar-hero .hero-copy { position: relative; max-width: 76%; }
-  .month-calendar-hero.has-page-heading { flex-wrap: wrap; gap: 1.25rem; }
-  .workspace-hero-page-heading { position: relative; display: flex; flex: 1 0 100%; align-items: center; justify-content: space-between; gap: 1.25rem; padding-bottom: 1.125rem; border-bottom: 1px solid var(--theme-border, rgb(203 221 232 / 72%)); }
-  .workspace-hero-page-heading > div { min-width: 0; }
-  .workspace-hero-page-heading h1 { color: var(--theme-text-primary, #1f405a); font-size: clamp(1.625rem, 4vw, 2rem); font-weight: 800; letter-spacing: -.075rem; line-height: 1.2; }
-  .workspace-hero-page-heading p { max-width: 33.125rem; margin-top: .375rem; color: var(--theme-text-secondary, #567287); font-size: .6875rem; line-height: 1.7; }
-  .month-calendar-hero.has-page-heading .hero-copy { max-width: calc(100% - 7.5rem); }
   .month-calendar-hero h2 { color: var(--theme-text-primary, #24435e); }
   .month-calendar-hero p { color: var(--theme-text-secondary, #506c81); }
   .month-calendar-hero .hero-eyebrow { color: var(--theme-text-primary, #45657d); border-color: var(--theme-border, #ccdee9); background: var(--theme-glass, rgb(255 255 255 / 80%)); }
@@ -33,9 +27,7 @@
     .month-backdrop-right { right: -7.875rem; top: calc(var(--hdr-h) + 2.875rem); }
     .month-backdrop-left { left: -7.8125rem; bottom: var(--bottom-bar-height); }
     .month-calendar-hero > .month-hero-artwork { right: 0; width: 18.125rem; height: 18.125rem; opacity: .36; }
-    .month-calendar-hero .hero-copy, .month-calendar-hero.has-page-heading .hero-copy { max-width: 100%; }
-    .workspace-hero-page-heading { gap: .875rem; padding-bottom: .875rem; }
-    .workspace-hero-page-heading h1 { font-size: 1.625rem; }
+    .month-calendar-hero .hero-copy { max-width: 100%; }
   }
   @media (max-width: 500px) {
     .month-calendar-hero > .month-hero-artwork { right: 0; top: 42%; width: 16.25rem; height: 16.25rem; opacity: .32; }
