@@ -29,6 +29,7 @@ import { Timeline } from './components/Timeline'
 import { Composer } from './components/Composer'
 import { WorkspacePage } from './components/Workspaces'
 import { AppHeader } from './components/AppHeader'
+import { AppSplash } from './components/AppSplash'
 import { BottomNavigation } from './components/BottomNavigation'
 import { AppFooter, NotFoundPage, PageHeader } from './components/PageHeader'
 import { RouteEffects } from './components/RouteEffects'
@@ -352,6 +353,7 @@ export default function App() {
   const artworkVisible = location.pathname === '/' || !!calendarVisible
 
   return <div className={`application ${signInLayout ? 'application-auth' : ''}`}>
+    <AppSplash />
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
     {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} updateReady={pwa.updateReady} unread={notifications.unread} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={() => openComposer()} /></>}
