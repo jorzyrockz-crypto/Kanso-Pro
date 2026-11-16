@@ -200,7 +200,7 @@ function NewCardPage({ cards, onCancel, onCreate, onUpdate }: {
   const candidate = editId ? cards.find((card) => card.id === editId) : undefined
   const editingCard = candidate?.type === 'event' || candidate?.type === 'task' ? candidate : undefined
   if (editId && !editingCard) return <main id="main-content" tabIndex={-1} className="create-page" aria-label="Card not found"><NotFoundPage card backTo="/" /></main>
-  const typeLabel = editingCard?.type === 'event' ? 'Event' : editingCard?.type === 'task' ? 'Task' : 'card'
+  const typeLabel = editingCard?.type === 'event' ? 'Event' : editingCard?.type === 'task' ? 'Task list' : 'card'
   return <main id="main-content" tabIndex={-1} className="create-page" aria-labelledby="page-title">
     <PageHeader title={editingCard ? `Edit ${typeLabel}` : 'New card'} description={editingCard ? 'Update the details that keep this card useful across your planning space.' : 'An event, a small step, a bigger idea, or a thought worth keeping.'} />
     <button className="text-button return-to-page" onClick={onCancel}><ArrowLeft size="0.8125rem" />Back to your workspace</button>

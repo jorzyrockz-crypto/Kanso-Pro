@@ -12,8 +12,8 @@ test('Calendar events and task cards can be edited without replacing task checkl
   await expect(page.getByText('Updated faculty alignment', { exact: true })).toBeVisible()
 
   await page.goto('/tasks/task-grades')
-  await page.getByRole('link', { name: 'Edit task', exact: true }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Edit Task', exact: true })).toBeVisible()
+  await page.locator('.checklist-panel').getByRole('link', { name: 'Edit task list', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit Task list', exact: true })).toBeVisible()
   await page.locator('#card-title').fill('Updated advisory record')
   await page.getByRole('button', { name: 'Save changes', exact: true }).click()
   await expect(page).toHaveURL('/tasks/task-grades')
@@ -48,9 +48,9 @@ test('Journal cards remain editable and can be deleted deliberately', async ({ p
 
 test('Task cards can be deleted from their workspace with a confirmation step', async ({ page }) => {
   await page.goto('/tasks/task-prep')
-  await page.getByRole('button', { name: 'Delete task card', exact: true }).click()
-  const confirmation = page.getByRole('group', { name: 'Delete task card', exact: true })
-  await confirmation.getByRole('button', { name: 'Yes, delete task card', exact: true }).click()
+  await page.locator('.checklist-panel').getByRole('button', { name: 'Delete task list', exact: true }).click()
+  const confirmation = page.getByRole('group', { name: 'Delete task list', exact: true })
+  await confirmation.getByRole('button', { name: 'Yes, delete task list', exact: true }).click()
   await expect(page).toHaveURL('/tasks')
   await expect(page.getByRole('option', { name: 'Weekly Classroom Supply Inventory', exact: true })).toHaveCount(0)
 })

@@ -165,27 +165,27 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDelet
   const tasks = cards.filter((card): card is TaskCard => card.type === 'task')
   const activeId = cardId ?? 'task-grades'
   const selected = tasks.find((card) => card.id === activeId) ?? tasks[0]
-  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task card</button>}>Add your first task card to start making space for what matters.</EmptyState>
+  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task list</button>}>Create a task list, then add the small actions that move it forward.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
   return <div className="workspace-content task-workspace">
     <WorkspaceHero type="task" eyebrow="Personal Task & Reminder Hub" title="Daily Action & Reminders" stat={{ label: 'Completion', value: `${percent}%` }}>
       One small action at a time. Every check moves your timeline forward.
     </WorkspaceHero>
-    <div className="workspace-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}>Edit task</Link><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
     <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
       {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>
-    <AddChecklistItem key={selected.id} placeholder="Add a personal task…" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false } })} />
     <section className="workspace-panel checklist-panel">
       <div className="checklist-heading"><div><span className="eyebrow">{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><h3>{selected.title}</h3></div>
         {selected.reminder && <span className="reminder-pill"><Bell size="0.75rem" />{formatTime(selected.reminder)} reminder</span>}</div>
+      <div className="task-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}>Edit task list</Link><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
       <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span></div>
       <div className="workspace-checklist">{selected.subtasks.map((item) => <label key={item.id} className={`workspace-check task-check ${item.done ? 'is-done' : ''}`}>
         <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
-        <span className="check-copy"><strong>{item.title}</strong><small>{item.done ? 'Complete. A little more room to breathe.' : 'Connected to your timeline task card'}</small></span>
+        <span className="check-copy"><strong>{item.title}</strong><small>{item.done ? 'Complete. A little more room to breathe.' : 'Connected to your timeline task list'}</small></span>
         {item.label && <span className="check-label">{item.done ? <Check size="0.75rem" /> : <Clock3 size="0.6875rem" />}{item.label}</span>}
       </label>)}</div>
-      {!total && <p className="inline-empty">No actions yet. Add the first one above.</p>}
+      {!total && <p className="inline-empty">No items yet. Add the first one below.</p>}
+      <AddChecklistItem key={selected.id} placeholder="Add a checklist item…" label="Add item" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false } })} />
     </section>
     {tasks.length > 1 && <div className="other-lists"><span className="eyebrow">Your other lists</span>{tasks.filter((card) => card.id !== selected.id).map((card) => <Link key={card.id} className="list-summary" to={destinationPath({ page: 'tasks', cardId: card.id })}>
       <span className="list-icon"><TypeIcon type="task" size={17} /></span><span><strong>{card.title}</strong><small>{shortDate(card.date)} · {progress(card.subtasks).done} of {card.subtasks.length} completed</small></span><ChevronRight size="1rem" />

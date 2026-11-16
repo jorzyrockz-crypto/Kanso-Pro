@@ -46,9 +46,9 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
     }
   }
   return <section className="composer-card" aria-labelledby="composer-title">
-    <div className="composer-header"><div><span className="eyebrow"><Plus size="0.6875rem" />{editing ? 'Card details' : 'A new little chapter'}</span><h2 id="composer-title">{editing ? input.type === 'event' ? 'Event details' : 'Task card details' : 'Add to your journey'}</h2></div></div>
+    <div className="composer-header"><div><span className="eyebrow"><Plus size="0.6875rem" />{editing ? 'Card details' : 'A new little chapter'}</span><h2 id="composer-title">{editing ? input.type === 'event' ? 'Event details' : 'Task list details' : 'Add to your journey'}</h2></div></div>
     <form className={`composer-form composer-${input.type}`} onSubmit={submit}>
-      {editing ? <p className="composer-edit-kind"><TypeIcon type={input.type} size={15} />{input.type === 'event' ? 'Calendar event' : 'Personal task card'} · Your existing checklist stays exactly as it is.</p> : <fieldset className="type-fieldset"><legend>What are we making room for?</legend><div className="type-options">{(['event', 'task', 'project', 'note'] as CardType[]).map((type) => <label className={`type-option option-${type}`} key={type}>
+      {editing ? <p className="composer-edit-kind"><TypeIcon type={input.type} size={15} />{input.type === 'event' ? 'Calendar event' : 'Personal task list'} · Your existing checklist stays exactly as it is.</p> : <fieldset className="type-fieldset"><legend>What are we making room for?</legend><div className="type-options">{(['event', 'task', 'project', 'note'] as CardType[]).map((type) => <label className={`type-option option-${type}`} key={type}>
         <input type="radio" name="cardType" value={type} checked={input.type === type} onChange={() => update('type', type)} />
         <span><TypeIcon type={type} size={18} /><span>{type === 'note' ? 'Note' : TYPE_CONFIG[type].label.split(' ')[0]}</span></span>
       </label>)}</div></fieldset>}

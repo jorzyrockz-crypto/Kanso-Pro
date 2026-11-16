@@ -180,7 +180,7 @@ test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', 
 })
 
 test('the bottom create action follows the active workspace', async ({ page }) => {
-  for (const [tab, action] of [['Timeline', 'New card'], ['Calendar', 'New event'], ['Tasks', 'New task'], ['Projects', 'New project'], ['Journal', 'New note']] as const) {
+  for (const [tab, action] of [['Timeline', 'New card'], ['Calendar', 'New event'], ['Tasks', 'New task list'], ['Projects', 'New project'], ['Journal', 'New note']] as const) {
     await navigation(page).getByRole('link', { name: tab, exact: true }).click()
     await expect(navigation(page).getByRole('button', { name: action, exact: true })).toBeVisible()
   }
@@ -373,8 +373,9 @@ test('task checks sync both ways, added actions join the card, and changes survi
   await expect(page.locator('.hero-stat strong')).toHaveText('100%')
   await content(page).getByRole('checkbox', { name: /Export Q1 attendance sheet/ }).uncheck()
   await expect(page.locator('.hero-stat strong')).toHaveText('50%')
-  await page.getByPlaceholder('Add a personal task…').fill('Print the parent conference agenda')
-  await page.getByRole('button', { name: 'Add task', exact: true }).click()
+  const taskCard = content(page).locator('.checklist-panel')
+  await taskCard.getByPlaceholder('Add a checklist item…').fill('Print the parent conference agenda')
+  await taskCard.getByRole('button', { name: 'Add item', exact: true }).click()
   await expect(page.locator('.hero-stat strong')).toHaveText('33%')
   await timeline(page)
   await expect(timelineTask).toContainText('1 of 3 completed')

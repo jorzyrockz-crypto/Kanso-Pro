@@ -517,9 +517,9 @@
   .agenda-add { margin-top: 0.9375rem; }
 
   /* Connected lists and milestones */
-  .workspace-card-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
-  .workspace-card-actions .button { padding: .5rem .6875rem; font-size: .625rem; }
-  .workspace-card-actions .card-delete-confirm { justify-content: flex-end; }
+  .task-card-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; margin-top: .875rem; padding-top: .8125rem; border-top: 1px solid var(--theme-border, #e5edf1); }
+  .task-card-actions .button { padding: .5rem .6875rem; font-size: .625rem; }
+  .task-card-actions .card-delete-confirm { justify-content: flex-end; }
   .workspace-selector { display: flex; align-items: center; gap: 0.9375rem; }
   .workspace-selector > label { flex-shrink: 0; font-size: 0.625rem; color: var(--theme-text-secondary, #637287); font-weight: 700; }
   .workspace-selector > select { flex: 1; width: 0.0625rem; padding: 0.6875rem 0.75rem; border: 1px solid var(--theme-border, #e0e7ef); border-radius: 0.75rem; background: var(--theme-field, white); color: var(--theme-text-secondary, #617087); font-size: 0.65625rem; line-height: 1.5; font-weight: 650; }
@@ -800,7 +800,7 @@
     .journal-editor-footer { flex-wrap: wrap; font-size: 0.5rem; }
     .journal-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .journal-metadata-fields, .journal-card-fields { grid-template-columns: 1fr; }
-    .workspace-card-actions { justify-content: stretch; }.workspace-card-actions > .button { flex: 1; }.workspace-card-actions > .card-delete-confirm { width: 100%; justify-content: flex-end; }
+    .task-card-actions { justify-content: stretch; }.task-card-actions > .button { flex: 1; }.task-card-actions > .card-delete-confirm { width: 100%; justify-content: flex-end; }
     .journal-note-tags { display: none; }
     .storage-alert { margin-left: 0.75rem; margin-right: 0.75rem; }
     .ipad-frame-active { max-width: calc(100vw - 1rem); min-height: calc(100dvh - 1rem); margin: 0.5rem auto; border-width: 8px; border-radius: 2rem; }
