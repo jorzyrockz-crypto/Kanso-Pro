@@ -6,7 +6,7 @@ import { FOCUS_DATE } from '../data'
 import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TypeIcon } from './Common'
-import { NotFoundPage, PageHeader } from './PageHeader'
+import { NotFoundPage } from './PageHeader'
 import { destinationPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from '../lib/navigation'
 import { calendarPeriod, monthScene } from '../lib/months'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
@@ -248,13 +248,6 @@ function JournalWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, stor
   </div>
 }
 
-const pageDetails: Record<Workspace, { description: string }> = {
-  calendar: { description: 'Make space for your plans, and see how your days connect.' },
-  tasks: { description: 'Small steps, clear priorities. A little more room to breathe.' },
-  project: { description: 'Bring the bigger picture into focus, one milestone at a time.' },
-  journal: { description: 'A quiet corner for the thoughts you want to come back to.' },
-}
-
 export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
   page: Workspace
   cards: JourneyCard[]
@@ -269,8 +262,7 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
   if (cardId && !selected) return <NotFoundPage card backTo={WORKSPACE_PATHS[page]} />
   const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate }
 
-  return <main id="main-content" tabIndex={-1} className={`workspace-page workspace-${page}`} aria-labelledby={page === 'calendar' ? undefined : 'page-title'} aria-label={page === 'calendar' ? 'Calendar' : undefined}>
-    {page !== 'calendar' && <PageHeader title={workspaceNames[page]} description={pageDetails[page].description} />}
+  return <main id="main-content" tabIndex={-1} className={`workspace-page workspace-${page}`} aria-label={workspaceNames[page]}>
     <div className="workspace-body" key={`${page}-${cardId ?? 'default'}`}>
       {page === 'calendar' && <CalendarWorkspace {...props} />}
       {page === 'tasks' && <TaskWorkspace {...props} />}

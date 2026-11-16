@@ -62,15 +62,20 @@
   .bottom-nav-link > svg { color: var(--theme-text-secondary, #607d96); }
   .bottom-nav-link.is-active { color: var(--theme-blue, #115d8b); background: var(--theme-blue-soft, #deeffb); font-weight: 800; }
   .bottom-nav-link.is-active > svg { color: var(--theme-blue, #0877b4); stroke-width: 2.1; }
-  .bottom-nav-create { color: #fff; background: var(--theme-action, #294f69); box-shadow: 0 3px 9px rgb(25 61 88 / 15%); font-weight: 800; }
+  .bottom-nav-create { --create-button-background: var(--theme-action, #294f69); --create-button-border: var(--theme-action, #294f69); color: #fff; background: var(--create-button-background); box-shadow: 0 3px 9px rgb(25 61 88 / 15%); font-weight: 800; }
+  /* Match the active workspace's hero treatment so creating feels native to that view. */
+  .bottom-nav-create.is-event { --create-button-background: var(--theme-event-hero, linear-gradient(115deg, #3264db, #0879ad)); --create-button-border: #3264db; }
+  .bottom-nav-create.is-task { --create-button-background: var(--theme-task-hero, linear-gradient(115deg, #07825f, #0a7f7b)); --create-button-border: #07825f; }
+  .bottom-nav-create.is-project { --create-button-background: var(--theme-project-hero, linear-gradient(115deg, #6554d3, #326dd0 65%, #1677a7)); --create-button-border: #6554d3; }
+  .bottom-nav-create.is-note { --create-button-background: var(--theme-note-hero, linear-gradient(110deg, #bb456e, #af652a 70%, #a66224)); --create-button-border: #bb456e; }
   .bottom-nav-create > svg { color: currentColor; }
-  .bottom-nav-create:hover { background: var(--theme-action-hover, #1d405a); }
+  .bottom-nav-create:hover { background: var(--create-button-background); filter: brightness(.93) saturate(1.08); }
   .bottom-nav-link:active { transform: scale(.97); }
   .bottom-nav-link:focus-visible { outline-offset: 2px; }
   @media (hover: hover) {
     .bottom-nav-link:hover { background: var(--theme-blue-soft, #e7f3fb); color: var(--theme-blue, #204d70); }
     .bottom-nav-link.is-active:hover { background: var(--theme-blue-soft, #d4eafb); color: var(--theme-blue, #115d8b); }
-    .bottom-nav-create:hover { background: var(--theme-action-hover, #1d405a); color: #fff; }
+    .bottom-nav-create:hover { background: var(--create-button-background); color: #fff; }
   }
 
   /* The timeline keeps its portrait proportions; other pages use the full canvas. */

@@ -143,10 +143,9 @@ test('preview dialogs browse nearby timeline entries with desktop buttons and to
 })
 
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {
-  for (const [name, path, heading] of [
-    ['Calendar', '/calendar', 'Calendar'], ['Tasks', '/tasks', 'Personal Tasks'],
-    ['Projects', '/projects', 'Projects'], ['Journal', '/journal', 'Journal'],
-    ['Timeline', '/', 'Journey Stream'],
+  for (const [name, path] of [
+    ['Calendar', '/calendar'], ['Tasks', '/tasks'], ['Projects', '/projects'], ['Journal', '/journal'],
+    ['Timeline', '/'],
   ]) {
     const link = navigation(page).getByRole('link', { name, exact: true })
     await expect(link).toHaveAttribute('href', path)
@@ -156,7 +155,7 @@ test('the bottom navigation opens ordinary pages with URLs, active links, titles
     await expect(link).toHaveAttribute('aria-current', 'page')
     await expect(navigation(page).locator('[aria-current="page"]')).toHaveCount(1)
     await expect(content(page)).toHaveCount(1)
-    await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible()
+    await expect(content(page)).toHaveAccessibleName(name)
     await expect(content(page)).toBeFocused()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     expect(await page.evaluate(() => document.body.style.overflow)).toBe('')
