@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, MapPin, Palette, Plus, Users, Zap } from 'lucide-react'
+import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, MapPin, Palette, Plus, School, Users, Zap } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
@@ -80,11 +80,15 @@ function sourceEntryDate(entry: CalendarSourceEntry) {
 }
 
 function CalendarSourceEvent({ entry, source }: { entry: CalendarSourceEntry; source?: CalendarSource }) {
-  return <article className="calendar-source-event" data-source-id={entry.sourceId}>
+  const isSchoolCalendar = source?.id === 'deped-sy-2026-2027'
+  const isLegislated = source?.id === 'deped-legislated-activities'
+  const SourceIcon = isSchoolCalendar ? School : isLegislated ? Landmark : FileText
+  const visualClass = isSchoolCalendar ? 'source-school-calendar' : isLegislated ? 'source-legislated-activity' : 'source-local-memo'
+  return <article className={`calendar-source-event ${visualClass}`} data-source-id={entry.sourceId}>
     <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{source?.shortLabel ?? 'Calendar source'}</span></div>
     <h4>{entry.title}</h4>
     <p>{entry.detail ?? source?.provenance ?? 'Reference date from an enabled calendar source.'}</p>
-    <div className="calendar-source-event-note"><FileText size="0.75rem" aria-hidden="true" />Calendar source · reference only, not a personal card</div>
+    <div className="calendar-source-event-note"><SourceIcon size="0.75rem" aria-hidden="true" />{isLegislated ? 'Legislated annual observance · reference only' : isSchoolCalendar ? 'DepEd school calendar · reference only' : 'Calendar source · reference only, not a personal card'}</div>
   </article>
 }
 

@@ -332,6 +332,15 @@
   .calendar-source-event h4 { margin: 0.5625rem 0 0.3125rem; color: #274662; font-size: 0.875rem; line-height: 1.5; font-weight: 800; letter-spacing: -0.01875rem; }
   .calendar-source-event p { color: #577087; font-size: 0.625rem; line-height: 1.7; }
   .calendar-source-event-note { display: flex; align-items: center; gap: 0.3125rem; margin-top: 0.75rem; padding-top: 0.6875rem; border-top: 1px solid #d5e0ef; color: #597188; font-size: 0.53125rem; line-height: 1.6; font-weight: 650; }
+  .calendar-source-event.source-school-calendar { border-color: #9bc9e8; background: radial-gradient(circle at 92% 14%, rgb(93 179 230 / 21%) 0 0.1875rem, transparent 0.21875rem), radial-gradient(circle at 83% 24%, rgb(93 179 230 / 13%) 0 0.125rem, transparent 0.15625rem), linear-gradient(135deg, #e8f6ff, #fafdff 62%, #e9f3fb); box-shadow: inset 0.3125rem 0 #2875af; }
+  .calendar-source-event.source-school-calendar .calendar-source-event-meta > .badge { border-color: #a9d0e9; background: #d9effc; color: #215a88; }
+  .calendar-source-event.source-school-calendar .calendar-source-event-note { border-color: #c8e2f2; color: #3c6d91; }
+  .calendar-source-event.source-legislated-activity { border-color: #dec58f; background: radial-gradient(circle at 91% 14%, rgb(191 137 45 / 21%) 0 0.1875rem, transparent 0.21875rem), radial-gradient(circle at 83% 24%, rgb(191 137 45 / 13%) 0 0.125rem, transparent 0.15625rem), linear-gradient(135deg, #fff8e8, #fffdf6 62%, #f7edcf); box-shadow: inset 0.3125rem 0 #9b6b21; }
+  .calendar-source-event.source-legislated-activity .calendar-source-event-meta > span:first-child { color: #7d5317; }
+  .calendar-source-event.source-legislated-activity .calendar-source-event-meta > .badge { border-color: #e1c98e; background: #f8e9bd; color: #795019; }
+  .calendar-source-event.source-legislated-activity h4 { color: #674414; }
+  .calendar-source-event.source-legislated-activity p, .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #80663a; }
+  .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #ecdab0; }
   .event-detail-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 0.75rem; color: var(--theme-text-secondary, #5f6f83); font-size: 0.5625rem; }
   .event-detail-meta > span { display: inline-flex; align-items: center; gap: 0.375rem; }
   .event-detail-meta .avatar { width: 1rem; height: 1rem; }

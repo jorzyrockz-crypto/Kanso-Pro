@@ -104,6 +104,14 @@
     :root[data-theme='dark'] .calendar-source-event-meta > .badge { border-color: #4a6684; background: #223d59; color: #c9e3fa; }
     :root[data-theme='dark'] .calendar-source-event p, :root[data-theme='dark'] .calendar-source-event-note { color: #b8c9db; }
     :root[data-theme='dark'] .calendar-source-event-note { border-color: #3a526d; }
+    :root[data-theme='dark'] .calendar-source-event.source-school-calendar { border-color: #3d7198; background: radial-gradient(circle at 91% 14%, rgb(106 191 239 / 19%) 0 0.1875rem, transparent 0.21875rem), linear-gradient(135deg, #18344b, #172c40); box-shadow: inset 0.3125rem 0 #4aa4d8; }
+    :root[data-theme='dark'] .calendar-source-event.source-school-calendar .calendar-source-event-meta > .badge { border-color: #477fa5; background: #1e4864; color: #c3e7fb; }
+    :root[data-theme='dark'] .calendar-source-event.source-school-calendar .calendar-source-event-note { border-color: #365f7c; color: #b5d7eb; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity { border-color: #816a3d; background: radial-gradient(circle at 91% 14%, rgb(225 178 80 / 18%) 0 0.1875rem, transparent 0.21875rem), linear-gradient(135deg, #3d321d, #2c281e); box-shadow: inset 0.3125rem 0 #c79642; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-meta > span:first-child, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity h4 { color: #f2d597; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-meta > .badge { border-color: #836e42; background: #544222; color: #f2d597; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity p, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #dcc69a; }
+    :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #705e38; }
   }
   @media (max-width: 960px) and (min-width: 761px), (max-width: 420px) {
     .appearance-options { gap: 0.5rem; }
