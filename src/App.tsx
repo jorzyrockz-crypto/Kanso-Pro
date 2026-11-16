@@ -248,6 +248,7 @@ export default function App() {
   const timelineRef = useRef<HTMLElement>(null)
   const jumpTarget = useMemo(() => focusCard(state.cards, FOCUS_DATE), [state.cards])
   const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
+  const [pendingToday, setPendingToday] = useState(false)
   const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
   const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
   const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
@@ -323,7 +324,8 @@ export default function App() {
     let frame = 0
     const updateDirection = () => {
       frame = 0
-      const target = jumpTarget && document.getElementById(`card-${jumpTarget.id}`)
+      const target = (jumpTarget && document.getElementById(`card-${jumpTarget.id}`))
+        ?? document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${FOCUS_DATE.slice(0, 7)}"]`)
       const headerBottom = document.querySelector('.stream-header')?.getBoundingClientRect().bottom ?? 0
       const nextDirection = target && target.getBoundingClientRect().bottom < headerBottom ? 'up' : 'down'
       setJumpDirection((current) => current === nextDirection ? current : nextDirection)
@@ -363,6 +365,16 @@ export default function App() {
     })
     return () => cancelAnimationFrame(frame)
   }, [pendingScroll, filter, openGaps, location.pathname, state.cards])
+
+  useEffect(() => {
+    if (!pendingToday || location.pathname !== '/') return
+    const frame = requestAnimationFrame(() => {
+      const month = document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${FOCUS_DATE.slice(0, 7)}"]`)
+      month?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
+      setPendingToday(false)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [entries, filter, location.pathname, pendingToday, timelineMonths])
 
   useEffect(() => {
     if (!highlightId) return
@@ -408,7 +420,11 @@ export default function App() {
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
   const jumpToToday = () => {
-    if (jumpTarget) { setFilter('all'); setPendingScroll(jumpTarget.id) }
+    const focusMonth = FOCUS_DATE.slice(0, 7)
+    setFilter('all')
+    setTimelineWindow((current) => ({ start: focusMonth < current.start ? focusMonth : current.start, end: focusMonth > current.end ? focusMonth : current.end }))
+    if (jumpTarget) setPendingScroll(jumpTarget.id)
+    else setPendingToday(true)
   }
   const changeFilter = (type: Filter) => {
     setFilter(type)
@@ -445,7 +461,7 @@ export default function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
-    {location.pathname === '/' && jumpTarget && <JumpToToday direction={jumpDirection} onJump={jumpToToday} />}
+    {location.pathname === '/' && <JumpToToday direction={jumpDirection} onJump={jumpToToday} />}
     <AppFooter />
     <AboutUpdatesDialog open={aboutUpdatesOpen} onClose={closeAboutUpdates} pwa={pwa} />
     <RouteEffects updateReady={pwa.updateReady && !pwa.coarse} />

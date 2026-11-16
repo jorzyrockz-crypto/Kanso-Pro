@@ -65,6 +65,20 @@ test('timeline boundaries load one month only after an explicit action, never fr
   await expect(page.locator('.month-marker')).toHaveCount(before + 1)
 })
 
+test('Jump to Today remains available when the stream has no personal cards to target', async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  try {
+    await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, cards: [], bezel: false })), STORAGE_KEY)
+    await page.goto('/')
+    await expect(page.getByRole('button', { name: 'Jump to Today', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
+    await expect(page.locator('.month-marker[data-timeline-month="2026-11"]')).toBeVisible()
+  } finally {
+    await context.close()
+  }
+})
+
 test('the verified school calendar starts on, while the Timeline keeps only its useful controls', async ({ page }) => {
   await expect(page.locator('.stream-reference-controls')).not.toContainText('All your pages, connected')
   await page.evaluate((key) => localStorage.removeItem(key), CALENDAR_SOURCES_STORAGE_KEY)
@@ -92,10 +106,15 @@ test('responsive Timeline menus provide styled filters and individual Calendar s
   expect(Math.abs(filterBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
   expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(sourceBox!.x)
   await filterTrigger.click()
-  await page.getByRole('dialog', { name: 'Filter journey cards' }).getByRole('option', { name: 'Tasks', exact: true }).click()
+  const filterMenu = page.getByRole('dialog', { name: 'Filter journey cards' })
+  const filterMenuBox = await filterMenu.boundingBox()
+  expect(filterMenuBox!.width).toBeLessThanOrEqual(190)
+  await filterMenu.getByRole('option', { name: 'Tasks', exact: true }).click()
   await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: Tasks')
   await sourceTrigger.click()
   const sourcesMenu = page.getByRole('dialog', { name: 'Calendar sources' })
+  const sourcesMenuBox = await sourcesMenu.boundingBox()
+  expect(sourcesMenuBox!.width).toBeLessThanOrEqual(304)
   const depEdSource = sourcesMenu.getByRole('checkbox', { name: 'Show DepEd Calendar in Calendar and Timeline', exact: true })
   await expect(depEdSource).toHaveAttribute('aria-checked', 'false')
   await depEdSource.click()

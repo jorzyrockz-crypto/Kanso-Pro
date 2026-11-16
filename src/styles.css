@@ -83,7 +83,7 @@
   .button-jump-today.is-up > svg { transform: translateY(-0.0625rem); }
   .button-jump-today.is-down > svg { transform: translateY(0.0625rem); }
   /* The route-level return control stays clear of the floating primary navigation. */
-  .timeline-jump-today { position: fixed; z-index: 65; left: calc(50% + var(--side-w, 0px) / 2); bottom: calc(var(--bottom-bar-height, 0px) + max(0.75rem, var(--safe-area-bottom, 0px))); min-height: 2.5rem; max-width: calc(100vw - var(--side-w, 0px) - 2rem); padding: 0.5625rem 0.875rem; border-radius: 1.875rem; transform: translateX(-50%); white-space: nowrap; }
+  .timeline-jump-today { position: fixed; z-index: 71; left: calc(50% + var(--side-w, 0px) / 2); bottom: calc(var(--bottom-bar-height, 0px) + max(0.75rem, var(--safe-area-bottom, 0px))); min-height: 2.5rem; max-width: calc(100vw - var(--side-w, 0px) - 2rem); padding: 0.5625rem 0.875rem; border-radius: 1.875rem; transform: translateX(-50%); white-space: nowrap; }
   .timeline-jump-today.button-jump-today:hover { transform: translateX(-50%) translateY(-0.0625rem); }
   .timeline-jump-today.button-jump-today:active { transform: translateX(-50%) scale(.97); }
   .button-quiet { background: var(--theme-blue-soft, #f0f3f7); color: var(--theme-text-secondary, #5c6a7d); }
@@ -695,8 +695,10 @@
     .stream-dropdown { width: 100%; }
     .stream-dropdown-trigger { width: 100%; min-height: 2.5rem; padding: .5rem .5625rem; font-size: .59375rem; }
     .stream-sources-menu .stream-dropdown-trigger { min-width: 0; }
-    .stream-dropdown-panel { right: auto; left: 0; width: min(22rem, calc(100vw - 1.5rem)); max-width: none; }
-    .stream-sources-menu .stream-dropdown-panel { right: 0; left: auto; }
+    /* Keep compact filters close to their trigger; source choices get room without becoming a full-width sheet. */
+    .stream-dropdown-panel { max-width: calc(100vw - 2rem); }
+    .stream-filter-menu .stream-dropdown-panel { right: auto; left: 0; width: max(100%, 11.5rem); }
+    .stream-sources-menu .stream-dropdown-panel { right: 0; left: auto; width: min(19rem, calc(100vw - 2.5rem)); }
     .timeline { padding: 1.625rem 0.75rem 1.5rem; }
     .timeline-spine, .timeline-glow { left: 2.125rem; }
     .day-row { display: flex; flex-direction: column; align-items: stretch; margin-bottom: 1.75rem; }
