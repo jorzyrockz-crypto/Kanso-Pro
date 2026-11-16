@@ -273,54 +273,21 @@ function TimelineMonthEmpty({ month, filter, onCompose }: { month: string; filte
 }
 
 function TimelineBoundary({ direction, month, canLoad, onLoad }: { direction: 'past' | 'future'; month: string; canLoad: boolean; onLoad: () => void }) {
-  const ref = useRef<HTMLElement>(null)
-  const loaded = useRef(false)
-  const pastReady = useRef(typeof window !== 'undefined' && window.scrollY > 96)
+  const loading = useRef(false)
   const load = useCallback(() => {
-    if (!canLoad || loaded.current) return
-    loaded.current = true
+    // Loading is intentional: observing or listening for a fling here could chain through
+    // several months after the person has stopped scrolling.
+    if (!canLoad || loading.current) return
+    loading.current = true
     onLoad()
   }, [canLoad, onLoad])
 
-  useEffect(() => {
-    const element = ref.current
-    if (!element || !canLoad || !('IntersectionObserver' in window)) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && (direction === 'future' || pastReady.current)) load()
-    }, { rootMargin: direction === 'future' ? '280px 0px' : '0px' })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [canLoad, direction, load])
-
-  useEffect(() => {
-    if (direction !== 'past') return
-    let touchStart = 0
-    const rememberScroll = () => { if (window.scrollY > 96) pastReady.current = true }
-    const atTopBoundary = () => window.scrollY <= 2 && (ref.current?.getBoundingClientRect().top ?? Infinity) < window.innerHeight * .8
-    const revealWithWheel = (event: WheelEvent) => { if (event.deltaY < -8 && atTopBoundary()) load() }
-    const rememberTouch = (event: TouchEvent) => { touchStart = event.touches[0]?.clientY ?? 0 }
-    const revealWithPull = (event: TouchEvent) => {
-      const position = event.touches[0]?.clientY ?? touchStart
-      if (position - touchStart > 28 && atTopBoundary()) load()
-    }
-    window.addEventListener('scroll', rememberScroll, { passive: true })
-    window.addEventListener('wheel', revealWithWheel, { passive: true })
-    window.addEventListener('touchstart', rememberTouch, { passive: true })
-    window.addEventListener('touchmove', revealWithPull, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', rememberScroll)
-      window.removeEventListener('wheel', revealWithWheel)
-      window.removeEventListener('touchstart', rememberTouch)
-      window.removeEventListener('touchmove', revealWithPull)
-    }
-  }, [direction, load])
-
   const period = formatDate(`${month}-01`, { month: 'long', year: 'numeric' })
   const earlier = direction === 'past'
-  return <section ref={ref} className={`timeline-boundary timeline-boundary-${direction}`} data-timeline-month={month} aria-label={earlier ? `Load dates before ${period}` : `Load dates after ${period}`}>
+  return <section className={`timeline-boundary timeline-boundary-${direction}`} data-timeline-month={month} aria-label={earlier ? `Load dates before ${period}` : `Load dates after ${period}`}>
     <button type="button" onClick={load} disabled={!canLoad}>
       {earlier ? <ArrowUp size=".875rem" aria-hidden="true" /> : <ArrowDown size=".875rem" aria-hidden="true" />}
-      <span>{canLoad ? `Keep scrolling for ${earlier ? 'earlier' : 'later'} dates` : 'End of the timeline'}</span>
+      <span>{canLoad ? `Load ${earlier ? 'earlier' : 'later'} dates` : 'End of the timeline'}</span>
     </button>
   </section>
 }

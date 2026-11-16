@@ -72,7 +72,7 @@ function HeaderAppearance({ appearance, open, onOpenChange }: { appearance: Appe
   </div>
 }
 
-export function AppHeader({ account, appearance, storageAvailable, onCompose, onSignOut, unread, updateReady, online, artworkVisible = false, titlebar }: { account: AccountController; appearance: AppearanceController; storageAvailable: boolean; onCompose: () => void; onSignOut: () => Promise<void>; unread: number; updateReady: boolean; online: boolean; artworkVisible?: boolean; titlebar?: ReactNode }) {
+export function AppHeader({ account, appearance, storageAvailable, onSignOut, unread, updateReady, online, artworkVisible = false, titlebar }: { account: AccountController; appearance: AppearanceController; storageAvailable: boolean; onSignOut: () => Promise<void>; unread: number; updateReady: boolean; online: boolean; artworkVisible?: boolean; titlebar?: ReactNode }) {
   const ref = useChromeHeight<HTMLElement>('--topbar-height')
   const [openMenu, setOpenMenu] = useState<'appearance' | 'more' | null>(null)
   const setAppearanceOpen = (open: boolean) => setOpenMenu(open ? 'appearance' : null)
@@ -89,7 +89,7 @@ export function AppHeader({ account, appearance, storageAvailable, onCompose, on
       <div className="topbar-actions">
         <HeaderAppearance appearance={appearance} open={openMenu === 'appearance'} onOpenChange={setAppearanceOpen} />
         <NavLink to="/notifications" onClick={event => { if (!confirmNotificationNavigation(event)) event.preventDefault(); else setOpenMenu(null) }} className="notification-bell header-action" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} title="Notifications"><Bell size="1.125rem" aria-hidden="true" />{unread > 0 && <span className="notification-count" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}</NavLink>
-        <MoreMenu open={openMenu === 'more'} onOpenChange={setMoreOpen} updateReady={updateReady} account={account} storageAvailable={storageAvailable} onCompose={onCompose} onSignOut={onSignOut} />
+        <MoreMenu open={openMenu === 'more'} onOpenChange={setMoreOpen} updateReady={updateReady} account={account} storageAvailable={storageAvailable} onSignOut={onSignOut} />
       </div>
     </div>
   </header>

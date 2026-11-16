@@ -67,7 +67,7 @@
   .account-device-panel > .account-backup-note { margin-top: 0.5625rem; color: var(--theme-text-secondary, #5c7689); font-size: 0.5625rem; line-height: 1.9; }
   .account-continue { width: 100%; margin-top: 1.3125rem; }
   .account-identity { display: flex; align-items: center; gap: 0.8125rem; margin-top: 1.625rem; padding-bottom: 1.4375rem; border-bottom: 1px solid var(--theme-border, #e4ecf3); }
-  .account-large-avatar { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 3.375rem; height: 3.375rem; border: 3px solid var(--theme-border, #fff); border-radius: 50%; color: var(--theme-text-primary, #37636e); background: var(--theme-green-soft, #dcefeb); box-shadow: 0 0 0 1px var(--theme-ring, #dce8ed); font-size: 1rem; font-weight: 700; }
+  .account-large-avatar { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 3.375rem; height: 3.375rem; overflow: hidden; border: 3px solid var(--theme-border, #fff); border-radius: 50%; color: var(--theme-text-primary, #37636e); background: var(--theme-green-soft, #dcefeb); box-shadow: 0 0 0 1px var(--theme-ring, #dce8ed); font-size: 1rem; font-weight: 700; }
   .account-identity > div { display: flex; min-width: 0; flex-direction: column; gap: 0.25rem; overflow-wrap: anywhere; }
   .account-identity strong { color: var(--theme-text-primary, #34536d); font-size: 1rem; line-height: 1.5; font-weight: 750; }
   .account-identity span:not(.account-large-avatar) { color: var(--theme-text-secondary, #58758a); font-size: 0.6875rem; line-height: 1.7; }

@@ -14,8 +14,7 @@ const timeline = async (page: Page) => {
   await expect(page).toHaveURL('/')
 }
 const openNewCard = async (page: Page) => {
-  await page.getByRole('button', { name: 'More', exact: true }).click()
-  await page.getByRole('button', { name: 'New card', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('button', { name: 'New card', exact: true }).click()
 }
 const audit = async (page: Page) => {
   const report = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
@@ -49,6 +48,17 @@ test('renders the portrait timeline with Kanso Pro branding, local assets, and n
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(834)
   expect(await page.locator('script[src^="http"], link[href^="http"], img[src^="http"]').count()).toBe(0)
   expect(errors).toEqual([])
+})
+
+test('timeline boundaries load one month only after an explicit action, never from a fast fling', async ({ page }) => {
+  const future = page.locator('.timeline-boundary-future button')
+  await future.scrollIntoViewIfNeeded()
+  const before = await page.locator('.month-marker').count()
+  await page.mouse.wheel(0, 8_000)
+  await expect(page.locator('.month-marker')).toHaveCount(before)
+  await expect(future).toHaveAccessibleName('Load later dates')
+  await future.click()
+  await expect(page.locator('.month-marker')).toHaveCount(before + 1)
 })
 
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {

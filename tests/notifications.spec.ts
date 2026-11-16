@@ -7,8 +7,7 @@ test.use({ timezoneId: 'Asia/Manila' })
 
 const bell = (page: import('@playwright/test').Page) => page.getByRole('link', { name: /^Notifications(?:,|$)/ })
 const openNewCard = async (page: import('@playwright/test').Page) => {
-  await page.getByRole('button', { name: 'More', exact: true }).click()
-  await page.getByRole('button', { name: 'New card', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('button', { name: 'New card', exact: true }).click()
 }
 
 test('no initial flood or permission prompt; due reminders group, badge, link and mark read', async ({ page, context }) => {
@@ -67,8 +66,9 @@ test.describe('touch notification preferences', () => {
     await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
     await page.getByRole('button', { name: 'More', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'New card', exact: true })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'More', exact: true }).getByRole('button', { name: 'New card', exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
+    await expect(page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('button', { name: 'New card', exact: true })).toBeVisible()
     const bounds = await bell(page).boundingBox()
     expect(bounds!.width).toBeGreaterThanOrEqual(44)
     expect(bounds!.height).toBeGreaterThanOrEqual(44)

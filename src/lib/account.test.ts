@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { AccountInputError, accountError, accountInitials, accountMode, accountName, errorCode, validEmail, validName, validPassword } from './account'
+import { AccountInputError, accountError, accountInitials, accountMode, accountName, accountPhotoUrl, errorCode, validEmail, validName, validPassword } from './account'
 import type { AccountUser } from './account'
 
-const user: AccountUser = { uid: 'test-user', displayName: '  Ada Reyes  ', email: 'ada@example.test', emailVerified: false, providers: ['password'] }
+const user: AccountUser = { uid: 'test-user', displayName: '  Ada Reyes  ', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providers: ['password'] }
 
 describe('account input and safe presentation', () => {
   it('only recognizes the three supported account modes', () => {
@@ -25,6 +25,13 @@ describe('account input and safe presentation', () => {
     expect(accountInitials({ ...user, displayName: '🌱 Planner' })).toBe('🌱P')
     expect(accountInitials({ ...user, displayName: null, email: 'ada.reyes@example.test' })).toBe('AR')
     expect(accountInitials({ ...user, displayName: '---', email: null })).toBe('Y')
+  })
+
+  it('uses only secure Firebase profile-photo URLs and otherwise falls back to initials', () => {
+    expect(accountPhotoUrl(user)).toBe('https://profiles.example.test/ada.png')
+    for (const photoURL of [null, '', ' http://profiles.example.test/ada.png ', 'javascript:alert(1)', 'data:image/svg+xml,unsafe', 'not a url']) {
+      expect(accountPhotoUrl({ ...user, photoURL })).toBeNull()
+    }
   })
 
   it('validates and normalizes display names without interpreting markup', () => {

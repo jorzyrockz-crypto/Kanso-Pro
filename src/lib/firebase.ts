@@ -34,7 +34,7 @@ auth.languageCode = 'en'
 
 function snapshot(user: User | null): AccountUser | null {
   return user ? {
-    uid: user.uid, displayName: user.displayName, email: user.email, emailVerified: user.emailVerified,
+    uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL, emailVerified: user.emailVerified,
     providers: [...new Set(user.providerData.map((entry) => entry.providerId))],
   } : null
 }

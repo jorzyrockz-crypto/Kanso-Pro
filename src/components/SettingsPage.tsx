@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { version } from '../../package.json'
 import type { JourneyState } from '../types'
-import { accountInitials, accountName } from '../lib/account'
+import { accountName } from '../lib/account'
 import { SETTINGS_SECTIONS } from '../lib/navigation'
 import { monthScene } from '../lib/months'
 import type { AccountController } from '../lib/useAccount'
@@ -14,6 +14,7 @@ import { DeviceWorkspaceSummary } from './DeviceWorkspace'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
 import { PageHeader } from './PageHeader'
 import { ColorModePicker } from './ColorModePicker'
+import { AccountAvatar } from './AccountAvatar'
 import type { AppearanceController } from '../lib/useAppearance'
 import { KansoMark } from './AppHeader'
 import { PwaSettings } from './PwaSettings'
@@ -122,7 +123,7 @@ export function SettingsPage({ account, state, storageAvailable, appearance, pwa
   }
 
   return <main id="main-content" tabIndex={-1} className="workspace-page settings-page" aria-labelledby="page-title">
-    <PageHeader title="Settings" breadcrumb="Profile & settings" description="A few thoughtful details, to make this space feel like yours." action={<Link className="button settings-back" to="/"><ArrowLeft size="0.875rem" aria-hidden="true" />Back to workspace</Link>} />
+    <PageHeader title="Settings" breadcrumb="User Profile & settings" description="A few thoughtful details, to make this space feel like yours." action={<Link className="button settings-back" to="/"><ArrowLeft size="0.875rem" aria-hidden="true" />Back to workspace</Link>} />
     <div className="settings-layout">
       <aside className="settings-sidebar">
         <span className="eyebrow">Your space</span>
@@ -133,8 +134,8 @@ export function SettingsPage({ account, state, storageAvailable, appearance, pwa
         <div className="settings-device-note"><Laptop size="1.25rem" aria-hidden="true" /><strong>A little space. On this device.</strong><p>Device preferences and cards are shared within this browser profile.</p></div>
       </aside>
       <div className="settings-content">
-        <SettingsSection id="account" title="Profile & account" description="Your identity, separate from the plans on this device.">
-          <div className="settings-identity"><span className="account-large-avatar" aria-hidden="true">{accountInitials(user)}</span><div><strong>{user ? accountName(user) : 'Make yourself at home.'}</strong><span>{user?.email ?? 'You can keep planning without an account.'}</span><small className="settings-status">{user ? <><BadgeCheck size="0.8125rem" aria-hidden="true" />Signed in{user.emailVerified ? ' · Email verified' : ' · Email not yet verified'}</> : phase === 'loading' ? 'Checking account…' : phase === 'error' ? 'Account connection unavailable' : 'Guest workspace'}</small></div></div>
+        <SettingsSection id="account" title="User Profile" description="Your identity, separate from the plans on this device.">
+          <div className="settings-identity"><AccountAvatar user={user} className="account-large-avatar" /><div><strong>{user ? accountName(user) : 'Make yourself at home.'}</strong><span>{user?.email ?? 'You can keep planning without an account.'}</span><small className="settings-status">{user ? <><BadgeCheck size="0.8125rem" aria-hidden="true" />Signed in{user.emailVerified ? ' · Email verified' : ' · Email not yet verified'}</> : phase === 'loading' ? 'Checking account…' : phase === 'error' ? 'Account connection unavailable' : 'Guest workspace'}</small></div></div>
           {phase === 'loading' && <p className="settings-connection-note" role="status">Checking your sign-in. Your device settings are ready to use.</p>}
           {phase === 'error' && <div className="settings-connection-note" role="status"><p>{account.initializationError} Your local settings remain available.</p><button type="button" className="button settings-secondary" onClick={account.retry}>Retry account connection</button></div>}
           <div className="settings-account-actions">{user ? <><p>Manage your display name, email verification, and sign-in security in your account.</p><Link className="button settings-primary" to="/account">Manage account<ArrowRight size="0.875rem" aria-hidden="true" /></Link></> : <><p>Sign in to manage your identity. It won’t upload or lock the cards in this browser.</p><div><Link className="button settings-primary" to="/sign-in">Sign in<ArrowRight size="0.875rem" aria-hidden="true" /></Link><Link className="button settings-secondary" to="/sign-in?mode=create">Create account</Link></div></>}</div>
