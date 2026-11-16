@@ -31,27 +31,31 @@ export function isStarterWorkspace(state: JourneyState): boolean {
  * Cloud owns matching cards. Distinct device-only cards are retained on first Google
  * sign-in, so automatic sync never silently drops a locally created plan.
  */
-export function mergeInitialWorkspace(cloud: JourneyState, local: JourneyState, includeLocal: boolean): JourneyState {
+export function mergeInitialWorkspace(cloud: JourneyState, local: JourneyState, includeLocal: boolean, deletedCardIds: readonly string[] = []): JourneyState {
   if (!includeLocal) return cloud
+  const deleted = new Set(deletedCardIds)
   const cards = new Map(cloud.cards.map((card) => [card.id, card]))
-  for (const card of local.cards) if (!cards.has(card.id)) cards.set(card.id, card)
+  for (const card of local.cards) if (!cards.has(card.id) && !deleted.has(card.id)) cards.set(card.id, card)
   return { ...cloud, cards: [...cards.values()].sort((a, b) => a.id.localeCompare(b.id)) }
 }
 
 export interface WorkspaceChanges {
   bezelChanged: boolean
   cards: JourneyCard[]
+  deletedCardIds: string[]
 }
 
-/** There is no personal-card delete action yet; no remote card is ever removed by sync. */
+/** Changed cards are mirrored individually; deleted cards receive a durable Firestore tombstone. */
 export function workspaceChangesSince(previous: JourneyState, next: JourneyState): WorkspaceChanges {
   const previousCards = new Map(previous.cards.map((card) => [card.id, card]))
+  const nextIds = new Set(next.cards.map((card) => card.id))
   return {
     bezelChanged: previous.bezel !== next.bezel,
     cards: next.cards.filter((card) => {
       const before = previousCards.get(card.id)
       return !before || cardFingerprint(before) !== cardFingerprint(card)
     }),
+    deletedCardIds: [...previousCards.keys()].filter((id) => !nextIds.has(id)),
   }
 }
 

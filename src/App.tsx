@@ -2,11 +2,12 @@ import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, Chevron
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
-import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
+import type { ComposerOptions, Destination, EventCard, Filter, JourneyCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
+import { removeJournalAttachment } from './lib/journalAttachments'
 import { googleSyncUser } from './lib/workspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
 import type { CalendarSource } from './lib/calendarSources'
@@ -188,16 +189,22 @@ function StreamHeader({ calendarSources, count, filter, month, onFilter, onSourc
   </header>
 }
 
-function NewCardPage({ cards, onCancel, onCreate }: {
+function NewCardPage({ cards, onCancel, onCreate, onUpdate }: {
   cards: JourneyCard[]
   onCancel: () => void
   onCreate: (card: JourneyCard) => void
+  onUpdate: (card: EventCard | TaskCard) => void
 }) {
   const location = useLocation()
+  const editId = new URLSearchParams(location.search).get('edit')
+  const candidate = editId ? cards.find((card) => card.id === editId) : undefined
+  const editingCard = candidate?.type === 'event' || candidate?.type === 'task' ? candidate : undefined
+  if (editId && !editingCard) return <main id="main-content" tabIndex={-1} className="create-page" aria-label="Card not found"><NotFoundPage card backTo="/" /></main>
+  const typeLabel = editingCard?.type === 'event' ? 'Event' : editingCard?.type === 'task' ? 'Task' : 'card'
   return <main id="main-content" tabIndex={-1} className="create-page" aria-labelledby="page-title">
-    <PageHeader title="New card" description="An event, a small step, a bigger idea, or a thought worth keeping." />
+    <PageHeader title={editingCard ? `Edit ${typeLabel}` : 'New card'} description={editingCard ? 'Update the details that keep this card useful across your planning space.' : 'An event, a small step, a bigger idea, or a thought worth keeping.'} />
     <button className="text-button return-to-page" onClick={onCancel}><ArrowLeft size="0.8125rem" />Back to your workspace</button>
-    <Composer key={location.key} options={composerOptions(location.search)} cards={cards} onCancel={onCancel} onCreate={onCreate} />
+    <Composer key={location.key} options={composerOptions(location.search)} cards={cards} editingCard={editingCard} onCancel={onCancel} onCreate={onCreate} onUpdate={onUpdate} />
   </main>
 }
 
@@ -436,6 +443,17 @@ export default function App() {
     navigate('/', { replace: true, state: { focusCardId: card.id } })
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
+  const updateJourneyCard = (card: EventCard | TaskCard) => {
+    dispatch({ type: 'update-card', card })
+    navigate(destinationPath({ page: card.type === 'event' ? 'calendar' : 'tasks', cardId: card.id }), { replace: true })
+    setToast({ message: `${card.type === 'event' ? 'Event' : 'Task card'} updated.`, id: Date.now() })
+  }
+  const deleteJourneyCard = (card: JourneyCard) => {
+    dispatch({ type: 'delete-card', id: card.id })
+    if (card.type === 'note' && card.attachment?.kind === 'audio') void removeJournalAttachment(card.attachment.id).catch(() => {})
+    if (card.type === 'note' && card.attachment?.kind === 'image' && card.attachment.storage === 'firestore' && firestoreUserId) void import('./lib/firestore').then(({ deleteJournalImage }) => deleteJournalImage(firestoreUserId, card.attachment!.id)).catch(() => {})
+    setToast({ message: `${card.type === 'event' ? 'Event' : card.type === 'task' ? 'Task card' : 'Journal note'} deleted.`, id: Date.now() })
+  }
   const jumpToToday = () => {
     const currentDate = currentLocalDate()
     const focusMonth = currentDate.slice(0, 7)
@@ -466,16 +484,16 @@ export default function App() {
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
           <StreamHeader calendarSources={calendarSources.sources} count={state.cards.length} filter={filter} month={`${timelineMonth}-01`} onFilter={changeFilter} onSourceEnabled={calendarSources.setSourceEnabled} />
-          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
+          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} journalUserId={firestoreUserId} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} onDeleteCard={deleteJourneyCard} storageAvailable={storageAvailable} journalUserId={firestoreUserId} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
         <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
         <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
-        <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} />} />
+        <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} onUpdate={updateJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -37,6 +37,17 @@ describe('the single journey store', () => {
     expect(parked.cards.find((card) => card.id === 'task-grades')?.backlog).toBe(true)
     expect(parked.cards.find((card) => card.id === 'proj-tos')).toEqual(rolled.cards.find((card) => card.id === 'proj-tos'))
   })
+  it('updates and removes a personal card without changing another card', () => {
+    const state = createInitialState()
+    const event = state.cards.find((card) => card.id === 'evt-oquendo')
+    if (!event || event.type !== 'event') throw new Error('Expected the seeded event')
+    const updated = journeyReducer(state, { type: 'update-card', card: { ...event, title: 'Updated event', location: 'Library' } })
+    expect(updated.cards.find((card) => card.id === event.id)?.title).toBe('Updated event')
+    expect(updated.cards.find((card) => card.id === 'task-grades')).toEqual(state.cards.find((card) => card.id === 'task-grades'))
+    const deleted = journeyReducer(updated, { type: 'delete-card', id: event.id })
+    expect(deleted.cards.some((card) => card.id === event.id)).toBe(false)
+    expect(deleted.cards.find((card) => card.id === 'task-grades')).toEqual(updated.cards.find((card) => card.id === 'task-grades'))
+  })
   it('updates the selected journal note, including deliberate empty strings', () => {
     const state = createInitialState()
     const next = journeyReducer(state, { type: 'update-note', id: 'note-lesson', title: '', body: 'A quiet idea.' })

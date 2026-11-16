@@ -108,7 +108,9 @@ export interface JourneyState {
 
 export type JourneyAction =
   | { type: 'add-card'; card: JourneyCard }
-  | { type: 'update-note'; id: string; title?: string; body?: string; tags?: string[]; category?: string; reminderAt?: string; noteKind?: JournalNoteKind; attachment?: JournalAttachment; updatedAt?: string }
+  | { type: 'update-card'; card: JourneyCard }
+  | { type: 'delete-card'; id: string }
+  | { type: 'update-note'; id: string; title?: string; date?: string; context?: string; body?: string; tags?: string[]; category?: string; reminderAt?: string; noteKind?: JournalNoteKind; attachment?: JournalAttachment; updatedAt?: string }
   | { type: 'update-event-background'; id: string; occasion: OccasionChoice }
   | { type: 'rollover-card'; id: string; date: string }
   | { type: 'backlog-card'; id: string }
@@ -133,9 +135,13 @@ export interface NewCardInput {
   date: string
   context: string
   time: string
+  endTime?: string
   allDay: boolean
   dueDate: string
   details: string
+  owner?: string
+  organization?: string
+  location?: string
   occasion?: OccasionChoice
 }
 

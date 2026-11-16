@@ -36,6 +36,15 @@ describe('Google workspace sync policy', () => {
     expect(mergeInitialWorkspace(cloud, local, false)).toEqual(cloud)
   })
 
+  it('does not resurrect a card that a cloud tombstone removed', () => {
+    const cloud = createInitialState()
+    const local = createInitialState()
+    const deleted = local.cards.find((card) => card.id === 'task-prep')!
+    cloud.cards = cloud.cards.filter((card) => card.id !== deleted.id)
+    const merged = mergeInitialWorkspace(cloud, local, true, [deleted.id])
+    expect(merged.cards.some((card) => card.id === deleted.id)).toBe(false)
+  })
+
   it('writes only changed personal cards and the changed workspace preference', () => {
     const before = createInitialState()
     const after = createInitialState()
@@ -44,6 +53,16 @@ describe('Google workspace sync policy', () => {
     const changes = workspaceChangesSince(before, after)
     expect(changes.bezelChanged).toBe(true)
     expect(changes.cards.map((card) => card.id)).toEqual([after.cards[1].id])
+    expect(changes.deletedCardIds).toEqual([])
+  })
+
+  it('records card removals as durable cloud tombstones', () => {
+    const before = createInitialState()
+    const removed = before.cards.find((card) => card.id === 'task-prep')!
+    const after = { ...before, cards: before.cards.filter((card) => card.id !== removed.id) }
+    const changes = workspaceChangesSince(before, after)
+    expect(changes.cards).toEqual([])
+    expect(changes.deletedCardIds).toEqual([removed.id])
   })
 
   it('uses an order-independent workspace fingerprint and a blank new cloud workspace', () => {

@@ -14,6 +14,7 @@ import { calendarSourceEntriesForMonth } from '../lib/calendarSources'
 import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
 import { TimelineCardPreview } from './TimelineCardPreview'
 import { JournalWorkspace } from './JournalWorkspace'
+import { CardDeleteAction } from './CardDeleteAction'
 
 const workspaceNames: Record<Workspace, string> = {
   calendar: 'Calendar', tasks: 'Personal Tasks', project: 'Projects', journal: 'Journal',
@@ -26,6 +27,7 @@ type WorkspaceProps = {
   dispatch: Dispatch<JourneyAction>
   onCompose: (options?: ComposerOptions) => void
   onNavigate: (destination: Destination) => void
+  onDeleteCard: (card: JourneyCard) => void
 }
 
 function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month }: {
@@ -95,7 +97,7 @@ function timelineSourcePreview(entry: CalendarSourceEntry, source?: CalendarSour
   }
 }
 
-function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose }: WorkspaceProps) {
+function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose, onDeleteCard }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
@@ -155,11 +157,11 @@ function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose
         : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
       {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
     </section>
-    <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
+    <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} onDeleteCard={onDeleteCard} />
   </div>
 }
 
-function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: WorkspaceProps) {
+function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
   const tasks = cards.filter((card): card is TaskCard => card.type === 'task')
   const activeId = cardId ?? 'task-grades'
   const selected = tasks.find((card) => card.id === activeId) ?? tasks[0]
@@ -169,6 +171,7 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Works
     <WorkspaceHero type="task" eyebrow="Personal Task & Reminder Hub" title="Daily Action & Reminders" stat={{ label: 'Completion', value: `${percent}%` }}>
       One small action at a time. Every check moves your timeline forward.
     </WorkspaceHero>
+    <div className="workspace-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}>Edit task</Link><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
     <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
       {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>
@@ -221,20 +224,21 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
   </div>
 }
 
-export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable, journalUserId }: {
+export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, onDeleteCard, storageAvailable, journalUserId }: {
   page: Workspace
   cards: JourneyCard[]
   calendarSources: CalendarSource[]
   dispatch: Dispatch<JourneyAction>
   onNavigate: (destination: Destination) => void
   onCompose: (options?: ComposerOptions) => void
+  onDeleteCard: (card: JourneyCard) => void
   storageAvailable: boolean
   journalUserId: string | null
 }) {
   const { cardId } = useParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
   if (cardId && !selected) return <NotFoundPage card backTo={WORKSPACE_PATHS[page]} />
-  const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate }
+  const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate, onDeleteCard }
 
   return <main id="main-content" tabIndex={-1} className={`workspace-page workspace-${page}`} aria-label={workspaceNames[page]}>
     <div className="workspace-body" key={`${page}-${cardId ?? 'default'}`}>
