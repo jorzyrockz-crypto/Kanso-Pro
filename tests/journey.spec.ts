@@ -106,6 +106,15 @@ test('responsive Timeline menus provide styled filters and individual Calendar s
   await expect(sourcesMenu).not.toBeVisible()
 })
 
+test('Calendar merges its page identity and monthly schedule into one hero', async ({ page }) => {
+  await navigation(page).getByRole('link', { name: 'Calendar', exact: true }).click()
+  const hero = page.locator('.month-calendar-hero')
+  await expect(page.locator('.workspace-calendar > .page-header')).toHaveCount(0)
+  await expect(hero.getByRole('heading', { level: 1, name: 'Calendar', exact: true })).toBeVisible()
+  await expect(hero.getByRole('heading', { level: 2, name: 'November 2026 Schedule', exact: true })).toBeVisible()
+  await expect(hero.getByRole('button', { name: 'New event', exact: true })).toBeVisible()
+})
+
 test('preview dialogs browse nearby timeline entries with desktop buttons and touch swipes', async ({ page }) => {
   await card(page, 'evt-holiday').locator('.card-open').click({ position: { x: 10, y: 10 } })
   const dialog = page.getByRole('dialog')
