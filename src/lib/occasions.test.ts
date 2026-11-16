@@ -24,7 +24,11 @@ describe('occasion suggestions', () => {
     ['New Year’s Eve', 'celebration'], ['Family vacation', 'holiday'], ['Christmas break', 'holiday'], ['Eid gathering', 'holiday'],
     ['All Souls’ Day (Additional Special Non-Working Holiday)', 'remembrance'], ["All Saints' Day", 'remembrance'],
     ['Undas', 'remembrance'], ['Memorial gathering', 'remembrance'], ['Remembrance anniversary', 'remembrance'],
-    ['Faculty Alignment & Curriculum Sync', 'none'], ['Prepare the birthdaycard template', 'none'], ['', 'none'],
+    ['Faculty Alignment & Curriculum Sync', 'school'], ['World Teachers’ Day', 'school'],
+    ['Reading Festival & Literacy Booths', 'learning'], ['Araw ng Pagbasa', 'learning'],
+    ['Wellness and Nutrition Day', 'wellbeing'], ['Brigada Eskwela outreach', 'community'],
+    ['Coastal Clean-up & Climate Action', 'environment'], ['Buwan ng Wika program', 'culture'],
+    ['Palarong Pambansa practice', 'sports'], ['Prepare the birthdaycard template', 'none'], ['', 'none'],
   ] as const)('suggests an appropriate theme for %s', (title, expected) => {
     expect(suggestOccasion(title)).toBe(expected)
   })
@@ -43,14 +47,14 @@ describe('occasion suggestions', () => {
   })
 
   it('never overrides a manual selection or a deliberate no-illustration choice', () => {
-    for (const occasion of ['none', 'birthday', 'celebration', 'holiday', 'remembrance'] as const) {
+    for (const occasion of ['none', 'birthday', 'celebration', 'holiday', 'remembrance', 'school', 'learning', 'wellbeing', 'community', 'environment', 'culture', 'sports'] as const) {
       expect(resolveOccasion({ title: 'A birthday party', holiday: true, occasion })).toBe(occasion)
     }
   })
 
-  it('only accepts the six local choices and gives each theme a readable label', () => {
-    expect(OCCASION_OPTIONS).toHaveLength(6)
-    expect(new Set(OCCASION_OPTIONS.map((option) => option.value)).size).toBe(6)
+  it('only accepts the supported local choices and gives each theme a readable label', () => {
+    expect(OCCASION_OPTIONS).toHaveLength(13)
+    expect(new Set(OCCASION_OPTIONS.map((option) => option.value)).size).toBe(13)
     for (const { value } of OCCASION_OPTIONS) expect(isOccasionChoice(value)).toBe(true)
     for (const value of [undefined, null, 0, true, {}, [], 'Birthday', 'custom', '__proto__', '<svg>']) {
       expect(isOccasionChoice(value)).toBe(false)

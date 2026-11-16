@@ -17,7 +17,7 @@ export function EventThemePicker({ value, title, holiday = false, onChange, comp
   const label = occasionLabel(theme)
   return <fieldset className={`occasion-picker ${compact ? 'occasion-picker-compact' : ''}`} aria-describedby={`${id}-hint`}>
     <legend><Palette size="0.875rem" />Occasion background</legend>
-    <p className="occasion-picker-hint" id={`${id}-hint`}>Let the title suggest a look, pick your own, or leave the illustration off.</p>
+    <p className="occasion-picker-hint" id={`${id}-hint`}>Let the title suggest a look, choose a DepEd-inspired activity theme, or leave the illustration off.</p>
     <div className="occasion-options">{OCCASION_OPTIONS.map((option) => <label className={`occasion-option ${value === option.value ? 'is-selected' : ''}`} key={option.value}>
       <input type="radio" name={`occasion-${id}`} value={option.value} aria-label={option.label} checked={value === option.value} onChange={() => onChange(option.value)} />
       <span className={`occasion-swatch swatch-${option.value}`} aria-hidden="true">

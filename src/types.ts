@@ -2,7 +2,7 @@ export type CardType = 'event' | 'task' | 'project' | 'note'
 export type Filter = 'all' | CardType
 export type Workspace = 'calendar' | 'tasks' | 'project' | 'journal'
 export type Side = 'left' | 'right'
-export type OccasionTheme = 'birthday' | 'celebration' | 'holiday' | 'remembrance'
+export type OccasionTheme = 'birthday' | 'celebration' | 'holiday' | 'remembrance' | 'school' | 'learning' | 'wellbeing' | 'community' | 'environment' | 'culture' | 'sports'
 export type OccasionChoice = 'auto' | 'none' | OccasionTheme
 
 export interface ChecklistItem {
