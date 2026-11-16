@@ -60,13 +60,13 @@
 
   /* About, releases, and update controls share one calm surface wherever they are opened. */
   .about-updates-backdrop { position: fixed; z-index: 140; inset: 0; display: grid; place-items: center; padding: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); overflow-y: auto; overscroll-behavior: contain; background: rgb(8 23 39 / 58%); backdrop-filter: blur(.75rem) saturate(.9); -webkit-backdrop-filter: blur(.75rem) saturate(.9); }
-  .about-updates-dialog { width: min(100%, 44rem); max-height: min(52rem, calc(100dvh - 2.5rem)); overflow: hidden; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.5rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); box-shadow: 0 1.5rem 5rem rgb(4 20 36 / 38%); }
-  .about-updates-banner { position: relative; overflow: hidden; height: clamp(9rem, 25vw, 13.75rem); border-bottom: 1px solid var(--theme-border, #d4e5ed); background: #122e76; }
+  .about-updates-dialog { display: flex; width: min(100%, 44rem); max-height: min(52rem, calc(100dvh - 2.5rem)); flex-direction: column; overflow: hidden; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.5rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); box-shadow: 0 1.5rem 5rem rgb(4 20 36 / 38%); }
+  .about-updates-banner { position: relative; flex: 0 0 auto; overflow: hidden; width: 100%; aspect-ratio: 1600 / 893; border-bottom: 1px solid var(--theme-border, #d4e5ed); background: #122e76; }
   .about-updates-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(7 24 54 / 22%), transparent 54%); pointer-events: none; }
-  .about-updates-banner img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 45%; }
+  .about-updates-banner img { display: block; width: 100%; height: auto; object-fit: contain; }
   .about-updates-close { position: absolute; z-index: 1; top: .875rem; right: .875rem; display: grid; place-items: center; width: 2.375rem; height: 2.375rem; border: 1px solid rgb(255 255 255 / 64%); border-radius: 50%; background: rgb(8 24 42 / 54%); color: #fff; box-shadow: 0 .25rem .75rem rgb(4 15 30 / 18%); backdrop-filter: blur(.375rem); }
   .about-updates-close:hover { background: rgb(8 24 42 / 76%); transform: scale(1.04); }
-  .about-updates-body { max-height: calc(min(52rem, 100dvh - 2.5rem) - clamp(9rem, 25vw, 13.75rem)); overflow-y: auto; overscroll-behavior: contain; padding: 1.5rem; }
+  .about-updates-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1.5rem; }
   .about-updates-intro { max-width: 36rem; }
   .about-overline, .about-section-label { display: block; color: var(--theme-blue, #205c7f); font-size: .59375rem; font-weight: 800; letter-spacing: .075rem; text-transform: uppercase; }
   .about-updates-intro h2 { margin-top: .35rem; color: var(--theme-text-primary, #294b63); font-family: var(--serif); font-size: clamp(1.875rem, 4vw, 2.5rem); font-weight: 500; letter-spacing: -.04rem; line-height: 1.08; }
@@ -99,15 +99,15 @@
   .about-share-action, .about-github-action { min-height: 2.625rem; border-color: var(--theme-border, #d4e5ed); background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); }
   .about-share-action:hover, .about-github-action:hover { border-color: var(--theme-border-strong, #b9d5e4); background: var(--theme-surface-muted, #f4faff); }
   .about-github-action { margin-left: auto; }
-  .whats-new-hero-card { display: grid; grid-template-columns: minmax(12rem, .9fr) minmax(0, 1.1fr); overflow: hidden; margin-bottom: 1.25rem; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.25rem; background: var(--theme-surface, #fff); box-shadow: var(--card-shadow); }
-  .whats-new-hero-card > img { width: 100%; height: 100%; min-height: 14rem; object-fit: cover; object-position: center; }
+  .whats-new-hero-card { overflow: hidden; margin-bottom: 1.25rem; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.25rem; background: var(--theme-surface, #fff); box-shadow: var(--card-shadow); }
+  .whats-new-hero-card > img { display: block; width: 100%; height: auto; aspect-ratio: 1600 / 893; object-fit: contain; background: #122e76; }
   .whats-new-hero-card > div { padding: 1.5rem; }
   .whats-new-hero-card h2 { margin-top: .5rem; color: var(--theme-text-primary, #294b63); font-family: var(--serif); font-size: 2rem; font-weight: 500; letter-spacing: -.03rem; line-height: 1.1; }
   .whats-new-hero-card p { margin-top: .625rem; color: var(--theme-text-secondary, #526f83); font-size: .6875rem; line-height: 1.85; }
   .whats-new-hero-card .button { margin-top: 1rem; }
   .about-settings-launcher { display: grid; grid-template-columns: 8.25rem minmax(0, 1fr); width: 100%; overflow: hidden; margin-bottom: 1.125rem; padding: 0; border: 1px solid var(--theme-border, #cbdfea); border-radius: .9375rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); text-align: left; }
   .about-settings-launcher:hover { border-color: var(--theme-border-strong, #9ac5df); box-shadow: var(--card-shadow); transform: translateY(-1px); }
-  .about-settings-launcher > img { width: 100%; height: 100%; min-height: 6.875rem; object-fit: cover; object-position: center; }
+  .about-settings-launcher > img { align-self: center; width: 100%; height: auto; aspect-ratio: 1600 / 893; object-fit: contain; background: #122e76; }
   .about-settings-launcher > span { display: grid; align-content: center; gap: .25rem; min-width: 0; padding: .875rem 1rem; }
   .about-settings-launcher small { color: var(--theme-blue, #205c7f); font-size: .5625rem; font-weight: 800; letter-spacing: .05rem; text-transform: uppercase; }
   .about-settings-launcher strong { font-size: .75rem; line-height: 1.6; }
@@ -129,14 +129,11 @@
   @media (max-width: 640px) {
     .about-updates-backdrop { align-items: end; padding: 2rem 0 0; }
     .about-updates-dialog { width: 100%; max-height: calc(100dvh - 2rem); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 1.375rem 1.375rem 0 0; }
-    .about-updates-banner { height: clamp(8rem, 33vw, 10.75rem); }
-    .about-updates-body { max-height: calc(100dvh - 2rem - clamp(8rem, 33vw, 10.75rem)); padding: 1.25rem max(1.125rem, env(safe-area-inset-right)) max(1.375rem, env(safe-area-inset-bottom)) max(1.125rem, env(safe-area-inset-left)); }
+    .about-updates-body { padding: 1.25rem max(1.125rem, env(safe-area-inset-right)) max(1.375rem, env(safe-area-inset-bottom)) max(1.125rem, env(safe-area-inset-left)); }
     .about-update-status { grid-template-columns: auto minmax(0, 1fr); }
     .about-update-action { grid-column: 1 / -1; width: 100%; }
     .about-updates-actions { display: grid; grid-template-columns: 1fr 1fr; }
     .about-share-action, .about-github-action { width: 100%; margin-left: 0; }
-    .whats-new-hero-card { grid-template-columns: 1fr; }
-    .whats-new-hero-card > img { min-height: 9.5rem; max-height: 12rem; }
   }
   @media (max-width: 500px) {
     .topbar-inner { gap: .375rem; }
@@ -146,7 +143,6 @@
     .notification-inbox, .notification-preferences { padding: 1.125rem; }
     .app-update-banner { gap: .25rem; }
     .about-settings-launcher { grid-template-columns: 6.75rem minmax(0, 1fr); }
-    .about-settings-launcher > img { min-height: 6.25rem; }
   }
   @media (hover: hover) { .notification-bell:hover { background: var(--theme-blue-soft, #eaf4fa); } }
   @media (forced-colors: active) { .notification-count { background: Highlight; color: HighlightText; } .notification-item.is-unread > a { outline: 1px solid Highlight; } }
