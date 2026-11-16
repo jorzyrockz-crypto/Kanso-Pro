@@ -15,6 +15,15 @@ export interface CalendarSourceEntry {
   detail?: string
 }
 
+export type CalendarRecurringRule =
+  | { id: string; title: string; month: number; kind: 'month'; detail?: string }
+  | { id: string; title: string; month: number; kind: 'date'; day: number; detail?: string }
+  | { id: string; title: string; month: number; kind: 'range'; startDay: number; endDay: number; detail?: string }
+  | { id: string; title: string; month: number; kind: 'week'; week: 1 | 2 | 3 | 4 | 'last'; detail?: string }
+  | { id: string; title: string; month: number; kind: 'nth-weekday'; nth: 1 | 2 | 3 | 4 | 5; weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6; detail?: string }
+  | { id: string; title: string; month: number; kind: 'week-containing'; day: number; detail?: string }
+  | { id: string; title: string; kind: 'cross-month-range'; startMonth: number; startDay: number; endMonth: number; endDay: number; detail?: string }
+
 export interface CalendarSource {
   id: string
   label: string
@@ -24,6 +33,7 @@ export interface CalendarSource {
   reference: string
   imported: boolean
   entries: CalendarSourceEntry[]
+  recurringRules?: CalendarRecurringRule[]
 }
 
 interface StoredLocalSource {
@@ -38,6 +48,7 @@ interface StoredLocalSource {
 interface CalendarSourcePreferences {
   version: 1
   depedEnabled: boolean
+  legislatedEnabled: boolean
   localSources: StoredLocalSource[]
 }
 
@@ -48,9 +59,9 @@ export interface MemoImportResult {
 
 export interface CalendarSourcesController {
   sources: CalendarSource[]
-  entries: CalendarSourceEntry[]
   storageAvailable: boolean
   setDepEdEnabled: (enabled: boolean) => void
+  setLegislatedEnabled: (enabled: boolean) => void
   setSourceEnabled: (sourceId: string, enabled: boolean) => void
   removeSource: (sourceId: string) => void
   importMemo: (file: File) => Promise<MemoImportResult>
@@ -89,16 +100,23 @@ export function parseCalendarSourcePreferences(raw: string | null): CalendarSour
     const value: unknown = JSON.parse(raw)
     if (!value || typeof value !== 'object') return null
     const data = value as Record<string, unknown>
-    if (data.version !== 1 || typeof data.depedEnabled !== 'boolean' || !Array.isArray(data.localSources)
-      || data.localSources.length > MAX_IMPORTED_SOURCES || !data.localSources.every(isStoredLocalSource)) return null
-    return data as unknown as CalendarSourcePreferences
+    if (data.version !== 1 || typeof data.depedEnabled !== 'boolean'
+      || (data.legislatedEnabled !== undefined && typeof data.legislatedEnabled !== 'boolean')
+      || !Array.isArray(data.localSources) || data.localSources.length > MAX_IMPORTED_SOURCES
+      || !data.localSources.every(isStoredLocalSource)) return null
+    return {
+      version: 1,
+      depedEnabled: data.depedEnabled,
+      legislatedEnabled: data.legislatedEnabled === true,
+      localSources: data.localSources,
+    }
   } catch {
     return null
   }
 }
 
 function initialPreferences(): CalendarSourcePreferences {
-  return { version: 1, depedEnabled: false, localSources: [] }
+  return { version: 1, depedEnabled: false, legislatedEnabled: false, localSources: [] }
 }
 
 function sourceFromLocal(source: StoredLocalSource): CalendarSource {
@@ -112,6 +130,56 @@ function sourceFromLocal(source: StoredLocalSource): CalendarSource {
     imported: true,
     entries: source.entries,
   }
+}
+
+function daysInMonth(year: number, month: number) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+function dateFor(year: number, month: number, day: number) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function recurringEntry(sourceId: string, rule: CalendarRecurringRule, year: number, date: string, endDate?: string): CalendarSourceEntry {
+  return { id: `${sourceId}-${rule.id}-${year}`, sourceId, title: rule.title, date, ...(endDate ? { endDate } : {}), ...(rule.detail ? { detail: rule.detail } : {}) }
+}
+
+function entriesForRuleInMonth(sourceId: string, rule: CalendarRecurringRule, year: number, month: number): CalendarSourceEntry[] {
+  if (rule.kind === 'cross-month-range') {
+    if (month !== rule.startMonth && month !== rule.endMonth) return []
+    const crossesYear = rule.endMonth < rule.startMonth
+    const startYear = crossesYear && month === rule.endMonth ? year - 1 : year
+    const endYear = crossesYear ? startYear + 1 : startYear
+    return [recurringEntry(sourceId, rule, startYear, dateFor(startYear, rule.startMonth, rule.startDay), dateFor(endYear, rule.endMonth, rule.endDay))]
+  }
+  if (rule.month !== month) return []
+  const monthEnd = daysInMonth(year, month)
+  if (rule.kind === 'month') return [recurringEntry(sourceId, rule, year, dateFor(year, month, 1), dateFor(year, month, monthEnd))]
+  if (rule.kind === 'date') return [recurringEntry(sourceId, rule, year, dateFor(year, month, rule.day))]
+  if (rule.kind === 'range') return [recurringEntry(sourceId, rule, year, dateFor(year, month, rule.startDay), dateFor(year, month, Math.min(rule.endDay, monthEnd)))]
+  if (rule.kind === 'week') {
+    const start = rule.week === 'last' ? Math.max(1, monthEnd - 6) : (rule.week - 1) * 7 + 1
+    const end = rule.week === 'last' ? monthEnd : Math.min(monthEnd, start + 6)
+    return [recurringEntry(sourceId, rule, year, dateFor(year, month, start), dateFor(year, month, end))]
+  }
+  if (rule.kind === 'nth-weekday') {
+    const firstWeekday = new Date(Date.UTC(year, month - 1, 1)).getUTCDay()
+    const day = 1 + ((rule.weekday - firstWeekday + 7) % 7) + (rule.nth - 1) * 7
+    return day <= monthEnd ? [recurringEntry(sourceId, rule, year, dateFor(year, month, day))] : []
+  }
+  const weekday = new Date(Date.UTC(year, month - 1, rule.day)).getUTCDay()
+  const start = Math.max(1, rule.day - ((weekday + 6) % 7))
+  const end = Math.min(monthEnd, start + 6)
+  return [recurringEntry(sourceId, rule, year, dateFor(year, month, start), dateFor(year, month, end))]
+}
+
+/** Returns enabled static and permanent-recurring source entries that overlap a calendar month. */
+export function calendarSourceEntriesForMonth(sources: CalendarSource[], month: string): CalendarSourceEntry[] {
+  const year = Number(month.slice(0, 4))
+  return sources.filter((source) => source.enabled).flatMap((source) => [
+    ...source.entries.filter((entry) => entry.date.slice(0, 7) <= month && (entry.endDate ?? entry.date).slice(0, 7) >= month),
+    ...(source.recurringRules ?? []).flatMap((rule) => entriesForRuleInMonth(source.id, rule, year, Number(month.slice(5, 7)))),
+  ])
 }
 
 /**
@@ -211,7 +279,7 @@ function safeName(fileName: string) {
   return fileName.replace(/\.pdf$/i, '').replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 150) || 'Local memorandum'
 }
 
-export function useCalendarSources(depedEntries: CalendarSourceEntry[]): CalendarSourcesController {
+export function useCalendarSources(depedEntries: CalendarSourceEntry[], legislatedRules: CalendarRecurringRule[]): CalendarSourcesController {
   const [preferences, setPreferences] = useState<CalendarSourcePreferences>(() => {
     try { return parseCalendarSourcePreferences(localStorage.getItem(CALENDAR_SOURCES_STORAGE_KEY)) ?? initialPreferences() }
     catch { return initialPreferences() }
@@ -248,15 +316,27 @@ export function useCalendarSources(depedEntries: CalendarSourceEntry[]): Calenda
       imported: false,
       entries: depedEntries,
     },
+    {
+      id: 'deped-legislated-activities',
+      label: 'Legislated activities & celebrations',
+      shortLabel: 'DepEd observance',
+      enabled: preferences.legislatedEnabled,
+      provenance: 'Verified from DepEd Order No. 009, s. 2026, Annex D (pp. 29–55).',
+      reference: 'Calendar of Legislated Activities and Celebrations; recurring rules apply every year.',
+      imported: false,
+      entries: [],
+      recurringRules: legislatedRules,
+    },
     ...preferences.localSources.map(sourceFromLocal),
-  ], [depedEntries, preferences])
+  ], [depedEntries, legislatedRules, preferences])
 
-  const entries = useMemo(() => sources.filter((source) => source.enabled).flatMap((source) => source.entries), [sources])
   const setDepEdEnabled = useCallback((enabled: boolean) => setPreferences((current) => ({ ...current, depedEnabled: enabled })), [])
+  const setLegislatedEnabled = useCallback((enabled: boolean) => setPreferences((current) => ({ ...current, legislatedEnabled: enabled })), [])
   const setSourceEnabled = useCallback((sourceId: string, enabled: boolean) => {
     if (sourceId === 'deped-sy-2026-2027') { setDepEdEnabled(enabled); return }
+    if (sourceId === 'deped-legislated-activities') { setLegislatedEnabled(enabled); return }
     setPreferences((current) => ({ ...current, localSources: current.localSources.map((source) => source.id === sourceId ? { ...source, enabled } : source) }))
-  }, [setDepEdEnabled])
+  }, [setDepEdEnabled, setLegislatedEnabled])
   const removeSource = useCallback((sourceId: string) => {
     setPreferences((current) => ({ ...current, localSources: current.localSources.filter((source) => source.id !== sourceId) }))
   }, [])
@@ -281,5 +361,5 @@ export function useCalendarSources(depedEntries: CalendarSourceEntry[]): Calenda
     return { source, message: `${parsedEntries.length} dated ${parsedEntries.length === 1 ? 'entry' : 'entries'} were read locally and added to Calendar.` }
   }, [])
 
-  return { sources, entries, storageAvailable, setDepEdEnabled, setSourceEnabled, removeSource, importMemo }
+  return { sources, storageAvailable, setDepEdEnabled, setLegislatedEnabled, setSourceEnabled, removeSource, importMemo }
 }

@@ -35,8 +35,11 @@ function SettingsSection({ id, title, description, children }: { id: typeof SETT
 
 function CalendarSourceSwitch({ source, onChange }: { source: CalendarSource; onChange: (enabled: boolean) => void }) {
   const controlId = `calendar-source-${source.id}`
+  const sourceSummary = source.recurringRules
+    ? `${source.recurringRules.length} permanent recurring observances`
+    : `${source.entries.length} ${source.imported ? 'extracted' : 'verified'} dated ${source.entries.length === 1 ? 'entry' : 'entries'}`
   return <div className="calendar-source-switch-row">
-    <div><strong>{source.label}</strong><span>{source.entries.length} {source.imported ? 'extracted' : 'verified'} dated {source.entries.length === 1 ? 'entry' : 'entries'}</span></div>
+    <div><strong>{source.label}</strong><span>{sourceSummary}</span></div>
     <button type="button" id={controlId} className="ios-switch" role="switch" aria-checked={source.enabled} aria-label={`${source.enabled ? 'Hide' : 'Show'} ${source.label} in Calendar`} onClick={() => onChange(!source.enabled)}>
       <span aria-hidden="true" />
       <span className="sr-only">{source.enabled ? 'Shown in Calendar' : 'Hidden from Calendar'}</span>
@@ -49,6 +52,7 @@ function CalendarSourcesSettings({ calendarSources }: { calendarSources: Calenda
   const [importing, setImporting] = useState(false)
   const [feedback, setFeedback] = useState<{ error: boolean; message: string } | null>(null)
   const depEd = calendarSources.sources.find((source) => source.id === 'deped-sy-2026-2027')
+  const legislated = calendarSources.sources.find((source) => source.id === 'deped-legislated-activities')
   const localSources = calendarSources.sources.filter((source) => source.imported)
 
   const chooseMemo = () => inputRef.current?.click()
@@ -74,6 +78,13 @@ function CalendarSourcesSettings({ calendarSources }: { calendarSources: Calenda
       <p>Three-term dates from the supplied memorandum, kept separate from your personal event cards.</p>
       <CalendarSourceSwitch source={depEd} onChange={calendarSources.setDepEdEnabled} />
       <div className="calendar-source-provenance"><FileText size="0.875rem" aria-hidden="true" /><span><strong>Source:</strong> {depEd.provenance} {depEd.reference}</span></div>
+    </div>}
+
+    {legislated && <div className="calendar-source-card calendar-source-legislated">
+      <div className="calendar-source-card-heading"><span className="calendar-source-mark"><CalendarDays size="1rem" aria-hidden="true" /></span><div><span className="calendar-source-kicker">Permanent calendar source</span><h3>Legislated activities & celebrations</h3></div></div>
+      <p>Annual observances recur in every year you browse, while remaining separate from your plans and the school-term schedule.</p>
+      <CalendarSourceSwitch source={legislated} onChange={calendarSources.setLegislatedEnabled} />
+      <div className="calendar-source-provenance"><FileText size="0.875rem" aria-hidden="true" /><span><strong>Source:</strong> {legislated.provenance} {legislated.reference}</span></div>
     </div>}
 
     <div className="calendar-import-panel">

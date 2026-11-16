@@ -72,6 +72,8 @@
   .settings-preference-status .save-indicator { font-size: 0.625rem; }
   .settings-calendar > .calendar-source-card { margin-top: 1.4375rem; }
   .calendar-source-card { padding: 1.125rem; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1rem; background: linear-gradient(135deg, var(--theme-surface-muted, #f5fbff), var(--theme-surface, #fff)); }
+  .calendar-source-card + .calendar-source-card { margin-top: 0.75rem; }
+  .calendar-source-legislated .calendar-source-mark { background: #5b4b8a; box-shadow: 0 3px 8px rgb(91 75 138 / 18%); }
   .calendar-source-card-heading { display: flex; align-items: center; gap: 0.6875rem; }
   .calendar-source-mark { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 2.125rem; height: 2.125rem; border-radius: 0.75rem; background: #173b75; color: #fff; box-shadow: 0 3px 8px rgb(23 59 117 / 18%); }
   .calendar-source-kicker { display: block; color: var(--theme-text-secondary, #587487); font-size: 0.53125rem; font-weight: 750; letter-spacing: .05rem; text-transform: uppercase; }

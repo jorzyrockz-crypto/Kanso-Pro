@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { DEPED_LEGISLATED_ACTIVITY_RULES } from '../data/depedLegislatedActivities'
 import { DEPED_SY_2026_2027_ENTRIES } from '../data/depedSchoolCalendar2026'
-import { parseCalendarSourcePreferences, parseMemoCalendarText } from './calendarSources'
+import { calendarSourceEntriesForMonth, parseCalendarSourcePreferences, parseMemoCalendarText } from './calendarSources'
 
 describe('calendar sources', () => {
   it('keeps the verified DepEd calendar as separate source entries', () => {
@@ -10,6 +11,24 @@ describe('calendar sources', () => {
       expect.objectContaining({ sourceId: 'deped-sy-2026-2027', date: '2027-04-08', title: 'PTA meeting, distribution of report cards, and end of Term 3' }),
     ]))
     expect(DEPED_SY_2026_2027_ENTRIES.every((entry) => !('type' in entry))).toBe(true)
+  })
+
+  it('expands Annex D observances for every year without converting them to cards', () => {
+    const source = {
+      id: 'deped-legislated-activities', label: 'Legislated activities', shortLabel: 'DepEd observance', enabled: true,
+      provenance: 'Annex D', reference: 'Calendar of Legislated Activities and Celebrations', imported: false,
+      entries: [], recurringRules: DEPED_LEGISLATED_ACTIVITY_RULES,
+    }
+    const october2026 = calendarSourceEntriesForMonth([source], '2026-10')
+    const october2031 = calendarSourceEntriesForMonth([source], '2031-10')
+    expect(october2026).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: 'World Teachers’ Day', date: '2026-10-05' }),
+      expect.objectContaining({ title: 'National Teachers’ Month', date: '2026-09-05', endDate: '2026-10-05' }),
+    ]))
+    expect(october2031).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: 'World Teachers’ Day', date: '2031-10-05' }),
+      expect.objectContaining({ title: 'National Teachers’ Month', date: '2031-09-05', endDate: '2031-10-05' }),
+    ]))
   })
 
   it('reads date-led and month-headed table text without retaining a PDF', () => {
@@ -31,6 +50,8 @@ describe('calendar sources', () => {
       }],
     })
     expect(parseCalendarSourcePreferences(raw)?.localSources[0]?.entries[0]?.title).toBe('Opening Block')
+    expect(parseCalendarSourcePreferences(raw)?.legislatedEnabled).toBe(false)
+    expect(parseCalendarSourcePreferences(JSON.stringify({ ...JSON.parse(raw), legislatedEnabled: true }))?.legislatedEnabled).toBe(true)
     expect(parseCalendarSourcePreferences(JSON.stringify({ version: 1, depedEnabled: true, localSources: [{ id: 'memo-1', entries: [] }] }))).toBeNull()
   })
 })

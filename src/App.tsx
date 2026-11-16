@@ -8,6 +8,7 @@ import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_
 import { useJourneyStore } from './lib/store'
 import { useCalendarSources } from './lib/calendarSources'
 import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
+import { DEPED_LEGISLATED_ACTIVITY_RULES } from './data/depedLegislatedActivities'
 import { useAccount } from './lib/useAccount'
 import { useAppearance } from './lib/useAppearance'
 import { usePwa } from './lib/usePwa'
@@ -82,7 +83,7 @@ function NewCardPage({ cards, onCancel, onCreate }: {
 
 export default function App() {
   const { state, dispatch, storageAvailable } = useJourneyStore()
-  const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES)
+  const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const account = useAccount()
   const appearance = useAppearance()
   const pwa = usePwa()
@@ -273,7 +274,7 @@ export default function App() {
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} calendarEntries={calendarSources.entries} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
         <Route path="/whats-new" element={<WhatsNewPage />} />
         <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} />} />

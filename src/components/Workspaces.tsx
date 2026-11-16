@@ -12,6 +12,7 @@ import { OccasionArtwork } from './OccasionArtwork'
 import { EventThemePicker } from './EventThemePicker'
 import { calendarPeriod, monthScene } from '../lib/months'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
+import { calendarSourceEntriesForMonth } from '../lib/calendarSources'
 import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
 
 const workspaceNames: Record<Workspace, string> = {
@@ -20,7 +21,6 @@ const workspaceNames: Record<Workspace, string> = {
 
 type WorkspaceProps = {
   cards: JourneyCard[]
-  calendarEntries: CalendarSourceEntry[]
   calendarSources: CalendarSource[]
   cardId?: string
   dispatch: Dispatch<JourneyAction>
@@ -94,14 +94,14 @@ function isCalendarSourceEntry(entry: CalendarAgendaItem): entry is CalendarSour
   return 'sourceId' in entry
 }
 
-function CalendarWorkspace({ cards, calendarEntries, calendarSources, cardId, dispatch, onCompose }: WorkspaceProps) {
+function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
   const { month, selectedDate } = calendarPeriod(query, initialCard?.date)
   const monthCards = cards.filter((card) => card.date.startsWith(month))
   const events = monthCards.filter((card): card is EventCard => card.type === 'event')
-  const sourceEntries = calendarEntries.filter((entry) => entry.date.slice(0, 7) <= month && (entry.endDate ?? entry.date).slice(0, 7) >= month)
+  const sourceEntries = calendarSourceEntriesForMonth(calendarSources, month)
   const sourceById = new Map(calendarSources.map((source) => [source.id, source]))
   const agenda: CalendarAgendaItem[] = selectedDate
     ? [...monthCards.filter((card) => card.date === selectedDate), ...sourceEntries.filter((entry) => entryIncludesDate(entry, selectedDate))]
@@ -251,10 +251,9 @@ const pageDetails: Record<Workspace, { description: string; action: string }> = 
   journal: { description: 'A quiet corner for the thoughts you want to come back to.', action: 'Write a note' },
 }
 
-export function WorkspacePage({ page, cards, calendarEntries, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
+export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
   page: Workspace
   cards: JourneyCard[]
-  calendarEntries: CalendarSourceEntry[]
   calendarSources: CalendarSource[]
   dispatch: Dispatch<JourneyAction>
   onNavigate: (destination: Destination) => void
@@ -265,7 +264,7 @@ export function WorkspacePage({ page, cards, calendarEntries, calendarSources, d
   const [query] = useSearchParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
   if (cardId && !selected) return <NotFoundPage card backTo={WORKSPACE_PATHS[page]} />
-  const props = { cards, calendarEntries, calendarSources, cardId, dispatch, onCompose, onNavigate }
+  const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate }
   const queryDate = query.get('date')
   const queryMonth = query.get('month')
   const newDate = isValidDate(queryDate) ? queryDate : selected?.date
