@@ -1,5 +1,5 @@
 import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Landmark, Link2, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
 import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
@@ -18,6 +18,7 @@ import { confirmNotificationNavigation, safeNotificationPath } from './lib/notif
 import { updateSurface } from './lib/updates'
 import { NotificationsPage } from './components/NotificationsPage'
 import { UpdateChrome, WhatsNewPage } from './components/AppUpdates'
+import { AboutUpdatesDialog } from './components/AboutUpdatesDialog'
 import { accountError } from './lib/account'
 import { SettingsPage } from './components/SettingsPage'
 import { AccountPage } from './components/AccountPage'
@@ -109,6 +110,7 @@ export default function App() {
   const [filter, setFilter] = useState<Filter>('all')
   const [showCalendarSources, setShowCalendarSources] = useState(true)
   const [openGaps, setOpenGaps] = useState<string[]>([])
+  const [aboutUpdatesOpen, setAboutUpdatesOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; id: number; kind?: 'error'; href?: string; label?: string; action?: 'update'; notificationId?: string } | null>(null)
   const announcedUpdate = useRef('')
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function App() {
     if (pwa.coarse && account.user) void notifications.addUpdate(pwa.updateVersion, 'Restart from About when you are ready. Your saved plans stay on this device.')
     if (updateSurface(pwa.overlay, pwa.coarse, !!account.user) === 'toast' && !pwa.updateDismissed && announcedUpdate.current !== pwa.updateVersion) {
       announcedUpdate.current = pwa.updateVersion
-      setToast({ message: 'A new version of Kanso Pro is ready.', id: Date.now(), action: 'update', label: 'Restart' })
+      setToast({ message: 'A new version of Kanso Pro is ready.', id: Date.now(), action: 'update', label: 'Review' })
     }
   }, [pwa.updateReady, pwa.updateVersion, pwa.overlay, pwa.coarse, pwa.updateDismissed, account.user, notifications.addUpdate])
   useEffect(() => {
@@ -259,6 +261,8 @@ export default function App() {
   }
 
   const openDestination = (destination: Destination) => navigate(destinationPath(destination))
+  const openAboutUpdates = useCallback(() => setAboutUpdatesOpen(true), [])
+  const closeAboutUpdates = useCallback(() => setAboutUpdatesOpen(false), [])
   const openComposer = (options: ComposerOptions = {}) => {
     const active = pageForPath(location.pathname).page
     const defaultType = active in WORKSPACE_TYPES ? WORKSPACE_TYPES[active as Workspace] : filter === 'all' ? 'event' : filter
@@ -285,8 +289,8 @@ export default function App() {
   }
   const toggleGap = (key: string) => setOpenGaps((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])
 
-  const titlebar = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="titlebar" />
-  const updateBanner = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="banner" />
+  const titlebar = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="titlebar" onOpenAbout={openAboutUpdates} />
+  const updateBanner = <UpdateChrome pwa={pwa} signedIn={!!account.user} position="banner" onOpenAbout={openAboutUpdates} />
   const artworkVisible = location.pathname === '/' || !!calendarVisible
 
   return <div className={`application ${signInLayout ? 'application-auth' : ''}`}>
@@ -303,8 +307,8 @@ export default function App() {
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
           element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
-        <Route path="/whats-new" element={<WhatsNewPage />} />
-        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} />} />
+        <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
+        <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
         <Route path="/new" element={<NewCardPage cards={state.cards} onCancel={cancelComposer} onCreate={createJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />
@@ -312,7 +316,8 @@ export default function App() {
       </Routes>
     </div>
     <AppFooter />
+    <AboutUpdatesDialog open={aboutUpdatesOpen} onClose={closeAboutUpdates} pwa={pwa} />
     <RouteEffects updateReady={pwa.updateReady && !pwa.coarse} />
-    <div className="toast-region" role={toast?.kind === 'error' ? 'alert' : 'status'} aria-live={toast?.kind === 'error' ? 'assertive' : 'polite'}>{toast && <div className={`toast ${toast.kind === 'error' ? 'is-error' : ''}`} key={toast.id}><span className="toast-icon">{toast.kind === 'error' ? <AlertCircle size="1rem" /> : <Check size="1rem" />}</span><span>{toast.message}</span>{toast.href && <Link className="toast-action" to={toast.href} onClick={event => { if (!confirmNotificationNavigation(event)) { event.preventDefault(); return }; if (toast.notificationId) void notifications.markRead(toast.notificationId) }}>{toast.label ?? 'View'}</Link>}{toast.action === 'update' && <button type="button" className="toast-action" onClick={pwa.update}>Restart</button>}<button className="icon-button" aria-label={toast.action === 'update' ? 'Remind me about this update later' : 'Dismiss notification'} onClick={() => { if (toast.action === 'update') pwa.dismissUpdate(); setToast(null) }}><X size="0.875rem" /></button></div>}</div>
+    <div className="toast-region" role={toast?.kind === 'error' ? 'alert' : 'status'} aria-live={toast?.kind === 'error' ? 'assertive' : 'polite'}>{toast && <div className={`toast ${toast.kind === 'error' ? 'is-error' : ''}`} key={toast.id}><span className="toast-icon">{toast.kind === 'error' ? <AlertCircle size="1rem" /> : <Check size="1rem" />}</span><span>{toast.message}</span>{toast.href && <Link className="toast-action" to={toast.href} onClick={event => { if (!confirmNotificationNavigation(event)) { event.preventDefault(); return }; if (toast.notificationId) void notifications.markRead(toast.notificationId) }}>{toast.label ?? 'View'}</Link>}{toast.action === 'update' && <button type="button" className="toast-action" onClick={openAboutUpdates}>Review</button>}<button className="icon-button" aria-label={toast.action === 'update' ? 'Remind me about this update later' : 'Dismiss notification'} onClick={() => { if (toast.action === 'update') pwa.dismissUpdate(); setToast(null) }}><X size="0.875rem" /></button></div>}</div>
   </div>
 }

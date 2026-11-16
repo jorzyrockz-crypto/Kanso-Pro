@@ -104,7 +104,7 @@ function CalendarSourcesSettings({ calendarSources }: { calendarSources: Calenda
   </>
 }
 
-export function SettingsPage({ account, state, storageAvailable, appearance, pwa, calendarSources }: { account: AccountController; state: JourneyState; storageAvailable: boolean; appearance: AppearanceController; pwa: PwaController; calendarSources: CalendarSourcesController }) {
+export function SettingsPage({ account, state, storageAvailable, appearance, pwa, calendarSources, onOpenAbout }: { account: AccountController; state: JourneyState; storageAvailable: boolean; appearance: AppearanceController; pwa: PwaController; calendarSources: CalendarSourcesController; onOpenAbout: () => void }) {
   const { user, phase } = account
   const { hash } = useLocation()
   const month = useCurrentMonth()
@@ -169,7 +169,7 @@ export function SettingsPage({ account, state, storageAvailable, appearance, pwa
         <SettingsSection id="about" title="About & help" description="A little structure. A lot of possibility.">
           <div className="settings-about-brand"><span className="brand-mark"><KansoMark /></span><div><strong>Kanso Pro</strong><span>Version {version} · Your personal planning space</span></div></div>
           <p className="settings-caption">Use the navigation to move between your five planning pages. New card adds an event, task list, project, or note to your journey.</p>
-          <PwaSettings pwa={pwa} />
+          <PwaSettings pwa={pwa} onOpenAbout={onOpenAbout} />
           <div className="settings-help-links"><a href={`${docs}/README.md`} target="_blank" rel="noopener noreferrer"><BookOpen size="1.125rem" aria-hidden="true" /><span>Usage guide</span><ExternalLink size="0.875rem" aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a><a href={`${docs}/docs/firebase-setup.md`} target="_blank" rel="noopener noreferrer"><ShieldCheck size="1.125rem" aria-hidden="true" /><span>Account setup guide</span><ExternalLink size="0.875rem" aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a><a href={`${repository}/tree/${sourceRef}`} target="_blank" rel="noopener noreferrer"><Info size="1.125rem" aria-hidden="true" /><span>Source code</span><ExternalLink size="0.875rem" aria-hidden="true" /><span className="sr-only"> (opens in a new tab)</span></a></div>
           <p className="settings-caption">Help and source links open the project documentation in a new tab.</p>
         </SettingsSection>
