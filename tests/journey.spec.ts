@@ -139,6 +139,13 @@ test('the mobile stream header compacts after scrolling while keeping its contro
   expect(createBox).not.toBeNull()
   expect(Math.abs(createBox!.width - createBox!.height)).toBeLessThanOrEqual(1)
   expect(createBox!.height).toBeGreaterThanOrEqual(44)
+  const jump = page.getByRole('button', { name: 'Jump to Today', exact: true })
+  await expect(jump).toBeVisible()
+  await expect(jump.locator('span')).toBeHidden()
+  const jumpBox = await jump.boundingBox()
+  expect(jumpBox).not.toBeNull()
+  expect(Math.abs(jumpBox!.width - jumpBox!.height)).toBeLessThanOrEqual(1)
+  expect(jumpBox!.height).toBeGreaterThanOrEqual(44)
 })
 
 test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', async ({ page }) => {
