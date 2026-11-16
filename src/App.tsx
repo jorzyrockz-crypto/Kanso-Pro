@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Landmark, Link2, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, Clock3, Landmark, Link2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
@@ -59,14 +59,15 @@ function extendTimelineWindow(window: TimelineWindow, direction: 'past' | 'futur
     : { ...window, end: window.end >= '9999-01' ? TIMELINE_MAX_MONTH : shiftMonth(window.end, TIMELINE_MONTH_STEP) }
 }
 
-function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, onFilter, onFocus, onCalendarSourcesChange }: {
+function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, jumpDirection, onFilter, onJumpToToday, onCalendarSourcesChange }: {
   filter: Filter
   count: number
   month: string
   showCalendarSources: boolean
   calendarSourceCount: number
+  jumpDirection: 'up' | 'down'
   onFilter: (type: Filter) => void
-  onFocus: () => void
+  onJumpToToday: () => void
   onCalendarSourcesChange: (show: boolean) => void
 }) {
   return <header className="stream-header">
@@ -81,7 +82,9 @@ function StreamHeader({ filter, count, month, showCalendarSources, calendarSourc
         </div>
       </div>
       <div className="header-actions">
-        <button className="button button-focus" onClick={onFocus} title="Focus the active card" aria-label="Focus Active"><Crosshair size="0.875rem" /><span>Focus Active</span></button>
+        <button className={`button button-jump-today is-${jumpDirection}`} onClick={onJumpToToday} title={`Jump ${jumpDirection} to today`} aria-label="Jump to Today">
+          {jumpDirection === 'up' ? <ArrowUp size="0.875rem" aria-hidden="true" /> : <ArrowDown size="0.875rem" aria-hidden="true" />}<span>Jump to Today</span>
+        </button>
       </div>
     </div>
     <div className="header-bottom">
@@ -172,6 +175,8 @@ export default function App() {
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const handledFocusKey = useRef<string | null>(null)
   const timelineRef = useRef<HTMLElement>(null)
+  const jumpTarget = useMemo(() => focusCard(state.cards, FOCUS_DATE), [state.cards])
+  const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
   const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
   const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
   const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
@@ -243,6 +248,27 @@ export default function App() {
   }, [location.pathname, entries, defaultMonth])
 
   useEffect(() => {
+    if (location.pathname !== '/') return
+    let frame = 0
+    const updateDirection = () => {
+      frame = 0
+      const target = jumpTarget && document.getElementById(`card-${jumpTarget.id}`)
+      const headerBottom = document.querySelector('.stream-header')?.getBoundingClientRect().bottom ?? 0
+      const nextDirection = target && target.getBoundingClientRect().bottom < headerBottom ? 'up' : 'down'
+      setJumpDirection((current) => current === nextDirection ? current : nextDirection)
+    }
+    const requestUpdate = () => { if (!frame) frame = requestAnimationFrame(updateDirection) }
+    updateDirection()
+    window.addEventListener('scroll', requestUpdate, { passive: true })
+    window.addEventListener('resize', requestUpdate)
+    return () => {
+      window.removeEventListener('scroll', requestUpdate)
+      window.removeEventListener('resize', requestUpdate)
+      cancelAnimationFrame(frame)
+    }
+  }, [filter, jumpTarget, location.pathname, entries])
+
+  useEffect(() => {
     const cardId: unknown = location.state?.focusCardId
     if (navigationType === 'POP' || location.pathname !== '/' || typeof cardId !== 'string' || handledFocusKey.current === location.key) return
     if (!state.cards.some((card) => card.id === cardId)) return
@@ -310,9 +336,8 @@ export default function App() {
     navigate('/', { replace: true, state: { focusCardId: card.id } })
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
-  const focusActive = () => {
-    const card = focusCard(state.cards, FOCUS_DATE)
-    if (card) { setFilter('all'); setPendingScroll(card.id) }
+  const jumpToToday = () => {
+    if (jumpTarget) { setFilter('all'); setPendingScroll(jumpTarget.id) }
   }
   const changeFilter = (type: Filter) => {
     setFilter(type)
@@ -333,7 +358,7 @@ export default function App() {
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} onFilter={changeFilter} onFocus={focusActive} onCalendarSourcesChange={setShowCalendarSources} />
+          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} jumpDirection={jumpDirection} onFilter={changeFilter} onJumpToToday={jumpToToday} onCalendarSourcesChange={setShowCalendarSources} />
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />

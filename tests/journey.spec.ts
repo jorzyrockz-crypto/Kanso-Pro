@@ -357,9 +357,9 @@ test('the connected calendar uses real dates and opens same-day pages', async ({
   await expect(page).toHaveURL('/new?type=event&date=2026-12-08')
 })
 
-test('focus active finds the current due project and the tablet frame preference is saved', async ({ page }) => {
+test('jump to today finds the current due project and the tablet frame preference is saved', async ({ page }) => {
   await filters(page).getByRole('button', { name: 'Events', exact: true }).click()
-  await page.getByRole('button', { name: 'Focus Active', exact: true }).click()
+  await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
   await expect(card(page, 'proj-tos')).toHaveClass(/is-highlighted/)
   await expect(filters(page).getByRole('button', { name: /All Stream/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Tablet frame', exact: true }).click()
