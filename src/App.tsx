@@ -2,7 +2,7 @@ import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, Chevron
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
-import type { ComposerOptions, Destination, EventCard, Filter, JourneyCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
+import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
@@ -450,9 +450,14 @@ export default function App() {
   }
   const deleteJourneyCard = (card: JourneyCard) => {
     dispatch({ type: 'delete-card', id: card.id })
-    if (card.type === 'note' && card.attachment?.kind === 'audio') void removeJournalAttachment(card.attachment.id).catch(() => {})
-    if (card.type === 'note' && card.attachment?.kind === 'image' && card.attachment.storage === 'firestore' && firestoreUserId) void import('./lib/firestore').then(({ deleteJournalImage }) => deleteJournalImage(firestoreUserId, card.attachment!.id)).catch(() => {})
-    setToast({ message: `${card.type === 'event' ? 'Event' : card.type === 'task' ? 'Task card' : 'Journal note'} deleted.`, id: Date.now() })
+    const attachments = card.type === 'note'
+      ? [...new Map([card.attachment, ...(card.attachments ?? [])].filter((attachment): attachment is JournalAttachment => !!attachment).map((attachment) => [attachment.id, attachment])).values()]
+      : []
+    for (const attachment of attachments) {
+      if (attachment.kind === 'audio') void removeJournalAttachment(attachment.id).catch(() => {})
+      if (attachment.kind === 'image' && attachment.storage === 'firestore' && firestoreUserId) void import('./lib/firestore').then(({ deleteJournalImage }) => deleteJournalImage(firestoreUserId, attachment.id)).catch(() => {})
+    }
+    setToast({ message: `${card.type === 'event' ? 'Event' : card.type === 'task' ? 'Task card' : 'Journal entry'} deleted.`, id: Date.now() })
   }
   const jumpToToday = () => {
     const currentDate = currentLocalDate()
@@ -484,7 +489,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
           <StreamHeader calendarSources={calendarSources.sources} count={state.cards.length} filter={filter} month={`${timelineMonth}-01`} onFilter={changeFilter} onSourceEnabled={calendarSources.setSourceEnabled} />
-          <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
+          <Timeline cards={state.cards} entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}

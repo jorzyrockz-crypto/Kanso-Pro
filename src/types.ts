@@ -77,7 +77,12 @@ export interface NoteCard extends BaseCard {
   noteKind?: JournalNoteKind
   category?: string
   reminderAt?: string
+  /** Legacy single attachment; retained so existing voice/image notes continue to render. */
   attachment?: JournalAttachment
+  /** Additional studio attachments. Audio blobs stay in IndexedDB; images stay in private Firestore. */
+  attachments?: JournalAttachment[]
+  /** Sanitized rich-text markup for the studio editor; body remains the plain-text Timeline/search excerpt. */
+  richText?: string
   updatedAt?: string
 }
 
@@ -110,7 +115,7 @@ export type JourneyAction =
   | { type: 'add-card'; card: JourneyCard }
   | { type: 'update-card'; card: JourneyCard }
   | { type: 'delete-card'; id: string }
-  | { type: 'update-note'; id: string; title?: string; date?: string; context?: string; body?: string; tags?: string[]; category?: string; reminderAt?: string; noteKind?: JournalNoteKind; attachment?: JournalAttachment; updatedAt?: string }
+  | { type: 'update-note'; id: string; title?: string; date?: string; context?: string; body?: string; tags?: string[]; category?: string; reminderAt?: string; noteKind?: JournalNoteKind; attachment?: JournalAttachment; attachments?: JournalAttachment[]; richText?: string; updatedAt?: string }
   | { type: 'update-event-background'; id: string; occasion: OccasionChoice }
   | { type: 'rollover-card'; id: string; date: string }
   | { type: 'backlog-card'; id: string }

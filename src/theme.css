@@ -138,6 +138,33 @@
     :root[data-theme='dark'] .dawn-rollover-actions { border-color: #3e586a; }
     :root[data-theme='dark'] .dawn-rollover-backlog { border-color: #496c84; color: #d3e9f9; background: rgb(30 58 77 / 75%); }
     :root[data-theme='dark'] .dawn-rollover-backlog:hover { border-color: #719bb8; background: #24455e; }
+    /* The desktop Planning Desk keeps its layered cards, triage controls, and quick actions legible without a bright surface in dark mode. */
+    :root[data-theme='dark'] .desktop-planning-rail { border-color: #3d596f; background: rgb(18 34 49 / 94%); box-shadow: 0 .75rem 2rem rgb(0 0 0 / 28%); }
+    :root[data-theme='dark'] .desktop-rail-heading h2 { color: #e6f0fa; }
+    :root[data-theme='dark'] .desktop-rail-heading p { color: #aebfd0; }
+    :root[data-theme='dark'] .desktop-rail-section { border-color: #3a556b; background: rgb(20 39 55 / 84%); }
+    :root[data-theme='dark'] .desktop-rail-section-heading h3, :root[data-theme='dark'] .desktop-rail-item-copy strong { color: #e0edf8; }
+    :root[data-theme='dark'] .desktop-rail-section-heading span:not(.desktop-rail-section-icon), :root[data-theme='dark'] .desktop-rail-item-copy small, :root[data-theme='dark'] .desktop-rail-empty { color: #a9bdcf; }
+    :root[data-theme='dark'] .desktop-rail-section-icon, :root[data-theme='dark'] .desktop-rail-item-icon { color: #9ad8fa; background: #1d435d; }
+    :root[data-theme='dark'] .desktop-rail-focus, :root[data-theme='dark'] .rail-item-task .desktop-rail-item-icon { color: #9ce5c4; background: #1b403a; }
+    :root[data-theme='dark'] .desktop-rail-project, :root[data-theme='dark'] .rail-item-project .desktop-rail-item-icon { color: #cec2ff; background: #382f55; }
+    :root[data-theme='dark'] .desktop-rail-item:hover { background: #1c4059; }
+    :root[data-theme='dark'] .desktop-rail-item > svg { color: #8fa8bc; }
+    :root[data-theme='dark'] .desktop-rail-progress { color: #d1c8ff; background: #3a3159; }
+    :root[data-theme='dark'] .desktop-rail-quick-add { background: linear-gradient(135deg, #1b3d59, #245276); }
+    :root[data-theme='dark'] .desktop-quick-add-actions > button { border-color: rgb(185 230 255 / 21%); background: rgb(255 255 255 / 9%); }
+    :root[data-theme='dark'] .desktop-quick-add-actions > button:hover { background: rgb(174 226 255 / 17%); }
+    :root[data-theme='dark'] .desktop-triage-section { border-color: #6b5a39; background: linear-gradient(135deg, rgb(63 51 30 / 88%), rgb(47 43 34 / 82%)); }
+    :root[data-theme='dark'] .desktop-rail-triage, :root[data-theme='dark'] .desktop-triage-icon { color: #f3c76d; background: #4b3d24; }
+    :root[data-theme='dark'] .desktop-triage-count { color: #f9d98c; background: #5a4728; }
+    :root[data-theme='dark'] .desktop-triage-item { border-color: #62553c; background: rgb(20 29 35 / 58%); }
+    :root[data-theme='dark'] .triage-item-project .desktop-triage-icon { color: #cec2ff; background: #382f55; }
+    :root[data-theme='dark'] .desktop-triage-copy strong { color: #f2f5f7; }
+    :root[data-theme='dark'] .desktop-triage-copy small { color: #cabf9f; }
+    :root[data-theme='dark'] .desktop-triage-move { color: #241c0c; background: #e6b75a; }
+    :root[data-theme='dark'] .desktop-triage-move:hover { background: #f0c86f; }
+    :root[data-theme='dark'] .desktop-triage-backlog { border-color: #6b6047; color: #ead9ad; background: #393526; }
+    :root[data-theme='dark'] .desktop-triage-backlog:hover { background: #4a432f; }
     :root[data-theme='dark'] .timeline-month-empty strong { color: #e1edf8; }
     :root[data-theme='dark'] .timeline-month-empty span, :root[data-theme='dark'] .timeline-boundary > button { color: #b4c9dd; }
     :root[data-theme='dark'] .timeline-boundary > button:not(:disabled):hover { border-color: #78b3d6; color: #d4ecfc; background: #1c3851; }
@@ -162,13 +189,30 @@
     :root[data-theme='dark'] .journal-title-input, :root[data-theme='dark'] .journal-body-input { color: #e5edf5; }
     :root[data-theme='dark'] .journal-title-input { border-color: #4a6072; }
     :root[data-theme='dark'] .journal-editor-footer, :root[data-theme='dark'] .journal-voice-editor, :root[data-theme='dark'] .journal-image-editor { border-color: #405365; }
+    :root[data-theme='dark'] .journal-studio-rail { border-color: #405a70; background: rgb(18 33 49 / 94%); box-shadow: 0 .75rem 1.75rem rgb(0 0 0 / 22%); }
+    :root[data-theme='dark'] .journal-note-list.is-compact .journal-note-summary:hover, :root[data-theme='dark'] .journal-note-list.is-compact .journal-note-summary.is-selected { border-color: #4d7591; background: #1b3c55; }
+    :root[data-theme='dark'] .journal-rail-capture { border-color: #40586c; }
+    :root[data-theme='dark'] .journal-rail-capture > button { border-color: #476077; background: #172a3b; color: #c8dced; }
+    :root[data-theme='dark'] .studio-note-details { border-color: #42586c; background: rgb(10 24 36 / 42%); }
+    :root[data-theme='dark'] .studio-toolbar, :root[data-theme='dark'] .studio-media-tools { border-color: #40596e; background: #172a3c; }
+    :root[data-theme='dark'] .studio-tool { color: #bfd2e2; }
+    :root[data-theme='dark'] .studio-tool:hover { border-color: #5484a4; background: #21465f; color: #d9f0ff; }
+    :root[data-theme='dark'] .studio-toolbar-divider { background: #415b70; }
+    :root[data-theme='dark'] .studio-rich-editor { color: #e1ebf4; }
+    :root[data-theme='dark'] .studio-rich-editor:empty::before { color: #91a7ba; }
+    :root[data-theme='dark'] .studio-rich-editor h1, :root[data-theme='dark'] .studio-rich-editor h2 { color: #eef5fb; }
+    :root[data-theme='dark'] .studio-rich-editor blockquote { border-color: #cf7d9b; background: #352a38; color: #ebcad6; }
+    :root[data-theme='dark'] .studio-rich-editor mark { background: #665924; color: #fff2bd; }
+    :root[data-theme='dark'] .studio-inline-attachment { border-color: #49738f; background: #1b4059; color: #bae6ff; }
+    :root[data-theme='dark'] .studio-photo-dropzone { border-color: #547a94; color: #b9d1e3; }
+    :root[data-theme='dark'] .studio-photo-dropzone.is-disabled { border-color: #455d70; color: #91a7b9; }
+    :root[data-theme='dark'] .studio-attachment { border-color: #405a6e; background: #142638; }
+    :root[data-theme='dark'] .studio-mobile-capture { border-color: #456279; background: rgb(16 31 46 / 94%); box-shadow: 0 .5rem 1.5rem rgb(0 0 0 / 34%); }
     :root[data-theme='dark'] .journal-metadata-fields > label, :root[data-theme='dark'] .journal-card-fields input { border-color: #475d70; background: #182634; color: #bfd0df; }
     :root[data-theme='dark'] .journal-metadata-fields input, :root[data-theme='dark'] .journal-metadata-fields select { color: #e6eef6; }
     :root[data-theme='dark'] .journal-card-fields > label { color: #bfd0df; }
     :root[data-theme='dark'] .journal-detail-label + textarea { border-color: #475d70; background: #142331; color: #e0ebf5; }
     :root[data-theme='dark'] .journal-detail-label + textarea::placeholder, :root[data-theme='dark'] .journal-body-input::placeholder, :root[data-theme='dark'] .journal-title-input::placeholder { color: #91a6b9; opacity: 1; }
-    :root[data-theme='dark'] .journal-create-trigger { border-color: #84546b; background: #4a2e41; color: #ffe3ed; }
-    :root[data-theme='dark'] .journal-create-trigger:hover { border-color: #bd7c9c; background: #603a52; }
     :root[data-theme='dark'] .journal-type-card.type-voice { border-color: #3f7196; background: #1a3349; }
     :root[data-theme='dark'] .journal-type-card.type-voice > svg { color: #9fd7ff; background: #224967; }
     :root[data-theme='dark'] .journal-type-card.type-image { border-color: #66557e; background: #2b2943; }
