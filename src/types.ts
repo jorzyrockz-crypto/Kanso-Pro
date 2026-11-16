@@ -60,6 +60,22 @@ export interface NoteCard extends BaseCard {
 
 export type JourneyCard = EventCard | TaskCard | ProjectCard | NoteCard
 
+/** A non-editable calendar reference rendered beside personal Timeline cards. */
+export interface TimelineSourceEntry {
+  id: string
+  sourceId: string
+  sourceLabel: string
+  sourceProvenance: string
+  title: string
+  date: string
+  endDate?: string
+  detail?: string
+  side: Side
+  calendarSource: true
+}
+
+export type TimelineItem = JourneyCard | TimelineSourceEntry
+
 export interface JourneyState {
   version: 1
   cards: JourneyCard[]
@@ -100,7 +116,7 @@ export interface NewCardInput {
 export interface DayEntry {
   kind: 'day'
   date: string
-  cards: JourneyCard[]
+  cards: TimelineItem[]
 }
 
 export interface GapEntry {

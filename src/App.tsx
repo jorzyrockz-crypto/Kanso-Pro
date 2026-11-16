@@ -1,12 +1,12 @@
-import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Link2, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Check, Clock3, Crosshair, Landmark, Link2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
-import type { ComposerOptions, Destination, Filter, JourneyCard, Workspace } from './types'
+import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, focusCard, formatDate } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
-import { useCalendarSources } from './lib/calendarSources'
+import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
 import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
 import { DEPED_LEGISLATED_ACTIVITY_RULES } from './data/depedLegislatedActivities'
 import { useAccount } from './lib/useAccount'
@@ -37,12 +37,15 @@ const filters: { type: Filter; label: string }[] = [
   { type: 'note', label: 'Journal Notes' },
 ]
 
-function StreamHeader({ filter, count, month, onFilter, onFocus }: {
+function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, onFilter, onFocus, onCalendarSourcesChange }: {
   filter: Filter
   count: number
   month: string
+  showCalendarSources: boolean
+  calendarSourceCount: number
   onFilter: (type: Filter) => void
   onFocus: () => void
+  onCalendarSourcesChange: (show: boolean) => void
 }) {
   return <header className="stream-header">
     <div className="header-main">
@@ -63,7 +66,12 @@ function StreamHeader({ filter, count, month, onFilter, onFocus }: {
       <nav className="filter-bar" aria-label="Filter journey cards">{filters.map(({ type, label }) => <button key={type} className={`filter-pill ${filter === type ? 'is-active' : ''}`} onClick={() => onFilter(type)} aria-pressed={filter === type}>
         {type !== 'all' && <span className={`filter-dot dot-${type}`} />}<span>{label}</span>{type === 'all' && <span className="filter-count">{count}</span>}
       </button>)}</nav>
-      <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
+      <div className="stream-reference-controls">
+        <button type="button" className={`stream-source-toggle ${showCalendarSources ? 'is-active' : ''}`} onClick={() => onCalendarSourcesChange(!showCalendarSources)} aria-pressed={showCalendarSources} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
+          <Landmark size="0.75rem" aria-hidden="true" /><span>{showCalendarSources ? 'Calendar sources shown' : 'Show calendar sources'}</span>{calendarSourceCount > 0 && <span className="stream-source-count">{calendarSourceCount}</span>}
+        </button>
+        <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
+      </div>
     </div>
   </header>
 }
@@ -97,6 +105,7 @@ export default function App() {
   const signInLayout = !!(accountMatch || signInMatch) && !account.user
   const [visibleTimelineMonth, setVisibleTimelineMonth] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
+  const [showCalendarSources, setShowCalendarSources] = useState(true)
   const [openGaps, setOpenGaps] = useState<string[]>([])
   const [toast, setToast] = useState<{ message: string; id: number; kind?: 'error'; href?: string; label?: string; action?: 'update'; notificationId?: string } | null>(null)
   const announcedUpdate = useRef('')
@@ -139,7 +148,23 @@ export default function App() {
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const handledFocusKey = useRef<string | null>(null)
   const timelineRef = useRef<HTMLElement>(null)
-  const entries = useMemo(() => buildTimeline(state.cards, filter), [state.cards, filter])
+  const timelineSourceEntries = useMemo<TimelineSourceEntry[]>(() => {
+    if (!showCalendarSources) return []
+    const months = [...new Set([...state.cards.map((card) => card.date.slice(0, 7)), FOCUS_DATE.slice(0, 7)])].sort()
+    const sourceById = new Map(calendarSources.sources.map((source) => [source.id, source]))
+    return calendarSourceEntriesForMonths(calendarSources.sources, months).flatMap((entry) => {
+      const source = sourceById.get(entry.sourceId)
+      if (!source) return []
+      return [{
+        ...entry,
+        sourceLabel: source.shortLabel,
+        sourceProvenance: source.provenance,
+        side: entry.sourceId === 'deped-legislated-activities' ? 'right' : 'left',
+        calendarSource: true,
+      }]
+    })
+  }, [calendarSources.sources, showCalendarSources, state.cards])
+  const entries = useMemo(() => buildTimeline(state.cards, filter, timelineSourceEntries), [state.cards, filter, timelineSourceEntries])
   const firstDate = useMemo(() => [...state.cards].sort((a, b) => a.date.localeCompare(b.date))[0]?.date ?? FOCUS_DATE, [state.cards])
   const defaultMonth = (entries.find((entry) => entry.kind === 'day')?.date ?? firstDate).slice(0, 7)
   const timelineMonth = visibleTimelineMonth && entries.some((entry) => entry.kind === 'day' && entry.date.startsWith(visibleTimelineMonth)) ? visibleTimelineMonth : defaultMonth
@@ -270,7 +295,7 @@ export default function App() {
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} onFilter={changeFilter} onFocus={focusActive} />
+          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} onFilter={changeFilter} onFocus={focusActive} onCalendarSourcesChange={setShowCalendarSources} />
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}

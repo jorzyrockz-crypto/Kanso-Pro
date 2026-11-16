@@ -1,13 +1,14 @@
-import { ArrowRight, Bell, CalendarDays, ChevronDown, ChevronRight, Flag, MoreHorizontal, Pin, Plus, Sparkles, Users, Zap } from 'lucide-react'
+import { ArrowRight, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Landmark, MoreHorizontal, Pin, Plus, School, Sparkles, Users, Zap } from 'lucide-react'
 import { Fragment, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, ReactNode, RefObject } from 'react'
-import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineEntry } from '../types'
+import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
 import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, projectStatus, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { Avatar, AvatarStack, EmptyState, ProgressBar, TypeIcon } from './Common'
 import { destinationPath } from '../lib/navigation'
 import { occasionLabel, resolveOccasion } from '../lib/occasions'
 import { OccasionArtwork } from './OccasionArtwork'
+import { legislatedActivityIllustration } from '../lib/legislatedActivityVisuals'
 
 function useReveal() {
   const ref = useRef<HTMLElement>(null)
@@ -176,29 +177,59 @@ function JourneyCardView({ card, dispatch, highlight }: { card: JourneyCard; dis
   }
 }
 
+function isTimelineSourceEntry(item: TimelineItem): item is TimelineSourceEntry {
+  return 'calendarSource' in item && item.calendarSource
+}
+
+function sourceEntryDate(entry: TimelineSourceEntry) {
+  const start = formatDate(entry.date, { weekday: 'short', month: 'short', day: '2-digit' })
+  if (!entry.endDate || entry.endDate === entry.date) return start
+  return `${start} – ${formatDate(entry.endDate, { month: 'short', day: '2-digit' })}`
+}
+
+function TimelineSourceCard({ entry }: { entry: TimelineSourceEntry }) {
+  const isSchoolCalendar = entry.sourceId === 'deped-sy-2026-2027'
+  const isLegislated = entry.sourceId === 'deped-legislated-activities'
+  const SourceIcon = isSchoolCalendar ? School : isLegislated ? Landmark : FileText
+  const visualClass = isSchoolCalendar ? 'source-school-calendar' : isLegislated ? 'source-legislated-activity' : 'source-local-memo'
+  const illustration = isLegislated ? legislatedActivityIllustration(entry.title) : undefined
+  return <article id={`source-${entry.id}`} className={`journey-card calendar-source-event timeline-source-card ${visualClass}${illustration ? ` legislated-illustration-${illustration}` : ''}`} data-source-id={entry.sourceId} data-card-type="calendar-source" data-illustration={illustration}>
+    <Link className="timeline-source-open" to={`/calendar?date=${entry.date}`} aria-label={`View ${entry.title} in Calendar`} />
+    <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{entry.sourceLabel}</span></div>
+    <h3>{entry.title}</h3>
+    <p>{entry.detail ?? entry.sourceProvenance}</p>
+    <div className="calendar-source-event-note"><SourceIcon size="0.75rem" aria-hidden="true" />{isLegislated ? 'Legislated annual observance · reference only' : isSchoolCalendar ? 'DepEd school calendar · reference only' : 'Calendar source · reference only, not a personal card'}</div>
+  </article>
+}
+
 function DayRow({ entry, dispatch, highlightId }: { entry: DayEntry; dispatch: Dispatch<JourneyAction>; highlightId: string | null }) {
   const ref = useReveal()
   const first = entry.cards[0]
+  const firstIsSource = isTimelineSourceEntry(first)
   const isMonday = formatDate(entry.date, { weekday: 'short' }) === 'Mon'
+  const itemsForSide = (side: 'left' | 'right') => entry.cards.filter((card) => card.side === side)
   return (
     <section ref={ref} className="journey-row day-row" data-timeline-month={entry.date.slice(0, 7)} aria-label={formatDate(entry.date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}>
       {(['left', 'right'] as const).map((side) => {
-        const sideCards = entry.cards.filter((card) => card.side === side)
-        return sideCards.length > 0 && <div key={`tether-${side}`} className={`tether tether-${side} tether-${sideCards[0].type}`} aria-hidden="true" />
+        const sideCards = itemsForSide(side)
+        const tetherType = sideCards[0] && isTimelineSourceEntry(sideCards[0]) ? 'source' : sideCards[0]?.type
+        return sideCards.length > 0 && <div key={`tether-${side}`} className={`tether tether-${side} tether-${tetherType}`} aria-hidden="true" />
       })}
-      <div className="card-column card-col-left">{entry.cards.filter((card) => card.side === 'left').map((card) => (
-        <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
-      ))}</div>
+      <div className="card-column card-col-left">{itemsForSide('left').map((card) => isTimelineSourceEntry(card)
+        ? <TimelineSourceCard key={card.id} entry={card} />
+        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
+      )}</div>
       <div className="date-node-wrapper">
-        <Link className={`date-node ${first.type === 'project' ? 'date-project' : isMonday ? 'date-monday' : ''}`}
-          to={destinationPath({ page: TYPE_CONFIG[first.type].workspace, cardId: first.id })}
-          aria-label={`Open ${formatDate(entry.date, { month: 'long', day: 'numeric' })} details`}>
+        <Link className={`date-node ${!firstIsSource && first.type === 'project' ? 'date-project' : isMonday ? 'date-monday' : ''}`}
+          to={firstIsSource ? `/calendar?date=${entry.date}` : destinationPath({ page: TYPE_CONFIG[first.type].workspace, cardId: first.id })}
+          aria-label={firstIsSource ? `View ${formatDate(entry.date, { month: 'long', day: 'numeric' })} in Calendar` : `Open ${formatDate(entry.date, { month: 'long', day: 'numeric' })} details`}>
           <span>{formatDate(entry.date, { weekday: 'short' })}</span><strong>{entry.date.slice(8)}</strong>
         </Link>
       </div>
-      <div className="card-column card-col-right">{entry.cards.filter((card) => card.side === 'right').map((card) => (
-        <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
-      ))}</div>
+      <div className="card-column card-col-right">{itemsForSide('right').map((card) => isTimelineSourceEntry(card)
+        ? <TimelineSourceCard key={card.id} entry={card} />
+        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
+      )}</div>
     </section>
   )
 }

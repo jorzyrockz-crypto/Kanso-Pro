@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEPED_LEGISLATED_ACTIVITY_RULES } from '../data/depedLegislatedActivities'
 import { DEPED_SY_2026_2027_ENTRIES } from '../data/depedSchoolCalendar2026'
-import { calendarSourceEntriesForMonth, parseCalendarSourcePreferences, parseMemoCalendarText } from './calendarSources'
+import { calendarSourceEntriesForMonth, calendarSourceEntriesForMonths, parseCalendarSourcePreferences, parseMemoCalendarText } from './calendarSources'
 
 describe('calendar sources', () => {
   it('keeps the verified DepEd calendar as separate source entries', () => {
@@ -29,6 +29,8 @@ describe('calendar sources', () => {
       expect.objectContaining({ title: 'World Teachers’ Day', date: '2031-10-05' }),
       expect.objectContaining({ title: 'National Teachers’ Month', date: '2031-09-05', endDate: '2031-10-05' }),
     ]))
+    const timelineReferences = calendarSourceEntriesForMonths([source], ['2026-09', '2026-10'])
+    expect(timelineReferences.filter((entry) => entry.title === 'National Teachers’ Month')).toHaveLength(1)
   })
 
   it('reads date-led and month-headed table text without retaining a PDF', () => {

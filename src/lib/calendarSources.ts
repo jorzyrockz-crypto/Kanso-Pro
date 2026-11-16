@@ -182,6 +182,15 @@ export function calendarSourceEntriesForMonth(sources: CalendarSource[], month: 
   ])
 }
 
+/** Returns de-duplicated source entries for a set of month keys, sorted for timeline use. */
+export function calendarSourceEntriesForMonths(sources: CalendarSource[], months: readonly string[]): CalendarSourceEntry[] {
+  const unique = new Map<string, CalendarSourceEntry>()
+  for (const month of months) {
+    for (const entry of calendarSourceEntriesForMonth(sources, month)) unique.set(entry.id, entry)
+  }
+  return [...unique.values()].sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title))
+}
+
 /**
  * Extract date-led lines from a selectable-text memorandum. It intentionally keeps only
  * the derived entries, never the PDF bytes. Scanned/image-only PDFs need a text-accessible

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createInitialState } from '../data'
-import type { NewCardInput } from '../types'
+import type { NewCardInput, TimelineSourceEntry } from '../types'
 import { addDays, buildTimeline, calendarDays, createCard, daysBetween, focusCard, formatDate, formatTime, gapLabel, isValidDate, progress, projectStatus, shiftMonth } from './journey'
 
 const input: NewCardInput = {
@@ -9,6 +9,18 @@ const input: NewCardInput = {
 }
 
 function cards() { return createInitialState().cards }
+
+const legislatedReference: TimelineSourceEntry = {
+  id: 'deped-legislated-activities-childrens-month-2026',
+  sourceId: 'deped-legislated-activities',
+  sourceLabel: 'Legislated observance',
+  sourceProvenance: 'DepEd Order No. 009, s. 2026, Annex D.',
+  title: 'National Children’s Month',
+  date: '2026-11-01',
+  endDate: '2026-11-30',
+  side: 'right',
+  calendarSource: true,
+}
 
 describe('timezone-safe dates', () => {
   it('rejects malformed or rolled-over dates', () => {
@@ -68,11 +80,19 @@ describe('timeline grouping and real per-card filters', () => {
     expect(gap?.cards.map((card) => card.id)).toEqual(['note-lesson', 'task-prep'])
     expect(timeline.filter((entry) => entry.kind === 'day')).toHaveLength(5)
   })
+  it('places enabled calendar references in dated rows without turning them into personal cards', () => {
+    const timeline = buildTimeline(cards(), 'all', [legislatedReference])
+    const sourceDay = timeline.find((entry) => entry.kind === 'day' && entry.date === '2026-11-01')
+    expect(sourceDay?.cards).toEqual([legislatedReference])
+    expect(timeline.flatMap((entry) => entry.cards).some((entry) => 'calendarSource' in entry && entry.calendarSource)).toBe(true)
+    expect(buildTimeline(cards(), 'task', [legislatedReference]).flatMap((entry) => entry.cards)
+      .some((entry) => 'calendarSource' in entry)).toBe(false)
+  })
   it('shows only notes when a mixed task/note day is filtered', () => {
     const timeline = buildTimeline(cards(), 'note')
     const shown = timeline.flatMap((entry) => entry.cards)
     expect(shown).toHaveLength(2)
-    expect(shown.every((card) => card.type === 'note')).toBe(true)
+    expect(shown.every((card) => !('calendarSource' in card) && card.type === 'note')).toBe(true)
     expect(shown.some((card) => card.id === 'task-grades')).toBe(false)
   })
   it('does not invent task cards on an event-only day', () => {
