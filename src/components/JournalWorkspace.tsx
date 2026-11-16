@@ -4,11 +4,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ChangeEvent, Dispatch } from 'react'
 import { FOCUS_DATE } from '../data'
 import { getJournalAttachment, JournalAttachmentError, saveJournalAttachment } from '../lib/journalAttachments'
+import { blobAsDataUrl, JournalImageError, optimizeJournalImage } from '../lib/journalImages'
 import { formatDate, makeId, shortDate } from '../lib/journey'
 import type { Destination, JournalAttachment, JournalNoteKind, JourneyAction, JourneyCard, NoteCard } from '../types'
 import { SaveIndicator } from './Common'
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024
 const categoryOptions = ['Personal', 'School', 'Work', 'Ideas']
 
@@ -32,7 +32,7 @@ function useAttachmentUrl(attachment?: JournalAttachment) {
     let objectUrl: string | null = null
     setUrl(null)
     setUnavailable(false)
-    if (!attachment) return
+    if (!attachment || attachment.kind !== 'audio') return
     getJournalAttachment(attachment.id).then((blob) => {
       if (!active) return
       if (!blob) { setUnavailable(true); return }
@@ -47,7 +47,25 @@ function useAttachmentUrl(attachment?: JournalAttachment) {
   return { url, unavailable }
 }
 
-function JournalHub({ notes, onCreate }: { notes: NoteCard[]; onCreate: (kind: JournalNoteKind) => void }) {
+function useFirestoreImageUrl(firestoreUserId: string | null, attachment?: JournalAttachment) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [unavailable, setUnavailable] = useState(false)
+  useEffect(() => {
+    let active = true
+    setUrl(null)
+    setUnavailable(false)
+    if (!firestoreUserId || !attachment || attachment.kind !== 'image' || attachment.storage !== 'firestore') return
+    void import('../lib/firestore').then(({ readJournalImage }) => readJournalImage(firestoreUserId, attachment.id)).then((dataUrl) => {
+      if (!active) return
+      if (!dataUrl) { setUnavailable(true); return }
+      setUrl(dataUrl)
+    }).catch(() => active && setUnavailable(true))
+    return () => { active = false }
+  }, [attachment?.id, attachment?.storage, firestoreUserId])
+  return { url, unavailable }
+}
+
+function JournalHub({ notes, onCreate, imageUploadAvailable }: { notes: NoteCard[]; onCreate: (kind: JournalNoteKind) => void; imageUploadAvailable: boolean }) {
   const [query] = useSearchParams()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
@@ -68,7 +86,7 @@ function JournalHub({ notes, onCreate }: { notes: NoteCard[]; onCreate: (kind: J
       <div className="journal-type-grid">
         <button type="button" className="journal-type-card type-text" onClick={() => choose('text')}><FileText size="1.125rem" /><strong>Text note</strong><span>Write and save a thought.</span></button>
         <button type="button" className="journal-type-card type-voice" onClick={() => choose('voice')}><Mic size="1.125rem" /><strong>Voice note</strong><span>Record privately on this device.</span></button>
-        <button type="button" className="journal-type-card type-image" onClick={() => choose('image')}><ImagePlus size="1.125rem" /><strong>Image note</strong><span>Keep a visual reference close.</span></button>
+        <button type="button" className="journal-type-card type-image" disabled={!imageUploadAvailable} onClick={() => choose('image')}><ImagePlus size="1.125rem" /><strong>Image note</strong><span>{imageUploadAvailable ? 'Keep a visual reference close.' : 'Sign in with Google to store images privately.'}</span></button>
         <div className="journal-type-card type-ai" aria-label="AI Assist is a future upgrade"><Sparkles size="1.125rem" /><strong>AI Assist</strong><span>Coming in a future upgrade.</span><small>Nothing is sent from your device.</small></div>
       </div>
     </section>}
@@ -152,34 +170,36 @@ function VoiceEditor({ note, dispatch }: { note: NoteCard; dispatch: Dispatch<Jo
   </section>
 }
 
-function ImageEditor({ note, dispatch }: { note: NoteCard; dispatch: Dispatch<JourneyAction> }) {
+function ImageEditor({ note, dispatch, firestoreUserId }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; firestoreUserId: string | null }) {
   const input = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
-  const { url, unavailable } = useAttachmentUrl(note.attachment)
+  const { url, unavailable } = useFirestoreImageUrl(firestoreUserId, note.attachment)
   const choose = () => input.current?.click()
   const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    if (!file.type.startsWith('image/')) { setMessage('Choose an image file.'); return }
-    if (file.size > MAX_IMAGE_BYTES) { setMessage('Choose an image smaller than 10 MB.'); return }
-    const attachment: JournalAttachment = { id: makeId('image'), kind: 'image', name: file.name || 'Journal image', mimeType: file.type, size: file.size }
+    if (!firestoreUserId) { setMessage('Sign in with Google before adding a Firestore image note.'); return }
     try {
-      await saveJournalAttachment(file, attachment)
+      const optimized = await optimizeJournalImage(file)
+      const attachment: JournalAttachment = { id: makeId('image'), kind: 'image', storage: 'firestore', name: file.name || 'Journal image', mimeType: optimized.blob.type || 'image/webp', size: optimized.blob.size, width: optimized.width, height: optimized.height }
+      const dataUrl = await blobAsDataUrl(optimized.blob)
+      const { writeJournalImage } = await import('../lib/firestore')
+      await writeJournalImage(firestoreUserId, attachment, dataUrl)
       dispatch({ type: 'update-note', id: note.id, attachment, noteKind: 'image', updatedAt: new Date().toISOString() })
-      setMessage('Image saved privately on this device.')
-    } catch (error) { setMessage(error instanceof JournalAttachmentError ? error.message : 'The image could not be saved locally.') }
+      setMessage(`Image optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and saved to your private Firestore workspace.`)
+    } catch (error) { setMessage(error instanceof JournalImageError ? error.message : 'The image could not be saved to private Firestore storage.') }
   }
-  return <section className="journal-image-editor" aria-labelledby="image-note-heading"><div className="journal-editor-section-heading"><div><span className="eyebrow">Private image</span><h2 id="image-note-heading">Image note</h2></div><button type="button" className="button button-soft" onClick={choose}><ImagePlus size=".875rem" />{note.attachment ? 'Replace image' : 'Choose image'}</button></div>
+  return <section className="journal-image-editor" aria-labelledby="image-note-heading"><div className="journal-editor-section-heading"><div><span className="eyebrow">Private Firestore image</span><h2 id="image-note-heading">Image note</h2></div><button type="button" className="button button-soft" disabled={!firestoreUserId} onClick={choose}><ImagePlus size=".875rem" />{note.attachment ? 'Replace image' : 'Choose image'}</button></div>
     <input ref={input} className="sr-only" type="file" accept="image/*" onChange={onFile} />
-    {url ? <img className="journal-note-image" src={url} alt={note.title || 'Journal attachment'} /> : <button type="button" className="journal-image-dropzone" onClick={choose}><ImagePlus size="1.5rem" /><strong>Add an image</strong><span>Choose an image under 10 MB. It stays on this device.</span></button>}
-    {unavailable && <p className="journal-attachment-warning">This image is not available in this browser’s local attachment storage.</p>}
+    {url ? <img className="journal-note-image" src={url} alt={note.title || 'Journal attachment'} /> : firestoreUserId ? <button type="button" className="journal-image-dropzone" onClick={choose}><ImagePlus size="1.5rem" /><strong>Add an image</strong><span>Images are automatically optimized before private Firestore storage.</span></button> : <div className="journal-image-sign-in"><ImagePlus size="1.5rem" /><strong>Google sign-in required</strong><span>Image notes are optimized and saved only in your private Firestore workspace.</span></div>}
+    {unavailable && <p className="journal-attachment-warning">This Firestore image is unavailable. Check your connection or add the image again.</p>}
     {message && <p className="journal-attachment-feedback" role="status">{message}</p>}
     <label className="journal-detail-label" htmlFor="image-note-body">Private context</label><textarea id="image-note-body" value={note.body} maxLength={20000} placeholder="What do you want to remember about this image?" onChange={(event) => dispatch({ type: 'update-note', id: note.id, body: event.target.value, updatedAt: new Date().toISOString() })} />
   </section>
 }
 
-function JournalEditor({ note, dispatch, storageAvailable }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean }) {
+function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null }) {
   const kind = note.noteKind ?? 'text'
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   const words = note.body.trim() ? note.body.trim().split(/\s+/).length : 0
@@ -189,13 +209,13 @@ function JournalEditor({ note, dispatch, storageAvailable }: { note: NoteCard; d
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Updated just now' : 'Private to this browser'}</span></div>
       <label htmlFor="journal-title" className="sr-only">Note title</label><input id="journal-title" className="journal-title-input" value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(kind).toLowerCase()}`} onChange={(event) => update({ title: event.target.value })} />
       <MetadataFields note={note} dispatch={dispatch} />
-      {kind === 'voice' ? <VoiceEditor note={note} dispatch={dispatch} /> : kind === 'image' ? <ImageEditor note={note} dispatch={dispatch} /> : <><label className="journal-detail-label" htmlFor="journal-body">Your reflection</label><textarea id="journal-body" className="journal-body-input" rows={12} value={note.body} maxLength={20000} placeholder="What’s on your mind today?" onChange={(event) => update({ body: event.target.value })} /><div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · Private to this browser</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div></>}
+      {kind === 'voice' ? <VoiceEditor note={note} dispatch={dispatch} /> : kind === 'image' ? <ImageEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} /> : <><label className="journal-detail-label" htmlFor="journal-body">Your reflection</label><textarea id="journal-body" className="journal-body-input" rows={12} value={note.body} maxLength={20000} placeholder="What’s on your mind today?" onChange={(event) => update({ body: event.target.value })} /><div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · Private to this browser</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div></>}
     </section>
     <section className="journal-ai-future" aria-labelledby="journal-ai-heading"><Sparkles size="1rem" /><div><span className="eyebrow">Future upgrade</span><h2 id="journal-ai-heading">AI Assist</h2><p>Summaries, rewrites, and transcription are planned for a future release. Nothing from this note is sent anywhere today.</p></div><span>Coming soon</span></section>
   </div>
 }
 
-export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, storageAvailable }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; storageAvailable: boolean }) {
+export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, storageAvailable, firestoreUserId }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; storageAvailable: boolean; firestoreUserId: string | null }) {
   const notes = cards.filter((card): card is NoteCard => card.type === 'note')
   const selected = cardId ? notes.find((note) => note.id === cardId) : undefined
   const create = (kind: JournalNoteKind) => {
@@ -203,6 +223,6 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, storageA
     dispatch({ type: 'add-card', card })
     onNavigate({ page: 'journal', cardId: card.id })
   }
-  if (selected) return <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} />
-  return <JournalHub notes={notes} onCreate={create} />
+  if (selected) return <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} />
+  return <JournalHub notes={notes} onCreate={create} imageUploadAvailable={!!firestoreUserId} />
 }

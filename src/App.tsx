@@ -8,6 +8,7 @@ import { buildTimeline, focusCard, formatDate, rolloverCandidates, shiftMonth } 
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
+import { googleSyncUser } from './lib/workspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
 import type { CalendarSource } from './lib/calendarSources'
 import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
@@ -188,6 +189,7 @@ export default function App() {
   const { state, dispatch, storageAvailable } = useJourneyStore()
   const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const account = useAccount()
+  const firestoreUserId = googleSyncUser(account.user)
   useWorkspaceSync(account.user, state, dispatch)
   const appearance = useAppearance()
   const pwa = usePwa()
@@ -433,7 +435,7 @@ export default function App() {
             rolloverCandidates={overdueCards} rolloverDate={FOCUS_DATE} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} journalUserId={firestoreUserId} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
         <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
         <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />

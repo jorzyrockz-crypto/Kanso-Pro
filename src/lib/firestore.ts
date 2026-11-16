@@ -1,8 +1,8 @@
-import { collection, doc, getFirestore, increment, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getFirestore, increment, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
 import type { Firestore, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { firebaseApp } from './firebase'
 import { parseSavedState } from './store'
-import type { JourneyCard, JourneyState } from '../types'
+import type { JournalAttachment, JourneyCard, JourneyState } from '../types'
 
 const WORKSPACE_ID = 'default'
 const CARD_BATCH_SIZE = 450
@@ -29,6 +29,33 @@ export interface RemoteWorkspaceSnapshot {
 
 function workspaceRef(uid: string) {
   return doc(database, 'users', uid, 'workspaces', WORKSPACE_ID)
+}
+
+function journalImageRef(uid: string, id: string) {
+  return doc(workspaceRef(uid), 'journalImages', id)
+}
+
+const FIRESTORE_IMAGE_DATA_LIMIT = 850_000
+
+/** Images are optimised in the browser before reaching Firestore, never embedded in a card document. */
+export async function writeJournalImage(uid: string, attachment: JournalAttachment, dataUrl: string) {
+  if (attachment.kind !== 'image' || attachment.storage !== 'firestore' || !dataUrl.startsWith('data:image/') || dataUrl.length > FIRESTORE_IMAGE_DATA_LIMIT) throw new Error('This image is too large for private Firestore storage.')
+  await setDoc(journalImageRef(uid, attachment.id), {
+    dataUrl,
+    name: attachment.name,
+    mimeType: attachment.mimeType,
+    size: attachment.size,
+    width: attachment.width ?? null,
+    height: attachment.height ?? null,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function readJournalImage(uid: string, id: string) {
+  const snapshot = await getDoc(journalImageRef(uid, id))
+  if (!snapshot.exists()) return null
+  const data = snapshot.data()
+  return typeof data.dataUrl === 'string' && data.dataUrl.startsWith('data:image/') ? data.dataUrl : null
 }
 
 function cleanCard(value: Record<string, unknown>): JourneyCard | null {

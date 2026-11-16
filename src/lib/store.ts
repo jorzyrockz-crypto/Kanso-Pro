@@ -46,7 +46,10 @@ function isCard(value: unknown): value is JourneyCard {
       && isString((card.attachment as Record<string, unknown>).name)
       && isString((card.attachment as Record<string, unknown>).mimeType)
       && typeof (card.attachment as Record<string, unknown>).size === 'number'
-      && ((card.attachment as Record<string, unknown>).durationSeconds === undefined || typeof (card.attachment as Record<string, unknown>).durationSeconds === 'number')))
+      && ((card.attachment as Record<string, unknown>).durationSeconds === undefined || typeof (card.attachment as Record<string, unknown>).durationSeconds === 'number')
+      && ((card.attachment as Record<string, unknown>).width === undefined || typeof (card.attachment as Record<string, unknown>).width === 'number')
+      && ((card.attachment as Record<string, unknown>).height === undefined || typeof (card.attachment as Record<string, unknown>).height === 'number')
+      && ((card.attachment as Record<string, unknown>).storage === undefined || (card.attachment as Record<string, unknown>).storage === 'firestore')))
   return false
 }
 

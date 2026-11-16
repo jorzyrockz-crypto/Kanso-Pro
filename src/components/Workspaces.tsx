@@ -221,7 +221,7 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
   </div>
 }
 
-export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable }: {
+export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, storageAvailable, journalUserId }: {
   page: Workspace
   cards: JourneyCard[]
   calendarSources: CalendarSource[]
@@ -229,6 +229,7 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
   onNavigate: (destination: Destination) => void
   onCompose: (options?: ComposerOptions) => void
   storageAvailable: boolean
+  journalUserId: string | null
 }) {
   const { cardId } = useParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
@@ -240,7 +241,7 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
       {page === 'calendar' && <CalendarWorkspace {...props} />}
       {page === 'tasks' && <TaskWorkspace {...props} />}
       {page === 'project' && <ProjectWorkspace {...props} />}
-      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} />}
+      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} firestoreUserId={journalUserId} />}
       <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} />
         <Link to="/" state={cardId ? { focusCardId: cardId } : null} className="text-button">View your timeline<ArrowRight size="0.75rem" /></Link>
       </div>

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 const navigation = (page: import('@playwright/test').Page) => page.getByRole('navigation', { name: 'Main navigation' })
 
-test('Journal offers private text, voice, image, and future AI note paths', async ({ page }) => {
+test('Journal offers private text and voice notes while reserving Firestore images and AI for their explicit paths', async ({ page }) => {
   await page.goto('/journal')
   await expect(page.getByRole('heading', { name: 'Recent notes', exact: true })).toBeVisible()
   await navigation(page).getByRole('button', { name: 'New note', exact: true }).click()
@@ -25,7 +25,7 @@ test('Journal offers private text, voice, image, and future AI note paths', asyn
   await expect(page.getByRole('heading', { name: 'AI Assist', exact: true })).toBeVisible()
 
   await page.goto('/journal?create=menu')
-  await page.getByRole('button', { name: /Image note/ }).click()
-  await page.locator('input[type="file"]').setInputFiles({ name: 'journal.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') })
-  await expect(page.locator('.journal-note-image')).toBeVisible()
+  const imageNote = page.getByRole('button', { name: /Image note/ })
+  await expect(imageNote).toBeDisabled()
+  await expect(imageNote).toContainText('Sign in with Google to store images privately.')
 })

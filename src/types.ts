@@ -62,6 +62,10 @@ export interface JournalAttachment {
   mimeType: string
   size: number
   durationSeconds?: number
+  width?: number
+  height?: number
+  /** Image bytes are held in a dedicated signed-in Firestore document, never in card state. */
+  storage?: 'firestore'
 }
 
 export interface NoteCard extends BaseCard {
