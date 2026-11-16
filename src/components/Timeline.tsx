@@ -363,7 +363,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, onDeleteCard, h
         <p>A little structure. A lot of possibility.</p>
       </div>
       {lastMonth && <TimelineBoundary key={`future-${lastMonth}`} direction="future" month={lastMonth} canLoad={canLoadFuture} onLoad={onLoadFuture} />}
-      <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} onDeleteCard={onDeleteCard} />
+      <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onDeleteCard={onDeleteCard} />
     </section>
   )
 }

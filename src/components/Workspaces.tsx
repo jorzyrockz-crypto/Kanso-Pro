@@ -97,7 +97,7 @@ function timelineSourcePreview(entry: CalendarSourceEntry, source?: CalendarSour
   }
 }
 
-function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose, onDeleteCard }: WorkspaceProps) {
+function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onDeleteCard }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
@@ -157,7 +157,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose
         : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
       {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
     </section>
-    <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} onDeleteCard={onDeleteCard} />
+    <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onDeleteCard={onDeleteCard} />
   </div>
 }
 

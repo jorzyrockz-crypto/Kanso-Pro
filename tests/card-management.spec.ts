@@ -22,6 +22,15 @@ test('Calendar events and task cards can be edited without replacing task checkl
   await expect(page.getByRole('checkbox').nth(1)).not.toBeChecked()
 })
 
+test('Event backgrounds are customized in the event editor, not its preview', async ({ page }) => {
+  await page.goto('/calendar')
+  await page.getByRole('button', { name: 'Preview Faculty Alignment & Curriculum Sync details', exact: true }).click()
+  const preview = page.getByRole('dialog')
+  await expect(preview.getByRole('group', { name: 'Occasion background', exact: true })).toHaveCount(0)
+  await preview.getByRole('link', { name: 'Edit event', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Occasion background', exact: true })).toBeVisible()
+})
+
 test('Calendar event cards can be deleted deliberately', async ({ page }) => {
   await page.goto('/calendar')
   await page.getByRole('button', { name: "Preview All Souls’ Day (Additional Special Non-Working Holiday) details", exact: true }).click()
