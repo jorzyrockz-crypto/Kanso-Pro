@@ -6,6 +6,7 @@ import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceE
 import { buildTimeline, focusCard, formatDate } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
+import { useWorkspaceSync } from './lib/useWorkspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
 import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
 import { DEPED_LEGISLATED_ACTIVITY_RULES } from './data/depedLegislatedActivities'
@@ -93,6 +94,7 @@ export default function App() {
   const { state, dispatch, storageAvailable } = useJourneyStore()
   const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const account = useAccount()
+  useWorkspaceSync(account.user, state, dispatch)
   const appearance = useAppearance()
   const pwa = usePwa()
   const notifications = useNotifications(state.cards)
