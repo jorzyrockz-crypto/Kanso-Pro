@@ -11,9 +11,11 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   await expect(rail.getByRole('heading', { name: 'Task lists to finish', exact: true })).toBeVisible()
   await expect(rail.getByRole('button', { name: 'Task list', exact: true })).toBeVisible()
 
-  const [streamBox, railBox, viewport] = await Promise.all([
-    stream.boundingBox(), rail.boundingBox(), page.evaluate(() => document.documentElement.scrollWidth),
+  const [headerBox, streamBox, railBox, viewport] = await Promise.all([
+    page.locator('.stream-header').boundingBox(), stream.boundingBox(), rail.boundingBox(), page.evaluate(() => document.documentElement.scrollWidth),
   ])
+  expect(headerBox!.x + headerBox!.width).toBeLessThanOrEqual(railBox!.x)
+  expect(Math.abs(headerBox!.y - railBox!.y)).toBeLessThanOrEqual(1)
   expect(streamBox!.x + streamBox!.width).toBeLessThanOrEqual(railBox!.x)
   expect(viewport).toBeLessThanOrEqual(1280)
 
