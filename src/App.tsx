@@ -60,15 +60,19 @@ function extendTimelineWindow(window: TimelineWindow, direction: 'past' | 'futur
     : { ...window, end: window.end >= '9999-01' ? TIMELINE_MAX_MONTH : shiftMonth(window.end, TIMELINE_MONTH_STEP) }
 }
 
-function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, jumpDirection, onFilter, onJumpToToday, onCalendarSourcesChange }: {
+function JumpToToday({ direction, onJump }: { direction: 'up' | 'down'; onJump: () => void }) {
+  return <button type="button" className={`button button-jump-today timeline-jump-today is-${direction}`} onClick={onJump} title={`Jump ${direction} to today`} aria-label="Jump to Today">
+    {direction === 'up' ? <ArrowUp size="0.875rem" aria-hidden="true" /> : <ArrowDown size="0.875rem" aria-hidden="true" />}<span>Jump to Today</span>
+  </button>
+}
+
+function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, onFilter, onCalendarSourcesChange }: {
   filter: Filter
   count: number
   month: string
   showCalendarSources: boolean
   calendarSourceCount: number
-  jumpDirection: 'up' | 'down'
   onFilter: (type: Filter) => void
-  onJumpToToday: () => void
   onCalendarSourcesChange: (show: boolean) => void
 }) {
   return <header className="stream-header">
@@ -81,11 +85,6 @@ function StreamHeader({ filter, count, month, showCalendarSources, calendarSourc
           <div className="header-title-line"><h1 id="page-title">Journey Stream</h1><span className="live-badge" title="Your four workspaces stay connected on this device"><span className="live-dot" /><span className="live-text">Live Flow</span></span></div>
           <p>Your plans, progress, and reflections. All in one flow.</p>
         </div>
-      </div>
-      <div className="header-actions">
-        <button className={`button button-jump-today is-${jumpDirection}`} onClick={onJumpToToday} title={`Jump ${jumpDirection} to today`} aria-label="Jump to Today">
-          {jumpDirection === 'up' ? <ArrowUp size="0.875rem" aria-hidden="true" /> : <ArrowDown size="0.875rem" aria-hidden="true" />}<span>Jump to Today</span>
-        </button>
       </div>
     </div>
     <div className="header-bottom">
@@ -372,7 +371,7 @@ export default function App() {
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} jumpDirection={jumpDirection} onFilter={changeFilter} onJumpToToday={jumpToToday} onCalendarSourcesChange={setShowCalendarSources} />
+          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} onFilter={changeFilter} onCalendarSourcesChange={setShowCalendarSources} />
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={FOCUS_DATE} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
@@ -387,6 +386,7 @@ export default function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
+    {location.pathname === '/' && jumpTarget && <JumpToToday direction={jumpDirection} onJump={jumpToToday} />}
     <AppFooter />
     <AboutUpdatesDialog open={aboutUpdatesOpen} onClose={closeAboutUpdates} pwa={pwa} />
     <RouteEffects updateReady={pwa.updateReady && !pwa.coarse} />

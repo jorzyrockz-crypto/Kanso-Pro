@@ -56,6 +56,8 @@
     .navigation-note { display: block; margin: auto 1rem 0; padding-top: 1.5rem; border-top: 1px solid var(--theme-border, #d5e4ee); color: var(--theme-text-secondary, #59788f); font-family: var(--serif); font-size: 1rem; font-style: italic; line-height: 1.5; }
     .workspace-calendar { max-width: 76rem; }
     .workspace-tasks, .workspace-project { max-width: 66rem; }
+    /* In side-rail landscape layouts, keep the floating return control in the content canvas. */
+    .timeline-jump-today { bottom: max(1.25rem, var(--safe-area-bottom)); }
     .toast-region { bottom: max(1rem, var(--safe-area-bottom)); }
   }
 

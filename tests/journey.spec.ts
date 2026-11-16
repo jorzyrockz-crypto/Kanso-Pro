@@ -397,6 +397,29 @@ test('jump to today finds the current due project and the tablet frame preferenc
   await expect(page.getByRole('button', { name: 'Tablet frame', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })
 
+test('Jump to Today floats above bottom navigation and moves into the content canvas in landscape side-rail mode', async ({ page }) => {
+  const jump = page.getByRole('button', { name: 'Jump to Today', exact: true })
+  await expect(page.locator('.stream-header').getByRole('button', { name: 'Jump to Today', exact: true })).toHaveCount(0)
+  await page.setViewportSize({ width: 812, height: 375 })
+  await settle(page)
+  const mobile = await page.evaluate(() => {
+    const jump = document.querySelector<HTMLElement>('.timeline-jump-today')!.getBoundingClientRect()
+    const navigation = document.querySelector<HTMLElement>('.bottom-bar')!.getBoundingClientRect()
+    return { jump: { bottom: jump.bottom }, navigation: { top: navigation.top } }
+  })
+  expect(mobile.jump.bottom).toBeLessThanOrEqual(mobile.navigation.top)
+  await page.setViewportSize({ width: 1194, height: 834 })
+  await settle(page)
+  const landscape = await page.evaluate(() => {
+    const jump = document.querySelector<HTMLElement>('.timeline-jump-today')!.getBoundingClientRect()
+    const navigation = document.querySelector<HTMLElement>('.bottom-bar')!.getBoundingClientRect()
+    return { jump: { left: jump.left, bottom: jump.bottom }, navigation: { right: navigation.right }, viewport: innerHeight }
+  })
+  expect(landscape.jump.left).toBeGreaterThanOrEqual(landscape.navigation.right)
+  expect(landscape.jump.bottom).toBeLessThanOrEqual(landscape.viewport)
+  await expect(jump).toBeVisible()
+})
+
 test('every page and all five navigation links fit from narrow phones through desktop', async ({ page }) => {
   test.setTimeout(90_000)
   for (const path of ['/', '/calendar', '/tasks', '/projects', '/journal', '/new?type=project']) {
