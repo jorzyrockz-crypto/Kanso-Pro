@@ -105,7 +105,7 @@ function TaskJourneyCard({ card, dispatch, highlight, onPreview }: { card: TaskC
   return (
     <CardFrame card={card} highlight={highlight} onPreview={onPreview}>
       <div className="card-topline task-topline">
-        <span className="badge type-badge"><TypeIcon type="task" size={12} />Task & Reminder</span>
+        <span className="badge type-badge"><TypeIcon type="task" size={12} />Task list</span>
         {card.reminder && <span className="reminder-pill"><Bell size="0.6875rem" />{formatTime(card.reminder)}</span>}
       </div>
       <h3>{card.title}</h3>
@@ -116,9 +116,9 @@ function TaskJourneyCard({ card, dispatch, highlight, onPreview }: { card: TaskC
             <span>{item.title}</span>
           </label>
         ))}
-        {total > 3 && <span className="more-items">+{total - 3} more in Personal Tasks</span>}
+        {total > 3 && <span className="more-items">+{total - 3} more actions in this list</span>}
       </div>
-      <div className="card-footer task-footer"><span>{done} of {total} completed</span><span className="footer-link">Personal Tasks Page <ArrowRight size="0.75rem" /></span></div>
+      <div className="card-footer task-footer"><span>{done} of {total} completed</span><span className="footer-link">Open task list <ArrowRight size="0.75rem" /></span></div>
     </CardFrame>
   )
 }
@@ -151,7 +151,7 @@ function ProjectJourneyCard({ card, highlight, onPreview }: { card: ProjectCard;
       <h3>{card.title}</h3>
       <p className="card-caption">{card.team.length} Collaborators <span className="meta-dot">·</span> {card.context}</p>
       <ProgressBar value={percent} label={`${card.title} progress`} />
-      <div className="sprint-footer"><span><strong>{done}</strong> / {total} Tasks Done</span><span className="footer-link">Open Projects <ArrowRight size="0.75rem" /></span></div>
+      <div className="sprint-footer"><span><strong>{done}</strong> / {total} milestones complete</span><span className="footer-link">Open project <ArrowRight size="0.75rem" /></span></div>
     </CardFrame>
   )
   return (
@@ -165,7 +165,7 @@ function ProjectJourneyCard({ card, highlight, onPreview }: { card: ProjectCard;
         <span className={`project-status ${percent === 100 ? 'is-complete' : ''}`}><span className="status-dot" />{projectStatus(percent)}</span>
       </div>
       <ProgressBar value={percent} label={`${card.title} progress`} />
-      <div className="project-footer"><span><strong>{done}</strong> / {total} Total Tasks</span><strong>{percent}%</strong></div>
+      <div className="project-footer"><span><strong>{done}</strong> / {total} milestones complete</span><strong>{percent}%</strong></div>
     </CardFrame>
   )
 }

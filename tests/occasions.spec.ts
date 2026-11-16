@@ -50,7 +50,7 @@ test('automatic title suggestions update the live creation preview and respect m
   await picker(page).getByRole('radio', { name: 'Automatic', exact: true }).check()
   await expect(preview(page)).toHaveAttribute('data-occasion', 'celebration')
   // Other card types do not acquire an event-only picker.
-  await page.getByRole('radio', { name: 'Task', exact: true }).check()
+  await page.getByRole('radio', { name: 'Task list', exact: true }).check()
   await expect(picker(page)).toHaveCount(0)
   await page.getByRole('radio', { name: 'Event', exact: true }).check()
   await expect(preview(page)).toHaveAttribute('data-occasion', 'celebration')

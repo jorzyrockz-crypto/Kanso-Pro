@@ -165,11 +165,11 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDelet
   const tasks = cards.filter((card): card is TaskCard => card.type === 'task')
   const activeId = cardId ?? 'task-grades'
   const selected = tasks.find((card) => card.id === activeId) ?? tasks[0]
-  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task list</button>}>Create a task list, then add the small actions that move it forward.</EmptyState>
+  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task list</button>}>Create a date-specific task list, then add the immediate actions that move it forward.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
   return <div className="workspace-content task-workspace">
-    <WorkspaceHero type="task" eyebrow="Personal Task & Reminder Hub" title="Daily Action & Reminders" stat={{ label: 'Completion', value: `${percent}%` }}>
-      One small action at a time. Every check moves your timeline forward.
+    <WorkspaceHero type="task" eyebrow="Task lists · immediate action" title="Focus for this day" stat={{ label: 'Completion', value: `${percent}%` }}>
+      Keep related, date-specific actions together. Add a reminder when the timing matters.
     </WorkspaceHero>
     <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
       {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
@@ -198,19 +198,19 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
   const projects = cards.filter((card): card is ProjectCard => card.type === 'project')
   const activeId = cardId ?? 'proj-tos'
   const selected = projects.find((card) => card.id === activeId) ?? projects[0]
-  if (!selected) return <EmptyState icon={<Zap size="1.5rem" />} title="Good things take a few steps" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />Start a project</button>}>Give your next big idea a little structure.</EmptyState>
+  if (!selected) return <EmptyState icon={<Zap size="1.5rem" />} title="Turn a bigger outcome into milestones" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />Start a project</button>}>Set a start and due date, then build the milestones and collaborators around it.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
   return <div className="workspace-content project-workspace">
-    <WorkspaceHero type="project" eyebrow="Project Collaboration & Planning" title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
+    <WorkspaceHero type="project" eyebrow="Projects · outcomes over time" title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
       extra={<span className="hero-date">Due {shortDate(selected.dueDate)}</span>}>
-      Every milestone moves your journey forward. Plan it, share the work, make it happen.
+      Guide a larger outcome from its start date to its due date with milestones and collaborators.
     </WorkspaceHero>
     {projects.length > 1 && <div className="workspace-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
       {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>}
     <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
     <section className="workspace-panel checklist-panel">
-      <div className="panel-heading"><h3>Collaborative Tasks & Deliverables</h3><span className="count-label">{done} / {total} complete</span></div>
+      <div className="panel-heading"><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div>
       <ProgressBar value={percent} label="Project completion" />
       <div className="workspace-checklist">{selected.subtasks.map((item, index) => <label key={item.id} className={`workspace-check project-check ${item.done ? 'is-done' : ''}`}>
         <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />

@@ -10,8 +10,8 @@ export const TYPE_CONFIG: Record<CardType, {
   link: string
 }> = {
   event: { workspace: 'calendar', label: 'Event', shortLabel: 'Events', link: 'Open Calendar' },
-  task: { workspace: 'tasks', label: 'Task & Reminder', shortLabel: 'Tasks', link: 'Personal Tasks' },
-  project: { workspace: 'project', label: 'Project Plan', shortLabel: 'Projects', link: 'Open Projects' },
+  task: { workspace: 'tasks', label: 'Task list', shortLabel: 'Task lists', link: 'Open task lists' },
+  project: { workspace: 'project', label: 'Project', shortLabel: 'Projects', link: 'Open project' },
   note: { workspace: 'journal', label: 'Journal Note', shortLabel: 'Journal Notes', link: 'Open Journal' },
 }
 

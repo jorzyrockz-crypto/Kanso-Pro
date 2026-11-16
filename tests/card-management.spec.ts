@@ -1,5 +1,27 @@
 import { expect, test } from '@playwright/test'
 
+test('Task lists and projects explain their distinct planning scopes while creating a card', async ({ page }) => {
+  await page.goto('/new')
+
+  await page.getByRole('radio', { name: 'Task list', exact: true }).check()
+  const guide = page.locator('.composer-type-guide')
+  await expect(guide).toContainText('A short, date-specific checklist')
+  await expect(guide).toContainText('immediate actions and an optional reminder')
+  await expect(page.getByLabel('Reminder time', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Task-list context', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Checklist items', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create task list', exact: true })).toBeVisible()
+
+  await page.getByRole('radio', { name: 'Project', exact: true }).check()
+  await expect(guide).toContainText('A larger outcome over time')
+  await expect(guide).toContainText('milestones, a due date, progress, and collaborators')
+  await expect(page.getByLabel('Due date', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Project purpose', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Project milestones', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Reminder time', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Create project', exact: true })).toBeVisible()
+})
+
 test('Calendar events and task cards can be edited without replacing task checklist progress', async ({ page }) => {
   await page.goto('/calendar')
   await page.getByRole('button', { name: 'Preview Faculty Alignment & Curriculum Sync details', exact: true }).click()
