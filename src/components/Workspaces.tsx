@@ -199,23 +199,37 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDelet
   </div>
 }
 
-function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: WorkspaceProps) {
+function projectDueStatus(dueDate: string) {
+  const now = new Date()
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const due = Date.UTC(Number(dueDate.slice(0, 4)), Number(dueDate.slice(5, 7)) - 1, Number(dueDate.slice(8, 10)))
+  const days = Math.round((due - today) / 86_400_000)
+  if (days < 0) return { text: `${Math.abs(days)} ${Math.abs(days) === 1 ? 'day' : 'days'} overdue`, tone: 'is-overdue' }
+  if (days === 0) return { text: 'Due today', tone: 'is-today' }
+  if (days === 1) return { text: 'Due tomorrow', tone: 'is-upcoming' }
+  return { text: `${days} days remaining`, tone: 'is-upcoming' }
+}
+
+function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
   const projects = cards.filter((card): card is ProjectCard => card.type === 'project')
   const activeId = cardId ?? 'proj-tos'
   const selected = projects.find((card) => card.id === activeId) ?? projects[0]
   if (!selected) return <EmptyState icon={<Zap size="1.5rem" />} title="Turn a bigger outcome into milestones" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />Start a project</button>}>Set a start and due date, then build the milestones and collaborators around it.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
+  const nextMilestone = selected.subtasks.find((item) => !item.done)
+  const dueStatus = projectDueStatus(selected.dueDate)
   return <div className="workspace-content project-workspace">
     <WorkspaceHero type="project" eyebrow="Projects · outcomes over time" title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
       extra={<span className="hero-date">Due {shortDate(selected.dueDate)}</span>}>
-      Guide a larger outcome from its start date to its due date with milestones and collaborators.
+      {selected.context || 'Guide a larger outcome from its start date to its due date with milestones and collaborators.'}
     </WorkspaceHero>
     {projects.length > 1 && <div className="workspace-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
       {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>}
+    <section className="project-pulse" aria-label="Project pulse"><div><span className="eyebrow"><Zap size={11} />Next milestone</span><strong>{nextMilestone?.title ?? (total ? 'All milestones are complete' : 'Add your first milestone')}</strong><p>{nextMilestone?.assignee ? `Owned by ${nextMilestone.assignee}` : nextMilestone ? 'Keep the next meaningful step visible.' : 'A clear next step makes the project easier to move forward.'}</p></div><span className={`project-due-status ${dueStatus.tone}`}><Clock3 size=".8125rem" />{dueStatus.text}</span></section>
     <div className="workspace-desktop-split">
       <section className="workspace-panel checklist-panel">
-        <div className="panel-heading"><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div>
+        <div className="panel-heading project-milestone-heading"><div><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div><div className="project-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'project', cardId: selected.id }) }}>Edit project</Link><CardDeleteAction card={selected} onDelete={() => { onDeleteCard(selected); onNavigate({ page: 'project' }) }} /></div></div>
         <ProgressBar value={percent} label="Project completion" />
         <div className="workspace-checklist">{selected.subtasks.map((item, index) => <label key={item.id} className={`workspace-check project-check ${item.done ? 'is-done' : ''}`}>
           <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
@@ -226,7 +240,7 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
         <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: 'You' } })} />
       </section>
       <aside className="workspace-desktop-aside project-workspace-aside" aria-label="Project context">
-        <section className="workspace-insight-card project-insight-card"><span className="eyebrow"><Zap size={11} />Project plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Started</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Due</dt><dd>{shortDate(selected.dueDate)}</dd></div><div><dt>Progress</dt><dd>{percent}% · {done} of {total}</dd></div></dl></section>
+        <section className="workspace-insight-card project-insight-card"><span className="eyebrow"><Zap size={11} />Project plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Started</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Due</dt><dd>{shortDate(selected.dueDate)}</dd></div><div><dt>Progress</dt><dd>{percent}% · {done} of {total}</dd></div><div><dt>Next up</dt><dd>{nextMilestone?.title ?? 'Complete'}</dd></div></dl></section>
         <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
         <p className="workspace-fineprint"><Users size="0.75rem" />Team names are planning references. This workspace is stored on your device.</p>
       </aside>

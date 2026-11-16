@@ -44,6 +44,19 @@ test('Calendar events and task cards can be edited without replacing task checkl
   await expect(page.getByRole('checkbox').nth(1)).not.toBeChecked()
 })
 
+test('Project tracking keeps the next milestone visible and preserves milestones when project details change', async ({ page }) => {
+  await page.goto('/projects/proj-tos')
+  await expect(page.getByRole('region', { name: 'Project pulse', exact: true })).toContainText('Draft 40-item multiple choice questionnaire')
+  await page.getByRole('link', { name: 'Edit project', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit Project', exact: true })).toBeVisible()
+  await page.locator('#card-title').fill('Updated quarterly assessment plan')
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+  await expect(page).toHaveURL('/projects/proj-tos')
+  await expect(page.getByRole('heading', { name: 'Updated quarterly assessment plan', exact: true })).toBeVisible()
+  await expect(page.getByRole('checkbox').first()).toBeChecked()
+  await expect(page.getByRole('checkbox').nth(1)).not.toBeChecked()
+})
+
 test('Event backgrounds are customized in the event editor, not its preview', async ({ page }) => {
   await page.goto('/calendar')
   await page.getByRole('button', { name: 'Preview Faculty Alignment & Curriculum Sync details', exact: true }).click()

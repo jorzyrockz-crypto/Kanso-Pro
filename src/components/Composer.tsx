@@ -2,7 +2,7 @@ import { ArrowRight, CalendarDays, Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { FOCUS_DATE } from '../data'
-import type { CardType, ComposerOptions, EventCard, JourneyCard, NewCardInput, TaskCard } from '../types'
+import type { CardType, ComposerOptions, EventCard, JourneyCard, NewCardInput, ProjectCard, TaskCard } from '../types'
 import { createCard, TYPE_CONFIG, updateCardFromInput } from '../lib/journey'
 import { TypeIcon } from './Common'
 import { EventThemePicker } from './EventThemePicker'
@@ -18,10 +18,10 @@ const typeGuides: Record<CardType, { title: string; description: string }> = {
 export function Composer({ options, cards, editingCard, onCancel, onCreate, onUpdate }: {
   options: ComposerOptions
   cards: JourneyCard[]
-  editingCard?: EventCard | TaskCard
+  editingCard?: EventCard | TaskCard | ProjectCard
   onCancel: () => void
   onCreate: (card: JourneyCard) => void
-  onUpdate: (card: EventCard | TaskCard) => void
+  onUpdate: (card: EventCard | TaskCard | ProjectCard) => void
 }) {
   const editing = !!editingCard
   const [input, setInput] = useState<NewCardInput>(() => editingCard ? {
@@ -29,10 +29,10 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
     title: editingCard.title,
     date: editingCard.date,
     context: editingCard.context,
-    time: editingCard.type === 'event' ? editingCard.time ?? '09:00' : editingCard.reminder ?? '',
+    time: editingCard.type === 'event' ? editingCard.time ?? '09:00' : editingCard.type === 'task' ? editingCard.reminder ?? '' : '',
     endTime: editingCard.type === 'event' ? editingCard.endTime ?? '' : '',
     allDay: editingCard.type === 'event' ? editingCard.allDay : false,
-    dueDate: editingCard.date,
+    dueDate: editingCard.type === 'project' ? editingCard.dueDate : editingCard.date,
     details: '',
     ...(editingCard.type === 'event' ? { owner: editingCard.owner, organization: editingCard.organization, location: editingCard.location, occasion: editingCard.occasion ?? 'auto' } : {}),
   } : {
@@ -54,9 +54,9 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
     }
   }
   return <section className="composer-card" aria-labelledby="composer-title">
-    <div className="composer-header"><div><span className="eyebrow"><Plus size="0.6875rem" />{editing ? 'Card details' : 'A new little chapter'}</span><h2 id="composer-title">{editing ? input.type === 'event' ? 'Event details' : 'Task list details' : 'Add to your journey'}</h2></div></div>
+    <div className="composer-header"><div><span className="eyebrow"><Plus size="0.6875rem" />{editing ? 'Card details' : 'A new little chapter'}</span><h2 id="composer-title">{editing ? input.type === 'event' ? 'Event details' : input.type === 'project' ? 'Project details' : 'Task list details' : 'Add to your journey'}</h2></div></div>
     <form className={`composer-form composer-${input.type}`} onSubmit={submit}>
-      {editing ? <p className="composer-edit-kind"><TypeIcon type={input.type} size={15} />{input.type === 'event' ? 'Calendar event' : 'Personal task list'} · Your existing checklist stays exactly as it is.</p> : <div className="composer-type-choice"><fieldset className="type-fieldset"><legend>What are we making room for?</legend><div className="type-options">{(['event', 'task', 'project', 'note'] as CardType[]).map((type) => <label className={`type-option option-${type}`} key={type}>
+      {editing ? <p className="composer-edit-kind"><TypeIcon type={input.type} size={15} />{input.type === 'event' ? 'Calendar event' : input.type === 'project' ? 'Project plan' : 'Personal task list'} · Your existing {input.type === 'project' ? 'milestones' : 'checklist'} stay exactly as they are.</p> : <div className="composer-type-choice"><fieldset className="type-fieldset"><legend>What are we making room for?</legend><div className="type-options">{(['event', 'task', 'project', 'note'] as CardType[]).map((type) => <label className={`type-option option-${type}`} key={type}>
         <input type="radio" name="cardType" value={type} checked={input.type === type} onChange={() => update('type', type)} />
         <span><TypeIcon type={type} size={18} /><span>{typeLabels[type]}</span></span>
       </label>)}</div></fieldset><p className={`composer-type-guide type-guide-${input.type}`} aria-live="polite"><TypeIcon type={input.type} size={15} /><span><strong>{typeGuides[input.type].title}</strong><span>{typeGuides[input.type].description}</span></span></p></div>}
