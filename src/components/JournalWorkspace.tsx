@@ -100,13 +100,21 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
   </>
 }
 
+function JournalHero({ entryCount }: { entryCount: number }) {
+  return <section className="workspace-hero hero-note journal-hero" aria-labelledby="journal-hero-title">
+    <div className="hero-copy"><div className="hero-eyebrows"><span className="hero-eyebrow"><FileText size={11} />Journal · private reflections</span><span className="hero-date">Your space to return to</span></div>
+      <h2 id="journal-hero-title">Your Journal</h2><p>Capture reflections, voice memos, and visual references in one calm, private place.</p>
+    </div>
+    <div className="hero-stat"><span>{entryCount === 1 ? 'Journal entry' : 'Journal entries'}</span><strong>{entryCount}</strong></div>
+  </section>
+}
+
 function JournalHub({ notes, onCreate, imageUploadAvailable }: { notes: NoteCard[]; onCreate: (kind: JournalNoteKind) => void; imageUploadAvailable: boolean }) {
   const [query] = useSearchParams()
   const navigate = useNavigate()
   const showPicker = query.get('create') === 'menu'
   return <div className="journal-hub">
-    <div className="journal-hub-bar">
-      <span><span className="eyebrow">Your private journal</span><strong className="journal-hub-title">Journal</strong></span>
+    <div className="journal-hub-bar journal-hub-actions">
       <button type="button" className="button journal-create-trigger" onClick={() => navigate('/journal?create=menu')}><Plus size=".875rem" />New entry</button>
     </div>
 
@@ -400,6 +408,10 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDelete
     dispatch({ type: 'add-card', card })
     onNavigate({ page: 'journal', cardId: card.id })
   }
-  if (selected) return <JournalStudio notes={notes} selected={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onCreate={create} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} />
-  return <JournalHub notes={notes} onCreate={create} imageUploadAvailable={!!firestoreUserId} />
+  return <div className="workspace-content journal-workspace-content">
+    <JournalHero entryCount={notes.length} />
+    {selected
+      ? <JournalStudio notes={notes} selected={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onCreate={create} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} />
+      : <JournalHub notes={notes} onCreate={create} imageUploadAvailable={!!firestoreUserId} />}
+  </div>
 }

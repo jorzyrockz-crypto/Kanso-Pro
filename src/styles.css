@@ -567,6 +567,13 @@
   .inline-empty { color: var(--theme-text-secondary, #69788c); font-size: 0.6875rem; padding: 0.9375rem 0; line-height: 1.7; }
   .workspace-fineprint { display: flex; align-items: center; justify-content: center; gap: 0.3125rem; font-size: 0.5625rem; line-height: 1.8; text-align: center; color: var(--theme-text-secondary, #627084); }
 
+  /* Journal inherits the workspace hero rhythm while keeping its reflective note accent. */
+  .journal-hero { min-height: 8.25rem; }
+  .journal-hero .hero-copy { min-width: 0; flex: 1; }
+  .journal-hero .hero-date { background: rgb(38 20 47 / 22%); color: #ffe4ee; }
+  .journal-hero .hero-stat { min-width: 7.25rem; }
+  .journal-hub-actions { justify-content: flex-end; }
+
   /* Reflective journal studio */
   .journal-editor { padding: 1.5rem; border: 1px solid var(--theme-border, #efdfc5); border-radius: 1.4375rem; box-shadow: 0 2px 4px rgb(157 112 43 / 3%); }
   .journal-editor-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5625rem; color: var(--theme-text-secondary, #6f7478); font-size: 0.5rem; font-weight: 700; letter-spacing: 0.01875rem; text-transform: uppercase; }
