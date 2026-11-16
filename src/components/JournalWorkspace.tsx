@@ -114,10 +114,6 @@ function JournalHub({ notes, onCreate, imageUploadAvailable }: { notes: NoteCard
   const navigate = useNavigate()
   const showPicker = query.get('create') === 'menu'
   return <div className="journal-hub">
-    <div className="journal-hub-bar journal-hub-actions">
-      <button type="button" className="button journal-create-trigger" onClick={() => navigate('/journal?create=menu')}><Plus size=".875rem" />New entry</button>
-    </div>
-
     {showPicker && <section className="journal-note-picker" aria-labelledby="journal-picker-title">
       <div className="journal-picker-heading"><div><span className="eyebrow">Choose a format</span><h2 id="journal-picker-title">Start a journal entry</h2></div><button type="button" className="icon-button" aria-label="Close entry type picker" onClick={() => navigate('/journal')}><X size="1rem" /></button></div>
       <div className="journal-type-grid">
