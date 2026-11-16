@@ -1,5 +1,5 @@
 import { ArrowRight, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Landmark, MoreHorizontal, Pin, Plus, School, Sparkles, Users, Zap } from 'lucide-react'
-import { Fragment, useEffect, useRef } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, ReactNode, RefObject } from 'react'
 import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
@@ -9,6 +9,7 @@ import { destinationPath } from '../lib/navigation'
 import { occasionLabel, resolveOccasion } from '../lib/occasions'
 import { OccasionArtwork } from './OccasionArtwork'
 import { legislatedActivityIllustration } from '../lib/legislatedActivityVisuals'
+import { TimelineCardPreview } from './TimelineCardPreview'
 
 function useReveal() {
   const ref = useRef<HTMLElement>(null)
@@ -31,31 +32,32 @@ function useReveal() {
   return ref
 }
 
-function CardFrame({ card, className = '', highlight, children, artwork }: {
+function CardFrame({ card, className = '', highlight, children, artwork, onPreview }: {
   card: JourneyCard
   className?: string
   highlight?: boolean
   children: ReactNode
   artwork?: ReactNode
+  onPreview: () => void
 }) {
   return (
     <article id={`card-${card.id}`} data-card-id={card.id} data-card-type={card.type} data-occasion={card.type === 'event' ? resolveOccasion(card) : undefined}
       className={`journey-card card-${card.type} ${className} ${highlight ? 'is-highlighted' : ''}`}>
       {artwork}
-      <Link className="card-open" to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}
-        aria-label={`Open ${card.title || 'Untitled reflection'} in ${TYPE_CONFIG[card.type].workspace === 'project' ? 'Projects' : TYPE_CONFIG[card.type].workspace}`} />
+      <button type="button" className="card-open" onClick={onPreview}
+        aria-label={`Preview ${card.title || 'Untitled reflection'} details`} />
       <div className="card-content">{children}</div>
     </article>
   )
 }
 
-function EventJourneyCard({ card, highlight }: { card: EventCard; highlight: boolean }) {
+function EventJourneyCard({ card, highlight, onPreview }: { card: EventCard; highlight: boolean; onPreview: () => void }) {
   const theme = resolveOccasion(card)
   if (theme !== 'none') return (
-    <CardFrame card={card} highlight={highlight} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />}>
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />}>
       <div className="card-topline">
         <span className="badge occasion-event-badge">{card.holiday ? <Flag size="0.6875rem" /> : <CalendarDays size="0.6875rem" />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
-        <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size="1.0625rem" /></Link>
+        <button type="button" className="icon-button card-menu interactive" onClick={onPreview} aria-label={`Preview details for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
       </div>
       <span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span>
       <div className="occasion-event-copy"><h3>{card.title}</h3>{card.context && <p className="card-caption">{card.context}</p>}</div>
@@ -63,12 +65,12 @@ function EventJourneyCard({ card, highlight }: { card: EventCard; highlight: boo
     </CardFrame>
   )
   if (card.holiday) return (
-    <CardFrame card={card} highlight={highlight} className="holiday-card">
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="holiday-card">
       <div className="card-topline">
         <span className="badge holiday-badge"><Flag size="0.75rem" />PH HOLIDAY</span>
         <div className="person-actions">
           <span className="person-pill holiday-person"><Avatar name="You" />You</span>
-          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label="Open holiday details"><MoreHorizontal size="1rem" /></Link>
+          <button type="button" className="icon-button card-menu interactive" onClick={onPreview} aria-label={`Preview details for ${card.title}`}><MoreHorizontal size="1rem" /></button>
         </div>
       </div>
       <span className="badge all-day-badge"><CalendarDays size="0.6875rem" />ALL DAY</span>
@@ -81,12 +83,12 @@ function EventJourneyCard({ card, highlight }: { card: EventCard; highlight: boo
     </CardFrame>
   )
   return (
-    <CardFrame card={card} highlight={highlight} className="standard-event-card">
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="standard-event-card">
       <div className="card-topline event-topline">
         <span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span>
         <div className="person-actions">
           <span className="person-pill"><Avatar name={card.owner} /><span>{card.owner}</span></span>
-          <Link className="icon-button card-menu interactive" to={destinationPath({ page: 'calendar', cardId: card.id })} aria-label={`Open details for ${card.title}`}><MoreHorizontal size="1.0625rem" /></Link>
+          <button type="button" className="icon-button card-menu interactive" onClick={onPreview} aria-label={`Preview details for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
         </div>
       </div>
       <h3>{card.title}</h3>
@@ -98,10 +100,10 @@ function EventJourneyCard({ card, highlight }: { card: EventCard; highlight: boo
   )
 }
 
-function TaskJourneyCard({ card, dispatch, highlight }: { card: TaskCard; dispatch: Dispatch<JourneyAction>; highlight: boolean }) {
+function TaskJourneyCard({ card, dispatch, highlight, onPreview }: { card: TaskCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; onPreview: () => void }) {
   const { done, total } = progress(card.subtasks)
   return (
-    <CardFrame card={card} highlight={highlight}>
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview}>
       <div className="card-topline task-topline">
         <span className="badge type-badge"><TypeIcon type="task" size={12} />Task & Reminder</span>
         {card.reminder && <span className="reminder-pill"><Bell size="0.6875rem" />{formatTime(card.reminder)}</span>}
@@ -121,9 +123,9 @@ function TaskJourneyCard({ card, dispatch, highlight }: { card: TaskCard; dispat
   )
 }
 
-function NoteJourneyCard({ card, highlight }: { card: NoteCard; highlight: boolean }) {
+function NoteJourneyCard({ card, highlight, onPreview }: { card: NoteCard; highlight: boolean; onPreview: () => void }) {
   return (
-    <CardFrame card={card} highlight={highlight} className="journal-paper">
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="journal-paper">
       <div className="card-topline note-topline">
         <span className="badge type-badge"><TypeIcon type="note" size={11} />Journal Note</span>
         <span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size="0.625rem" />Pinned</>}</span>
@@ -138,10 +140,10 @@ function NoteJourneyCard({ card, highlight }: { card: NoteCard; highlight: boole
   )
 }
 
-function ProjectJourneyCard({ card, highlight }: { card: ProjectCard; highlight: boolean }) {
+function ProjectJourneyCard({ card, highlight, onPreview }: { card: ProjectCard; highlight: boolean; onPreview: () => void }) {
   const { done, total, percent } = progress(card.subtasks)
   if (!card.featured) return (
-    <CardFrame card={card} highlight={highlight} className="sprint-card">
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="sprint-card">
       <div className="card-topline">
         <span className="badge type-badge"><Zap size="0.6875rem" />Project Sprint</span>
         <span className="on-track"><span className="status-dot" />{percent === 100 ? 'Completed' : 'On track'}</span>
@@ -153,7 +155,7 @@ function ProjectJourneyCard({ card, highlight }: { card: ProjectCard; highlight:
     </CardFrame>
   )
   return (
-    <CardFrame card={card} highlight={highlight} className="featured-project-card">
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="featured-project-card">
       <div className="project-heading">
         <div><h3>{card.title}</h3><p className="card-caption">Due Date: {shortDate(card.dueDate)} <span className="meta-dot">·</span> {card.context || 'Personal Project'}</p></div>
         <span className="project-orb"><Zap size="1.4375rem" strokeWidth={1.8} /></span>
@@ -168,12 +170,12 @@ function ProjectJourneyCard({ card, highlight }: { card: ProjectCard; highlight:
   )
 }
 
-function JourneyCardView({ card, dispatch, highlight }: { card: JourneyCard; dispatch: Dispatch<JourneyAction>; highlight: boolean }) {
+function JourneyCardView({ card, dispatch, highlight, onPreview }: { card: JourneyCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; onPreview: () => void }) {
   switch (card.type) {
-    case 'event': return <EventJourneyCard card={card} highlight={highlight} />
-    case 'task': return <TaskJourneyCard card={card} dispatch={dispatch} highlight={highlight} />
-    case 'note': return <NoteJourneyCard card={card} highlight={highlight} />
-    case 'project': return <ProjectJourneyCard card={card} highlight={highlight} />
+    case 'event': return <EventJourneyCard card={card} highlight={highlight} onPreview={onPreview} />
+    case 'task': return <TaskJourneyCard card={card} dispatch={dispatch} highlight={highlight} onPreview={onPreview} />
+    case 'note': return <NoteJourneyCard card={card} highlight={highlight} onPreview={onPreview} />
+    case 'project': return <ProjectJourneyCard card={card} highlight={highlight} onPreview={onPreview} />
   }
 }
 
@@ -187,14 +189,14 @@ function sourceEntryDate(entry: TimelineSourceEntry) {
   return `${start} – ${formatDate(entry.endDate, { month: 'short', day: '2-digit' })}`
 }
 
-function TimelineSourceCard({ entry }: { entry: TimelineSourceEntry }) {
+function TimelineSourceCard({ entry, onPreview }: { entry: TimelineSourceEntry; onPreview: () => void }) {
   const isSchoolCalendar = entry.sourceId === 'deped-sy-2026-2027'
   const isLegislated = entry.sourceId === 'deped-legislated-activities'
   const SourceIcon = isSchoolCalendar ? School : isLegislated ? Landmark : FileText
   const visualClass = isSchoolCalendar ? 'source-school-calendar' : isLegislated ? 'source-legislated-activity' : 'source-local-memo'
   const illustration = isLegislated ? legislatedActivityIllustration(entry.title) : undefined
   return <article id={`source-${entry.id}`} className={`journey-card calendar-source-event timeline-source-card ${visualClass}${illustration ? ` legislated-illustration-${illustration}` : ''}`} data-source-id={entry.sourceId} data-card-type="calendar-source" data-illustration={illustration}>
-    <Link className="timeline-source-open" to={`/calendar?date=${entry.date}`} aria-label={`View ${entry.title} in Calendar`} />
+    <button type="button" className="timeline-source-open" onClick={onPreview} aria-label={`Preview ${entry.title} details`} />
     <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{entry.sourceLabel}</span></div>
     <h3>{entry.title}</h3>
     <p>{entry.detail ?? entry.sourceProvenance}</p>
@@ -202,7 +204,7 @@ function TimelineSourceCard({ entry }: { entry: TimelineSourceEntry }) {
   </article>
 }
 
-function DayRow({ entry, dispatch, highlightId }: { entry: DayEntry; dispatch: Dispatch<JourneyAction>; highlightId: string | null }) {
+function DayRow({ entry, dispatch, highlightId, onPreview }: { entry: DayEntry; dispatch: Dispatch<JourneyAction>; highlightId: string | null; onPreview: (item: TimelineItem) => void }) {
   const ref = useReveal()
   const first = entry.cards[0]
   const firstIsSource = isTimelineSourceEntry(first)
@@ -216,8 +218,8 @@ function DayRow({ entry, dispatch, highlightId }: { entry: DayEntry; dispatch: D
         return sideCards.length > 0 && <div key={`tether-${side}`} className={`tether tether-${side} tether-${tetherType}`} aria-hidden="true" />
       })}
       <div className="card-column card-col-left">{itemsForSide('left').map((card) => isTimelineSourceEntry(card)
-        ? <TimelineSourceCard key={card.id} entry={card} />
-        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
+        ? <TimelineSourceCard key={card.id} entry={card} onPreview={() => onPreview(card)} />
+        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} onPreview={() => onPreview(card)} />
       )}</div>
       <div className="date-node-wrapper">
         <Link className={`date-node ${!firstIsSource && first.type === 'project' ? 'date-project' : isMonday ? 'date-monday' : ''}`}
@@ -227,14 +229,14 @@ function DayRow({ entry, dispatch, highlightId }: { entry: DayEntry; dispatch: D
         </Link>
       </div>
       <div className="card-column card-col-right">{itemsForSide('right').map((card) => isTimelineSourceEntry(card)
-        ? <TimelineSourceCard key={card.id} entry={card} />
-        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} />
+        ? <TimelineSourceCard key={card.id} entry={card} onPreview={() => onPreview(card)} />
+        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} onPreview={() => onPreview(card)} />
       )}</div>
     </section>
   )
 }
 
-function QuietDays({ entry, onCompose, expanded, onToggle, highlightId }: { entry: GapEntry; onCompose: (options?: ComposerOptions) => void; expanded: boolean; onToggle: () => void; highlightId: string | null }) {
+function QuietDays({ entry, onCompose, expanded, onToggle, highlightId, onPreview }: { entry: GapEntry; onCompose: (options?: ComposerOptions) => void; expanded: boolean; onToggle: () => void; highlightId: string | null; onPreview: (card: JourneyCard) => void }) {
   const ref = useReveal()
   const drawerId = `quiet-${entry.start}-${entry.end}`
   return (
@@ -251,9 +253,9 @@ function QuietDays({ entry, onCompose, expanded, onToggle, highlightId }: { entr
             <button className="text-button" onClick={() => onCompose({ date: addDays(entry.start, Math.min(2, Math.floor(daysBetween(entry.start, entry.end) / 2))) })}><Plus size="0.6875rem" />Insert card here</button>
           </div>
           {entry.cards.length ? <div className="quiet-items">{entry.cards.map((card) => (
-            <Link key={card.id} id={`card-${card.id}`} className={`quiet-item quiet-item-${card.type} ${highlightId === card.id ? 'is-highlighted' : ''}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
+            <button key={card.id} id={`card-${card.id}`} type="button" className={`quiet-item quiet-item-${card.type} ${highlightId === card.id ? 'is-highlighted' : ''}`} onClick={() => onPreview(card)}>
               <TypeIcon type={card.type} size={17} /><span><strong>{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })}:</strong> {card.title}</span><ChevronRight size="0.8125rem" />
-            </Link>
+            </button>
           ))}</div> : <p className="quiet-empty">Nothing planned. Keep it open, or plant a new idea.</p>}
         </div>}
       </div>
@@ -271,6 +273,9 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
   openGaps: string[]
   onToggleGap: (key: string) => void
 }) {
+  const [preview, setPreview] = useState<TimelineItem | null>(null)
+  const openPreview = useCallback((item: TimelineItem) => setPreview(item), [])
+  const closePreview = useCallback(() => setPreview(null), [])
   const hasCards = entries.some((entry) => entry.kind === 'day' || entry.cards.length > 0)
   return (
     <section ref={containerRef} id="journey-stream" className="timeline" aria-label="Journey timeline">
@@ -278,13 +283,13 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
       {hasCards ? entries.map((entry, index) => {
         if (entry.kind === 'gap') {
           const key = `${entry.start}-${entry.end}`
-          return <QuietDays key={`${key}-${filter}`} entry={entry} onCompose={onCompose} expanded={openGaps.includes(key)} onToggle={() => onToggleGap(key)} highlightId={highlightId} />
+          return <QuietDays key={`${key}-${filter}`} entry={entry} onCompose={onCompose} expanded={openGaps.includes(key)} onToggle={() => onToggleGap(key)} highlightId={highlightId} onPreview={openPreview} />
         }
         const previous = entries.slice(0, index).filter((item): item is DayEntry => item.kind === 'day').at(-1)
         const startsMonth = previous && previous.date.slice(0, 7) !== entry.date.slice(0, 7)
         return <Fragment key={entry.date}>
           {startsMonth && <div className="month-marker"><span>{formatDate(entry.date, { month: 'long', year: 'numeric' })}</span></div>}
-          <DayRow entry={entry} dispatch={dispatch} highlightId={highlightId} />
+          <DayRow entry={entry} dispatch={dispatch} highlightId={highlightId} onPreview={openPreview} />
         </Fragment>
       })
         : <div className="timeline-empty"><EmptyState icon={<Sparkles size="1.5rem" />} title="A little room for something new"
@@ -292,6 +297,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
       <div className="horizon"><button onClick={() => onCompose()}><span className="horizon-dot" />Continue Your Journey <span className="horizon-separator">·</span> Add Next Card<Plus size="0.8125rem" /></button>
         <p>A little structure. A lot of possibility.</p>
       </div>
+      <TimelineCardPreview item={preview} onClose={closePreview} />
     </section>
   )
 }

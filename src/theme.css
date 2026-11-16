@@ -116,6 +116,11 @@
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-meta > .badge { border-color: #927b4d; background: #4e432d; color: #f6dca8; }
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity p, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #ead8af; }
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #796943; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-event { --preview-accent: #8fd2f8; --preview-soft: #19364c; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-task { --preview-accent: #8edbb9; --preview-soft: #1a3735; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-project { --preview-accent: #c5bbfa; --preview-soft: #302d49; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-note { --preview-accent: #f3b2c9; --preview-soft: #3b2940; }
+    :root[data-theme='dark'] .timeline-preview-dialog.is-source { --preview-accent: #efd293; --preview-soft: #38301f; }
   }
   @media (max-width: 960px) and (min-width: 761px), (max-width: 420px) {
     .appearance-options { gap: 0.5rem; }
@@ -146,7 +151,7 @@
   @media print {
     :root { color-scheme: light; color: #142139; background: #fff; }
     body { background: #fff; }
-    .topbar, .bottom-bar, .skip-link, .sign-in-back { display: none; }
+    .topbar, .bottom-bar, .skip-link, .sign-in-back, .timeline-preview-backdrop { display: none; }
     .application { padding: 0; }
     .appearance-options { display: none; }
     .settings-section, .workspace-panel, .journey-card, .account-card, .sign-in-card { box-shadow: none; }
