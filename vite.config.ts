@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { appearanceBootstrapScript } from './src/lib/appearance'
+import { navigationBootstrapScript } from './src/lib/navigationPreference'
 import { kansoPwa } from './scripts/pwa'
 
 // Link help to the branch being previewed, not to files that may not be on main yet.
@@ -18,7 +19,7 @@ export default defineConfig({
     transformIndexHtml: {
       order: 'pre',
       handler(html, context) {
-        return html.replace('<!-- kanso:appearance-before-paint -->', `<script id="kanso-appearance">${appearanceBootstrapScript()}</script>`).replace('__KANSO_APP_VERSION__', context.server ? 'development' : '__KANSO_APP_VERSION__')
+        return html.replace('<!-- kanso:appearance-before-paint -->', `<script id="kanso-appearance">${appearanceBootstrapScript()}</script><script id="kanso-navigation">${navigationBootstrapScript()}</script>`).replace('__KANSO_APP_VERSION__', context.server ? 'development' : '__KANSO_APP_VERSION__')
       },
     },
   }],

@@ -6,7 +6,7 @@
   .page-outlet { min-width: 0; container: page / inline-size; }
   .workspace-body { container: workspace / inline-size; }
   .sign-in-page { container: entry / inline-size; }
-  .navigation-eyebrow, .navigation-note { display: none; }
+  .navigation-eyebrow, .navigation-note, .navigation-rail-header, .navigation-collapse-toggle, .navigation-tooltip { display: none; }
   .kanso-icon[width='16'] { width: 1rem; height: 1rem; }
   .toast-region { left: calc(50% + var(--side-w) / 2); max-width: calc(100vw - var(--side-w) - 2rem); }
   .toast { max-width: 100%; }
@@ -40,6 +40,7 @@
     .application > .page-outlet, .application > .app-footer { width: calc(100% - var(--side-w)); margin-left: var(--side-w); }
     .application:not(.application-auth) > .storage-alert { width: calc(100% - var(--side-w) - 3rem); max-width: none; margin-left: calc(var(--side-w) + 1.5rem); margin-right: 1.5rem; }
     .bottom-bar { display: flex; flex-direction: column; gap: 1.25rem; inset: var(--hdr-h) auto 0 0; z-index: 50; width: var(--side-w); padding: 2rem 1rem max(1.5rem, var(--safe-area-bottom)) max(1rem, var(--safe-area-left)); overflow-y: auto; overscroll-behavior: contain; border-right: 1px solid var(--theme-border, #d5e4ee); background: var(--theme-surface-muted, #f4faff); pointer-events: auto; }
+    .navigation-rail-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 2rem; }
     .navigation-eyebrow { display: block; padding: 0 1rem; color: var(--theme-text-muted, #657b8f); font-size: .5625rem; font-weight: 750; letter-spacing: .1em; line-height: 1.8; text-transform: uppercase; }
     .bottom-navigation { display: flex; flex: 0 0 auto; flex-direction: column; gap: .375rem; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
     @media (forced-colors: none) {
@@ -58,6 +59,30 @@
     /* In side-rail landscape layouts, keep the floating return control in the content canvas. */
     .timeline-jump-today { bottom: max(1.25rem, var(--safe-area-bottom)); }
     .toast-region { bottom: max(1rem, var(--safe-area-bottom)); }
+  }
+
+  /* Desktop-only icon rail. Tablets keep their fixed sidebar and phones their bottom bar;
+     the before-paint script may set data-navigation anywhere, but only this query reads it. */
+  @media screen and (pointer: fine) and (min-width: 1024px) {
+    .navigation-collapse-toggle { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid transparent; border-radius: .5rem; background: transparent; color: var(--theme-text-secondary, #59788f); cursor: pointer; }
+    .navigation-collapse-toggle:hover { background: var(--theme-blue-soft, #e7f3fb); color: var(--theme-blue, #204d70); }
+    .navigation-collapse-toggle:focus-visible { outline-offset: 2px; }
+    :root[data-navigation='collapsed'] { --side-w: 4.5rem; }
+    :root[data-navigation='collapsed'] .bottom-bar { align-items: center; padding-right: .75rem; padding-left: max(.75rem, var(--safe-area-left)); overflow-x: hidden; }
+    :root[data-navigation='collapsed'] :is(.navigation-eyebrow, .navigation-note) { display: none; }
+    :root[data-navigation='collapsed'] .navigation-rail-header { justify-content: center; width: 100%; }
+    :root[data-navigation='collapsed'] .bottom-navigation { align-items: center; }
+    :root[data-navigation='collapsed'] .bottom-nav-link { justify-content: center; width: 3rem; padding: .75rem 0; gap: 0; }
+    /* Visually hidden, still the accessible name of each link. */
+    :root[data-navigation='collapsed'] .bottom-nav-link > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+    :root[data-navigation='collapsed'] .navigation-tooltip { position: fixed; z-index: 90; left: calc(var(--side-w) + .375rem); display: block; padding: .375rem .625rem; border-radius: .5rem; background: var(--theme-text-primary, #172b40); color: var(--theme-surface, #fff); box-shadow: 0 6px 18px rgb(25 61 88 / 18%); font-size: .75rem; font-weight: 650; line-height: 1.4; white-space: nowrap; pointer-events: none; transform: translateY(-50%); }
+    @media (prefers-reduced-motion: no-preference) {
+      .bottom-bar { transition: width .2s ease, padding .2s ease; }
+      .application > .page-outlet, .application > .app-footer { transition: width .2s ease, margin-left .2s ease; }
+    }
+    @media (forced-colors: active) {
+      .navigation-tooltip { border: 1px solid CanvasText; }
+    }
   }
 
   @media screen and (pointer: coarse) and (orientation: landscape) and (min-width: 1000px) and (min-height: 600px) {
@@ -103,6 +128,6 @@
   @media print {
     :root { --side-w: 0px; --bottom-bar-height: 0px; }
     .application > .page-outlet, .application > .app-footer { width: 100%; margin-left: 0; }
-    .navigation-eyebrow, .navigation-note { display: none; }
+    .navigation-eyebrow, .navigation-note, .navigation-rail-header, .navigation-tooltip { display: none; }
   }
 }
