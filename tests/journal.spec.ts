@@ -4,7 +4,13 @@ const navigation = (page: import('@playwright/test').Page) => page.getByRole('na
 
 test('Journal offers the responsive note studio with local voice and private Firestore image paths', async ({ page }) => {
   await page.goto('/journal')
-  await expect(page.getByRole('heading', { name: 'Recent entries', exact: true })).toBeVisible()
+  const recentHeading = page.getByRole('heading', { name: 'Recent entries', exact: true })
+  const entryHeading = page.locator('.journal-recent .panel-heading')
+  const entrySearch = page.locator('.journal-hub .journal-recent > .journal-search')
+  await expect(recentHeading).toBeVisible()
+  await expect(entrySearch).toBeVisible()
+  const [headingBox, searchBox] = await Promise.all([entryHeading.boundingBox(), entrySearch.boundingBox()])
+  expect(Math.abs((headingBox!.y + headingBox!.height / 2) - (searchBox!.y + searchBox!.height / 2))).toBeLessThanOrEqual(1)
   await navigation(page).getByRole('button', { name: 'New note', exact: true }).click()
   await expect(page).toHaveURL('/journal?create=menu')
   await expect(page.getByRole('heading', { name: 'Start a journal entry', exact: true })).toBeVisible()
