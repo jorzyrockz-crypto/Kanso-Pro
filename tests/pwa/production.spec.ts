@@ -126,7 +126,7 @@ test('an update waits for consent and never reloads a different tab’s unfinish
     await writeFile('dist/sw.js', sameVersion)
     await page.getByRole('button', { name: 'Check for updates', exact: true }).click()
     await expect(page.locator('.pwa-update')).toContainText('Kanso Pro is up to date.')
-    await expect(page.getByRole('button', { name: 'Reload to update', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Restart to update', exact: true })).toHaveCount(0)
     await page.goto('/new?type=note')
     await page.locator('#card-title').fill('Unfinished — keep this draft')
     await writeFile('dist/sw.js', original
@@ -144,16 +144,16 @@ test('an update waits for consent and never reloads a different tab’s unfinish
     await expect(page.locator('.app-update-banner')).toHaveCount(0)
     const settings = await context.newPage()
     await settings.goto('/settings#about')
-    await expect(settings.getByRole('button', { name: 'Reload to update', exact: true })).toBeVisible()
-    await expect(settings.locator('.pwa-update')).toContainText('unsaved')
+    await expect(settings.getByRole('button', { name: 'Restart to update', exact: true })).toBeVisible()
+    await expect(settings.locator('.pwa-update')).toContainText('Update ready')
     await Promise.all([
       settings.waitForEvent('framenavigated', { predicate: (frame) => frame === settings.mainFrame() }),
-      settings.getByRole('button', { name: 'Reload to update', exact: true }).click(),
+      settings.getByRole('button', { name: 'Restart to update', exact: true }).click(),
     ])
     await expect(settings.locator('.pwa-state')).toContainText('Ready offline')
     await expect(page.locator('#card-title')).toHaveValue('Unfinished — keep this draft')
     expect(await page.evaluate(() => localStorage.getItem('kanso-pro:journey:v1'))).toBe(saved)
-    await expect(settings.getByRole('button', { name: 'Reload to update', exact: true })).toHaveCount(0)
+    await expect(settings.getByRole('button', { name: 'Restart to update', exact: true })).toHaveCount(0)
   } finally {
     await writeFile('dist/sw.js', original)
   }
