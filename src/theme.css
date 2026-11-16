@@ -138,6 +138,33 @@
     :root[data-theme='dark'] .dawn-rollover-actions { border-color: #3e586a; }
     :root[data-theme='dark'] .dawn-rollover-backlog { border-color: #496c84; color: #d3e9f9; background: rgb(30 58 77 / 75%); }
     :root[data-theme='dark'] .dawn-rollover-backlog:hover { border-color: #719bb8; background: #24455e; }
+    /* The desktop Planning Desk keeps its layered cards, triage controls, and quick actions legible without a bright surface in dark mode. */
+    :root[data-theme='dark'] .desktop-planning-rail { border-color: #3d596f; background: rgb(18 34 49 / 94%); box-shadow: 0 .75rem 2rem rgb(0 0 0 / 28%); }
+    :root[data-theme='dark'] .desktop-rail-heading h2 { color: #e6f0fa; }
+    :root[data-theme='dark'] .desktop-rail-heading p { color: #aebfd0; }
+    :root[data-theme='dark'] .desktop-rail-section { border-color: #3a556b; background: rgb(20 39 55 / 84%); }
+    :root[data-theme='dark'] .desktop-rail-section-heading h3, :root[data-theme='dark'] .desktop-rail-item-copy strong { color: #e0edf8; }
+    :root[data-theme='dark'] .desktop-rail-section-heading span:not(.desktop-rail-section-icon), :root[data-theme='dark'] .desktop-rail-item-copy small, :root[data-theme='dark'] .desktop-rail-empty { color: #a9bdcf; }
+    :root[data-theme='dark'] .desktop-rail-section-icon, :root[data-theme='dark'] .desktop-rail-item-icon { color: #9ad8fa; background: #1d435d; }
+    :root[data-theme='dark'] .desktop-rail-focus, :root[data-theme='dark'] .rail-item-task .desktop-rail-item-icon { color: #9ce5c4; background: #1b403a; }
+    :root[data-theme='dark'] .desktop-rail-project, :root[data-theme='dark'] .rail-item-project .desktop-rail-item-icon { color: #cec2ff; background: #382f55; }
+    :root[data-theme='dark'] .desktop-rail-item:hover { background: #1c4059; }
+    :root[data-theme='dark'] .desktop-rail-item > svg { color: #8fa8bc; }
+    :root[data-theme='dark'] .desktop-rail-progress { color: #d1c8ff; background: #3a3159; }
+    :root[data-theme='dark'] .desktop-rail-quick-add { background: linear-gradient(135deg, #1b3d59, #245276); }
+    :root[data-theme='dark'] .desktop-quick-add-actions > button { border-color: rgb(185 230 255 / 21%); background: rgb(255 255 255 / 9%); }
+    :root[data-theme='dark'] .desktop-quick-add-actions > button:hover { background: rgb(174 226 255 / 17%); }
+    :root[data-theme='dark'] .desktop-triage-section { border-color: #6b5a39; background: linear-gradient(135deg, rgb(63 51 30 / 88%), rgb(47 43 34 / 82%)); }
+    :root[data-theme='dark'] .desktop-rail-triage, :root[data-theme='dark'] .desktop-triage-icon { color: #f3c76d; background: #4b3d24; }
+    :root[data-theme='dark'] .desktop-triage-count { color: #f9d98c; background: #5a4728; }
+    :root[data-theme='dark'] .desktop-triage-item { border-color: #62553c; background: rgb(20 29 35 / 58%); }
+    :root[data-theme='dark'] .triage-item-project .desktop-triage-icon { color: #cec2ff; background: #382f55; }
+    :root[data-theme='dark'] .desktop-triage-copy strong { color: #f2f5f7; }
+    :root[data-theme='dark'] .desktop-triage-copy small { color: #cabf9f; }
+    :root[data-theme='dark'] .desktop-triage-move { color: #241c0c; background: #e6b75a; }
+    :root[data-theme='dark'] .desktop-triage-move:hover { background: #f0c86f; }
+    :root[data-theme='dark'] .desktop-triage-backlog { border-color: #6b6047; color: #ead9ad; background: #393526; }
+    :root[data-theme='dark'] .desktop-triage-backlog:hover { background: #4a432f; }
     :root[data-theme='dark'] .timeline-month-empty strong { color: #e1edf8; }
     :root[data-theme='dark'] .timeline-month-empty span, :root[data-theme='dark'] .timeline-boundary > button { color: #b4c9dd; }
     :root[data-theme='dark'] .timeline-boundary > button:not(:disabled):hover { border-color: #78b3d6; color: #d4ecfc; background: #1c3851; }
