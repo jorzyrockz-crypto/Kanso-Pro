@@ -61,6 +61,22 @@ test('timeline boundaries load one month only after an explicit action, never fr
   await expect(page.locator('.month-marker')).toHaveCount(before + 1)
 })
 
+test('mobile condenses Timeline filters while Calendar sources remains its own dropdown at every size', async ({ page }) => {
+  const sourceSelect = page.getByLabel('Calendar sources', { exact: true })
+  await expect(filters(page)).toBeVisible()
+  await expect(sourceSelect).toHaveValue('shown')
+  await page.setViewportSize({ width: 375, height: 812 })
+  await expect(filters(page)).toBeHidden()
+  const filterSelect = page.getByRole('combobox', { name: 'Filter journey cards', exact: true })
+  await expect(filterSelect).toHaveValue('all')
+  await filterSelect.selectOption('task')
+  await expect(filterSelect).toHaveValue('task')
+  await sourceSelect.selectOption('hidden')
+  await expect(sourceSelect).toHaveValue('hidden')
+  await sourceSelect.selectOption('shown')
+  await expect(sourceSelect).toHaveValue('shown')
+})
+
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {
   for (const [name, path, heading] of [
     ['Calendar', '/calendar', 'Calendar'], ['Tasks', '/tasks', 'Personal Tasks'],

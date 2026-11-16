@@ -94,9 +94,10 @@
     :root[data-theme='dark'] .button-jump-today:hover { border-color: rgb(189 234 255 / 74%); background: linear-gradient(135deg, rgb(32 145 203 / 84%), rgb(63 107 204 / 78%)); }
     :root[data-theme='dark'] .bottom-bar { background: linear-gradient(180deg, transparent, rgb(12 23 36 / 88%) 80%); }
     :root[data-theme='dark'] .bottom-navigation { background: rgb(20 37 55 / 96%); box-shadow: 0 10px 35px rgb(0 0 0 / 35%); }
-    :root[data-theme='dark'] .stream-source-toggle { border-color: #675c42; color: #d9c99d; background: #2f2b21; }
-    :root[data-theme='dark'] .stream-source-toggle:hover, :root[data-theme='dark'] .stream-source-toggle.is-active { border-color: #a88c4c; color: #f3d99d; background: #41351f; }
-    :root[data-theme='dark'] .stream-source-count { background: rgb(245 209 135 / 16%); }
+    :root[data-theme='dark'] .stream-source-select { color: #d9c99d; }
+    :root[data-theme='dark'] .stream-source-select > svg { color: #e0c57e; }
+    :root[data-theme='dark'] .stream-source-select > select, :root[data-theme='dark'] .stream-filter-select > select { border-color: #4b667f; color: #d8e8f5; background: #1b3146; }
+    :root[data-theme='dark'] .stream-source-select > select:hover, :root[data-theme='dark'] .stream-filter-select > select:hover { border-color: #78a1c1; background: #23445e; }
     :root[data-theme='dark'] .month-backdrop > .month-artwork { opacity: .16; }
     :root[data-theme='dark'] .month-calendar-hero > .month-hero-artwork { opacity: .23; }
     :root[data-theme='dark'] .settings-month-art { opacity: .3; }

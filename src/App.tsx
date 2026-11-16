@@ -92,10 +92,21 @@ function StreamHeader({ filter, count, month, showCalendarSources, calendarSourc
       <nav className="filter-bar" aria-label="Filter journey cards">{filters.map(({ type, label }) => <button key={type} className={`filter-pill ${filter === type ? 'is-active' : ''}`} onClick={() => onFilter(type)} aria-pressed={filter === type}>
         {type !== 'all' && <span className={`filter-dot dot-${type}`} />}<span>{label}</span>{type === 'all' && <span className="filter-count">{count}</span>}
       </button>)}</nav>
+      <div className="stream-filter-select">
+        <label htmlFor="timeline-filter-select">Filter</label>
+        <select id="timeline-filter-select" aria-label="Filter journey cards" value={filter} onChange={(event) => onFilter(event.currentTarget.value as Filter)}>
+          {filters.map(({ type, label }) => <option key={type} value={type}>{label}{type === 'all' ? ` · ${count}` : ''}</option>)}
+        </select>
+      </div>
       <div className="stream-reference-controls">
-        <button type="button" className={`stream-source-toggle ${showCalendarSources ? 'is-active' : ''}`} onClick={() => onCalendarSourcesChange(!showCalendarSources)} aria-pressed={showCalendarSources} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
-          <Landmark size="0.75rem" aria-hidden="true" /><span className="stream-source-label">Calendar sources</span><span className="stream-source-state">{showCalendarSources ? 'Shown' : 'Hidden'}</span>{calendarSourceCount > 0 && <span className="stream-source-count">{calendarSourceCount}</span>}
-        </button>
+        <div className="stream-source-select">
+          <Landmark size="0.75rem" aria-hidden="true" />
+          <label htmlFor="timeline-calendar-sources">Calendar sources</label>
+          <select id="timeline-calendar-sources" value={showCalendarSources ? 'shown' : 'hidden'} onChange={(event) => onCalendarSourcesChange(event.currentTarget.value === 'shown')} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
+            <option value="shown">Shown{calendarSourceCount > 0 ? ` · ${calendarSourceCount} dates` : ''}</option>
+            <option value="hidden">Hidden</option>
+          </select>
+        </div>
         <span className="connected-label"><Link2 size="0.75rem" />All your pages, connected</span>
       </div>
     </div>
