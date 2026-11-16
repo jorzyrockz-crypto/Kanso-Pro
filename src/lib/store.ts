@@ -18,6 +18,20 @@ function isChecklist(value: unknown): boolean {
   }) && new Set(value.map((item) => item.id)).size === value.length
 }
 
+function isJournalAttachment(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false
+  const attachment = value as Record<string, unknown>
+  return isString(attachment.id)
+    && ['audio', 'image'].includes(String(attachment.kind))
+    && isString(attachment.name)
+    && isString(attachment.mimeType)
+    && typeof attachment.size === 'number'
+    && (attachment.durationSeconds === undefined || typeof attachment.durationSeconds === 'number')
+    && (attachment.width === undefined || typeof attachment.width === 'number')
+    && (attachment.height === undefined || typeof attachment.height === 'number')
+    && (attachment.storage === undefined || attachment.storage === 'firestore')
+}
+
 function isCard(value: unknown): value is JourneyCard {
   if (!value || typeof value !== 'object') return false
   const card = value as Record<string, unknown>
@@ -40,16 +54,10 @@ function isCard(value: unknown): value is JourneyCard {
     && (card.category === undefined || isString(card.category))
     && (card.reminderAt === undefined || isString(card.reminderAt))
     && (card.updatedAt === undefined || isString(card.updatedAt))
-    && (card.attachment === undefined || (!!card.attachment && typeof card.attachment === 'object'
-      && isString((card.attachment as Record<string, unknown>).id)
-      && ['audio', 'image'].includes(String((card.attachment as Record<string, unknown>).kind))
-      && isString((card.attachment as Record<string, unknown>).name)
-      && isString((card.attachment as Record<string, unknown>).mimeType)
-      && typeof (card.attachment as Record<string, unknown>).size === 'number'
-      && ((card.attachment as Record<string, unknown>).durationSeconds === undefined || typeof (card.attachment as Record<string, unknown>).durationSeconds === 'number')
-      && ((card.attachment as Record<string, unknown>).width === undefined || typeof (card.attachment as Record<string, unknown>).width === 'number')
-      && ((card.attachment as Record<string, unknown>).height === undefined || typeof (card.attachment as Record<string, unknown>).height === 'number')
-      && ((card.attachment as Record<string, unknown>).storage === undefined || (card.attachment as Record<string, unknown>).storage === 'firestore')))
+    && (card.richText === undefined || isString(card.richText))
+    && (card.attachment === undefined || isJournalAttachment(card.attachment))
+    && (card.attachments === undefined || (Array.isArray(card.attachments) && card.attachments.length <= 24
+      && card.attachments.every(isJournalAttachment) && new Set(card.attachments.map((attachment) => attachment.id)).size === card.attachments.length))
   return false
 }
 
@@ -100,6 +108,8 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
         ...(action.reminderAt !== undefined ? { reminderAt: action.reminderAt } : {}),
         ...(action.noteKind !== undefined ? { noteKind: action.noteKind } : {}),
         ...(action.attachment !== undefined ? { attachment: action.attachment } : {}),
+        ...(action.attachments !== undefined ? { attachments: action.attachments } : {}),
+        ...(action.richText !== undefined ? { richText: action.richText } : {}),
         ...(action.updatedAt !== undefined ? { updatedAt: action.updatedAt } : {}),
       } : card),
     }

@@ -432,7 +432,7 @@ test('journal editing is live, local, and safely renders entered markup as text'
   await expect(card(page, 'note-observation').locator('img')).toHaveCount(0)
   await page.goto('/journal/note-observation')
   await expect(page.getByLabel('Note title', { exact: true })).toHaveValue(title)
-  await expect(page.getByLabel('Your reflection', { exact: true })).toHaveValue(body)
+  await expect(page.getByLabel('Your reflection', { exact: true })).toHaveText(body)
 })
 
 for (const type of ['event', 'task', 'project', 'note'] as const) {
