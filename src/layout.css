@@ -215,14 +215,14 @@
     /* Wider workspaces use the same left-hand work / right-hand context rhythm as the desktop Timeline. */
     .workspace-page { max-width: 78rem; }
     .workspace-tasks, .workspace-project { max-width: 76rem; }
-    .workspace-journal { max-width: 72rem; }
+    .workspace-journal { max-width: 86rem; }
     .workspace-desktop-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, .4fr); align-items: start; gap: 1.375rem; }
     .workspace-desktop-aside { position: sticky; top: calc(var(--hdr-h) + 1rem); align-self: start; gap: 1rem; }
     .workspace-desktop-aside .workspace-fineprint { justify-content: flex-start; padding: 0 .25rem; text-align: left; }
     .workspace-desktop-aside .other-lists { gap: .5rem; }
     .workspace-desktop-aside .list-summary { padding: .75rem; }
     .calendar-workspace { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 1.5rem; }
-    .workspace-journal .journal-hub, .workspace-journal .journal-detail { max-width: 68rem; }
+    .workspace-journal .journal-hub, .workspace-journal .journal-detail { max-width: 84rem; }
     .workspace-journal .journal-note-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .625rem; }
   }
 

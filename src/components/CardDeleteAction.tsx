@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { JourneyCard } from '../types'
 
 function cardName(card: JourneyCard) {
-  return card.type === 'event' ? 'event' : card.type === 'task' ? 'task list' : card.type === 'note' ? 'journal note' : 'project card'
+  return card.type === 'event' ? 'event' : card.type === 'task' ? 'task list' : card.type === 'note' ? 'journal entry' : 'project card'
 }
 
 /** A deliberate two-step control keeps destructive card removal out of accidental taps. */

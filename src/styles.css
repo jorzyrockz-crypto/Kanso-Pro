@@ -625,7 +625,7 @@
   @keyframes journal-wave { from { transform: scaleY(.55); opacity: .6; } to { transform: scaleY(1); opacity: 1; } }
   /* Responsive note-taking studio: the rail appears from tablet up, while the editor and media tray stay one continuous writing surface. */
   .journal-hub-title { display: block; margin-top: .125rem; color: var(--theme-text-primary, #314a60); font-family: var(--serif); font-size: 1.5rem; letter-spacing: -.04rem; }
-  .journal-studio { display: grid; grid-template-columns: minmax(11rem, 15.5rem) minmax(0, 1fr); align-items: start; gap: 1rem; max-width: 80rem; margin: 0 auto; }
+  .journal-studio { display: grid; grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr); align-items: start; gap: 1.25rem; max-width: 86rem; margin: 0 auto; }
   .journal-studio-rail { position: sticky; top: calc(var(--hdr-h) + 1rem); display: flex; max-height: calc(100dvh - var(--hdr-h) - 2rem); flex-direction: column; gap: .75rem; padding: .75rem; overflow: auto; border: 1px solid var(--theme-border, #dbe7ef); border-radius: 1.125rem; background: var(--theme-glass, rgb(255 255 255 / 78%)); box-shadow: 0 .5rem 1.5rem rgb(35 75 101 / 7%); }
   .journal-studio-rail-heading, .studio-media-heading, .studio-recorder-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
   .journal-studio-rail-heading h2 { margin-top: .125rem; color: var(--theme-text-primary, #304c63); font-size: .9375rem; letter-spacing: -.025rem; }
@@ -764,7 +764,7 @@
     .journal-studio-editor .journal-editor { padding: 1.125rem; }
   }
   @media (min-width: 1024px) {
-    .journal-studio { grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr); gap: 1.25rem; }
+    .journal-studio { grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr); gap: 1.5rem; }
     .journal-studio-editor .journal-editor { padding: 1.5rem 1.625rem; }
   }
   @media (max-width: 767px) {

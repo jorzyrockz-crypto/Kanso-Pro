@@ -457,7 +457,7 @@ export default function App() {
       if (attachment.kind === 'audio') void removeJournalAttachment(attachment.id).catch(() => {})
       if (attachment.kind === 'image' && attachment.storage === 'firestore' && firestoreUserId) void import('./lib/firestore').then(({ deleteJournalImage }) => deleteJournalImage(firestoreUserId, attachment.id)).catch(() => {})
     }
-    setToast({ message: `${card.type === 'event' ? 'Event' : card.type === 'task' ? 'Task card' : 'Journal note'} deleted.`, id: Date.now() })
+    setToast({ message: `${card.type === 'event' ? 'Event' : card.type === 'task' ? 'Task card' : 'Journal entry'} deleted.`, id: Date.now() })
   }
   const jumpToToday = () => {
     const currentDate = currentLocalDate()

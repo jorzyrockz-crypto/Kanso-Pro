@@ -69,12 +69,12 @@ test('Journal cards remain editable and can be deleted deliberately', async ({ p
   await page.getByLabel('Journal timeline context', { exact: true }).fill('Updated private context')
   await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-12')
   await expect(page.getByLabel('Journal timeline context', { exact: true })).toHaveValue('Updated private context')
-  await page.getByRole('button', { name: 'Delete journal note', exact: true }).click()
-  const confirmation = page.getByRole('group', { name: 'Delete journal note', exact: true })
-  await expect(confirmation).toContainText('Delete this journal note?')
-  await confirmation.getByRole('button', { name: 'Yes, delete journal note', exact: true }).click()
+  await page.getByRole('button', { name: 'Delete journal entry', exact: true }).click()
+  const confirmation = page.getByRole('group', { name: 'Delete journal entry', exact: true })
+  await expect(confirmation).toContainText('Delete this journal entry?')
+  await confirmation.getByRole('button', { name: 'Yes, delete journal entry', exact: true }).click()
   await expect(page).toHaveURL('/journal')
-  await expect(page.getByRole('link', { name: 'Open Text note: Q2 Reading Comprehension Rubric Ideas', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Open Text journal entry: Q2 Reading Comprehension Rubric Ideas', exact: true })).toHaveCount(0)
 })
 
 test('Task cards can be deleted from their workspace with a confirmation step', async ({ page }) => {

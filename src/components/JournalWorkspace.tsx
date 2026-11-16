@@ -15,7 +15,7 @@ const MAX_AUDIO_BYTES = 25 * 1024 * 1024
 const categoryOptions = ['Personal', 'School', 'Work', 'Ideas']
 
 function noteLabel(kind: JournalNoteKind) {
-  return kind === 'voice' ? 'Voice note' : kind === 'image' ? 'Image note' : 'Text note'
+  return kind === 'voice' ? 'Voice journal entry' : kind === 'image' ? 'Photo journal entry' : 'Text journal entry'
 }
 
 function displayTitle(note: NoteCard) {
@@ -85,7 +85,7 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
   const visible = notes.filter((note) => !normalized || [note.title, note.body, note.category, ...note.tags].filter(Boolean).join(' ').toLocaleLowerCase().includes(normalized))
     .sort((a, b) => updated(b).getTime() - updated(a).getTime())
   return <>
-    <label className="journal-search"><span className="sr-only">Search journal notes</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search notes, tags, or categories" /><span aria-hidden="true">⌕</span></label>
+    <label className="journal-search"><span className="sr-only">Search journal entries</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search journal entries, tags, or categories" /><span aria-hidden="true">⌕</span></label>
     <div className={`journal-note-list ${compact ? 'is-compact' : ''}`}>
       {visible.map((note) => {
         const Icon = noteIcon(note)
@@ -95,7 +95,7 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
           {!compact && <span className="journal-note-tags">{note.tags.slice(0, 2).map((tag) => <i key={tag}>#{tag}</i>)}</span>}<ArrowRight size=".875rem" aria-hidden="true" />
         </Link>
       })}
-      {!visible.length && <div className="journal-empty"><FileText size="1.25rem" /><p>No notes match that search. Try another word, tag, or category.</p></div>}
+      {!visible.length && <div className="journal-empty"><FileText size="1.25rem" /><p>No journal entries match that search. Try another word, tag, or category.</p></div>}
     </div>
   </>
 }
@@ -106,34 +106,34 @@ function JournalHub({ notes, onCreate, imageUploadAvailable }: { notes: NoteCard
   const showPicker = query.get('create') === 'menu'
   return <div className="journal-hub">
     <div className="journal-hub-bar">
-      <span><span className="eyebrow">Your private library</span><strong className="journal-hub-title">Journal</strong></span>
-      <button type="button" className="button journal-create-trigger" onClick={() => navigate('/journal?create=menu')}><Plus size=".875rem" />Create note</button>
+      <span><span className="eyebrow">Your private journal</span><strong className="journal-hub-title">Journal</strong></span>
+      <button type="button" className="button journal-create-trigger" onClick={() => navigate('/journal?create=menu')}><Plus size=".875rem" />New entry</button>
     </div>
 
     {showPicker && <section className="journal-note-picker" aria-labelledby="journal-picker-title">
-      <div className="journal-picker-heading"><div><span className="eyebrow">Choose a format</span><h2 id="journal-picker-title">Start a private note</h2></div><button type="button" className="icon-button" aria-label="Close note type picker" onClick={() => navigate('/journal')}><X size="1rem" /></button></div>
+      <div className="journal-picker-heading"><div><span className="eyebrow">Choose a format</span><h2 id="journal-picker-title">Start a journal entry</h2></div><button type="button" className="icon-button" aria-label="Close entry type picker" onClick={() => navigate('/journal')}><X size="1rem" /></button></div>
       <div className="journal-type-grid">
-        <button type="button" className="journal-type-card type-text" onClick={() => onCreate('text')}><FileText size="1.125rem" /><strong>Text note</strong><span>Write, format, and organize a thought.</span></button>
-        <button type="button" className="journal-type-card type-voice" onClick={() => onCreate('voice')}><Mic size="1.125rem" /><strong>Voice note</strong><span>Record privately on this device.</span></button>
-        <button type="button" className="journal-type-card type-image" disabled={!imageUploadAvailable} onClick={() => onCreate('image')}><ImagePlus size="1.125rem" /><strong>Image note</strong><span>{imageUploadAvailable ? 'Attach an optimized visual reference.' : 'Sign in with Google to store images privately.'}</span></button>
+        <button type="button" className="journal-type-card type-text" onClick={() => onCreate('text')}><FileText size="1.125rem" /><strong>Text entry</strong><span>Write, format, and organize a thought.</span></button>
+        <button type="button" className="journal-type-card type-voice" onClick={() => onCreate('voice')}><Mic size="1.125rem" /><strong>Voice entry</strong><span>Record privately on this device.</span></button>
+        <button type="button" className="journal-type-card type-image" disabled={!imageUploadAvailable} onClick={() => onCreate('image')}><ImagePlus size="1.125rem" /><strong>Photo entry</strong><span>{imageUploadAvailable ? 'Attach an optimized visual reference.' : 'Sign in with Google to store images privately.'}</span></button>
       </div>
     </section>}
 
     <section className="journal-recent" aria-labelledby="journal-recent-heading">
-      <div className="panel-heading"><div><span className="eyebrow">Your private library</span><h2 id="journal-recent-heading">Recent notes</h2></div><span className="count-label">{notes.length} {notes.length === 1 ? 'note' : 'notes'}</span></div>
+      <div className="panel-heading"><div><span className="eyebrow">Journal entries</span><h2 id="journal-recent-heading">Recent entries</h2></div><span className="count-label">{notes.length} {notes.length === 1 ? 'entry' : 'entries'}</span></div>
       <NoteList notes={notes} />
     </section>
-    <p className="journal-private-note"><Check size=".75rem" />Text stays in your workspace. Voice stays on this device; images are private Firestore notes.</p>
+    <p className="journal-private-note"><Check size=".75rem" />Text stays in your workspace. Voice stays on this device; images are private Firestore journal entries.</p>
   </div>
 }
 
 function MetadataFields({ note, dispatch }: { note: NoteCard; dispatch: Dispatch<JourneyAction> }) {
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
-  return <details className="studio-note-details" open><summary>Note details</summary><div className="journal-metadata-fields">
+  return <details className="studio-note-details" open><summary>Entry details</summary><div className="journal-metadata-fields">
     <label><Tag size=".75rem" />Tags<input aria-label="Tags, separated by commas" value={note.tags.join(', ')} placeholder="e.g. personal, ideas" onChange={(event) => update({ tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12) })} /></label>
     <label><span aria-hidden="true">⌂</span>Category<select aria-label="Note category" value={note.category ?? 'Personal'} onChange={(event) => update({ category: event.target.value })}>{categoryOptions.map((category) => <option key={category}>{category}</option>)}</select></label>
     <label><Clock3 size=".75rem" />Reminder<input aria-label="Note reminder" type="datetime-local" value={note.reminderAt ?? ''} onChange={(event) => update({ reminderAt: event.target.value })} /></label>
-  </div><div className="journal-card-fields"><label>Entry date<input aria-label="Journal entry date" type="date" value={note.date} min="1900-01-01" max="2100-12-31" onChange={(event) => update({ date: event.target.value })} /></label><label>Timeline context<input aria-label="Journal timeline context" value={note.context} maxLength={240} placeholder="A private note to yourself" onChange={(event) => update({ context: event.target.value })} /></label></div></details>
+  </div><div className="journal-card-fields"><label>Entry date<input aria-label="Journal entry date" type="date" value={note.date} min="1900-01-01" max="2100-12-31" onChange={(event) => update({ date: event.target.value })} /></label><label>Timeline context<input aria-label="Journal timeline context" value={note.context} maxLength={240} placeholder="A private entry for yourself" onChange={(event) => update({ context: event.target.value })} /></label></div></details>
 }
 
 function formatDuration(seconds?: number) {
@@ -268,7 +268,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: {
   const [dropActive, setDropActive] = useState(false)
   const addImage = async (file: File) => {
     setMessage('')
-    if (!firestoreUserId) { setMessage('Sign in with Google before adding a Firestore image note.'); return }
+    if (!firestoreUserId) { setMessage('Sign in with Google before adding a Firestore image journal entry.'); return }
     try {
       const optimized = await optimizeJournalImage(file)
       const attachment: JournalAttachment = { id: makeId('image'), kind: 'image', storage: 'firestore', name: file.name || 'Journal image', mimeType: optimized.blob.type || 'image/webp', size: optimized.blob.size, width: optimized.width, height: optimized.height }
@@ -276,7 +276,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: {
       const { writeJournalImage } = await import('../lib/firestore')
       await writeJournalImage(firestoreUserId, attachment, dataUrl)
       onAddAttachment(attachment)
-      setMessage(`Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore note.`)
+      setMessage(`Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`)
     } catch (error) { setMessage(error instanceof JournalImageError ? error.message : 'The image could not be saved to private Firestore storage.') }
   }
   const chooseImage = () => fileInput.current?.click()
@@ -290,7 +290,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: {
     setDropActive(false)
     const file = [...event.dataTransfer.files].find((candidate) => candidate.type.startsWith('image/'))
     if (file) void addImage(file)
-    else setMessage('Drop an image file to add it to this note.')
+    else setMessage('Drop an image file to add it to this journal entry.')
   }
   const attachments = allAttachments(note)
   return <section className="studio-media-tools" aria-labelledby="studio-attachments-title">
@@ -299,7 +299,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: {
     <div className="studio-mobile-capture" aria-label="Quick capture"><button type="button" aria-label="Quick record voice" onClick={() => setRecorderOpen((open) => !open)}><Mic size=".875rem" />Voice</button><button type="button" aria-label="Quick add photo" disabled={!firestoreUserId} onClick={chooseImage}><Camera size=".875rem" />Photo</button></div>
     {recorderOpen && <StudioRecorder note={note} onSaved={onAddAttachment} onClose={() => setRecorderOpen(false)} />}
     <div className={`studio-photo-dropzone ${dropActive ? 'is-dragging' : ''} ${firestoreUserId ? '' : 'is-disabled'}`} onDragOver={(event) => { event.preventDefault(); if (firestoreUserId) setDropActive(true) }} onDragLeave={() => setDropActive(false)} onDrop={onDrop}>
-      <ImagePlus size="1rem" /><span>{firestoreUserId ? 'Drop a photo here, or use Add photo. Images are optimized before private Firestore storage.' : 'Google sign-in is required for private Firestore photo notes.'}</span>
+      <ImagePlus size="1rem" /><span>{firestoreUserId ? 'Drop a photo here, or use Add photo. Images are optimized before private Firestore storage.' : 'Google sign-in is required for private Firestore photo journal entries.'}</span>
     </div>
     {attachments.length > 0 && <div className="studio-attachment-list">{attachments.map((attachment) => <AttachmentTile key={attachment.id} attachment={attachment} firestoreUserId={firestoreUserId} onEmbed={onEmbed} />)}</div>}
     {message && <p className="journal-attachment-feedback" role="status">{message}</p>}
@@ -375,19 +375,19 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   return <main className="journal-detail journal-studio-editor">
     <div className="journal-detail-topbar"><Link className="text-button studio-back-to-notes" to="/journal"><ArrowLeft size=".75rem" />Journal</Link><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
-    <section className="journal-editor journal-paper" aria-label="Note studio">
+    <section className="journal-editor journal-paper" aria-label="Journal entry studio">
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
       <label htmlFor="journal-title" className="sr-only">Note title</label><input id="journal-title" className="journal-title-input" value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onChange={(event) => update({ title: event.target.value })} />
       <MetadataFields note={note} dispatch={dispatch} />
       <StudioRichEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} />
-      <div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · private note studio</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div>
+      <div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · private journal studio</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div>
     </section>
   </main>
 }
 
 function JournalStudio({ notes, selected, dispatch, storageAvailable, firestoreUserId, onCreate, onDelete }: { notes: NoteCard[]; selected: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void; onDelete: (note: NoteCard) => void }) {
   return <div className="journal-studio">
-    <aside className="journal-studio-rail" aria-label="Journal entries"><div className="journal-studio-rail-heading"><div><span className="eyebrow">Journal studio</span><h2>Journal</h2></div><button type="button" className="icon-button" aria-label="Create text note" title="Create text note" onClick={() => onCreate('text')}><Plus size=".875rem" /></button></div><NoteList notes={notes} selectedId={selected.id} compact /><div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo note' : 'Sign in with Google to create a photo note'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div></aside>
+    <aside className="journal-studio-rail" aria-label="Journal entries"><div className="journal-studio-rail-heading"><div><span className="eyebrow">Journal studio</span><h2>Journal</h2></div><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".875rem" /></button></div><NoteList notes={notes} selectedId={selected.id} compact /><div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo journal entry' : 'Sign in with Google to create a photo journal entry'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div></aside>
     <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onDelete={onDelete} />
   </div>
 }
@@ -396,7 +396,7 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDelete
   const notes = cards.filter((card): card is NoteCard => card.type === 'note')
   const selected = cardId ? notes.find((note) => note.id === cardId) : undefined
   const create = (kind: JournalNoteKind) => {
-    const card: NoteCard = { id: makeId('note'), type: 'note', noteKind: kind, title: '', body: '', richText: '<p><br></p>', tags: [], pinned: false, date: FOCUS_DATE, side: 'right', context: 'A private journal note', category: 'Personal', updatedAt: new Date().toISOString() }
+    const card: NoteCard = { id: makeId('note'), type: 'note', noteKind: kind, title: '', body: '', richText: '<p><br></p>', tags: [], pinned: false, date: FOCUS_DATE, side: 'right', context: 'A private journal entry', category: 'Personal', updatedAt: new Date().toISOString() }
     dispatch({ type: 'add-card', card })
     onNavigate({ page: 'journal', cardId: card.id })
   }
