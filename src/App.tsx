@@ -1,5 +1,6 @@
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, Clock3, Landmark, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, ChevronDown, Clock3, Eye, EyeOff, Landmark, X } from 'lucide-react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
 import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
@@ -8,6 +9,7 @@ import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_
 import { useJourneyStore } from './lib/store'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
+import type { CalendarSource } from './lib/calendarSources'
 import { DEPED_SY_2026_2027_ENTRIES } from './data/depedSchoolCalendar2026'
 import { DEPED_LEGISLATED_ACTIVITY_RULES } from './data/depedLegislatedActivities'
 import { useAccount } from './lib/useAccount'
@@ -66,15 +68,70 @@ function JumpToToday({ direction, onJump }: { direction: 'up' | 'down'; onJump: 
   </button>
 }
 
-function StreamHeader({ filter, count, month, showCalendarSources, calendarSourceCount, onFilter, onCalendarSourcesChange }: {
-  filter: Filter
-  count: number
-  month: string
-  showCalendarSources: boolean
-  calendarSourceCount: number
-  onFilter: (type: Filter) => void
-  onCalendarSourcesChange: (show: boolean) => void
+function StreamMenu({ children, className, icon, label, open, onOpenChange, summary }: {
+  children: ReactNode
+  className: string
+  icon?: ReactNode
+  label: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  summary: ReactNode
 }) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelId = useId()
+  const close = (returnFocus = false) => {
+    onOpenChange(false)
+    if (returnFocus) triggerRef.current?.focus({ preventScroll: true })
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) close(false)
+    }
+    const focusOutside = (event: FocusEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) close(false)
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(true) }
+    }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('focusin', focusOutside)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('focusin', focusOutside)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open, onOpenChange])
+
+  return <div className={`stream-dropdown ${className}`} ref={rootRef}>
+    <button ref={triggerRef} type="button" className="stream-dropdown-trigger" aria-label={label} aria-haspopup="dialog" aria-expanded={open} aria-controls={panelId} onClick={() => onOpenChange(!open)}>
+      <span className="stream-dropdown-trigger-copy">{icon}{summary}</span><ChevronDown size=".875rem" aria-hidden="true" />
+    </button>
+    {open && <section id={panelId} className="stream-dropdown-panel" role="dialog" aria-label={label}>{children}</section>}
+  </div>
+}
+
+function sourceSummary(source: CalendarSource) {
+  return source.recurringRules
+    ? `${source.recurringRules.length} annual observances`
+    : `${source.entries.length} dated ${source.entries.length === 1 ? 'entry' : 'entries'}`
+}
+
+function StreamHeader({ calendarSources, count, filter, month, onFilter, onSourceEnabled }: {
+  calendarSources: CalendarSource[]
+  count: number
+  filter: Filter
+  month: string
+  onFilter: (type: Filter) => void
+  onSourceEnabled: (sourceId: string, enabled: boolean) => void
+}) {
+  const [openMenu, setOpenMenu] = useState<'filter' | 'sources' | null>(null)
+  const activeFilter = filters.find((item) => item.type === filter)!
+  const shownSources = calendarSources.filter((source) => source.enabled).length
+
   return <header className="stream-header">
     <div className="header-main">
       <div className="header-identity">
@@ -92,21 +149,22 @@ function StreamHeader({ filter, count, month, showCalendarSources, calendarSourc
         <nav className="filter-bar" aria-label="Filter journey cards">{filters.map(({ type, label }) => <button key={type} className={`filter-pill ${filter === type ? 'is-active' : ''}`} onClick={() => onFilter(type)} aria-pressed={filter === type}>
           {type !== 'all' && <span className={`filter-dot dot-${type}`} />}<span>{label}</span>{type === 'all' && <span className="filter-count">{count}</span>}
         </button>)}</nav>
-        <div className="stream-filter-select">
-          <label className="sr-only" htmlFor="timeline-filter-select">Filter journey cards</label>
-          <select id="timeline-filter-select" aria-label="Filter journey cards" value={filter} onChange={(event) => onFilter(event.currentTarget.value as Filter)}>
-            {filters.map(({ type, label }) => <option key={type} value={type}>{label}{type === 'all' ? ` · ${count}` : ''}</option>)}
-          </select>
-        </div>
-        <div className="stream-reference-controls">
-          <div className="stream-source-select">
-            <Landmark size="0.75rem" aria-hidden="true" />
-            <label className="sr-only" htmlFor="timeline-calendar-sources">Calendar sources</label>
-            <select id="timeline-calendar-sources" value={showCalendarSources ? 'shown' : 'hidden'} onChange={(event) => onCalendarSourcesChange(event.currentTarget.value === 'shown')} title="Show enabled DepEd calendar sources as reference-only cards in the Timeline">
-              <option value="shown">Calendar sources · Shown{calendarSourceCount > 0 ? ` · ${calendarSourceCount}` : ''}</option>
-              <option value="hidden">Calendar sources · Hidden</option>
-            </select>
+        <StreamMenu className="stream-filter-menu" label={`Filter journey cards: ${activeFilter.label}`} open={openMenu === 'filter'} onOpenChange={(open) => setOpenMenu(open ? 'filter' : null)} summary={<>{activeFilter.label}{filter === 'all' && <span className="stream-dropdown-count">{count}</span>}</>}>
+          <div className="stream-dropdown-list" role="listbox" aria-label="Filter journey cards">
+            {filters.map(({ type, label }) => <button key={type} type="button" role="option" aria-selected={filter === type} className={filter === type ? 'is-selected' : ''} onClick={() => { onFilter(type); setOpenMenu(null) }}>{type !== 'all' && <span className={`filter-dot dot-${type}`} aria-hidden="true" />}<span>{label}</span>{type === 'all' && <span className="stream-dropdown-option-count">{count}</span>}{filter === type && <Check size=".875rem" aria-hidden="true" />}</button>)}
           </div>
+        </StreamMenu>
+        <div className="stream-reference-controls">
+          <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<>Calendar sources <span className="stream-dropdown-count">{shownSources} shown</span></>}>
+            <div className="stream-sources-heading"><strong>Calendar sources</strong><span>Choose what appears as reference-only entries.</span></div>
+            <div className="stream-sources-list" role="group" aria-label="Calendar sources">
+              {calendarSources.map((source) => <button key={source.id} type="button" role="checkbox" aria-checked={source.enabled} aria-label={`${source.enabled ? 'Hide' : 'Show'} ${source.label} in Calendar and Timeline`} className={source.enabled ? 'is-shown' : ''} onClick={() => onSourceEnabled(source.id, !source.enabled)}>
+                <span className="stream-source-check" aria-hidden="true">{source.enabled ? <CheckSquare size="1rem" /> : <span />}</span>
+                <span className="stream-source-copy"><strong>{source.label}</strong><small>{sourceSummary(source)}</small></span>
+                <span className="stream-source-action">{source.enabled ? <><Eye size=".75rem" aria-hidden="true" />Shown</> : <><EyeOff size=".75rem" aria-hidden="true" />Hidden</>}</span>
+              </button>)}
+            </div>
+          </StreamMenu>
         </div>
       </div>
     </div>
@@ -143,7 +201,6 @@ export default function App() {
   const signInLayout = !!(accountMatch || signInMatch) && !account.user
   const [visibleTimelineMonth, setVisibleTimelineMonth] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
-  const [showCalendarSources, setShowCalendarSources] = useState(true)
   const [openGaps, setOpenGaps] = useState<string[]>([])
   const [aboutUpdatesOpen, setAboutUpdatesOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; id: number; kind?: 'error'; href?: string; label?: string; action?: 'update'; notificationId?: string } | null>(null)
@@ -193,7 +250,6 @@ export default function App() {
   const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
   const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
   const timelineSourceEntries = useMemo<TimelineSourceEntry[]>(() => {
-    if (!showCalendarSources) return []
     const sourceById = new Map(calendarSources.sources.map((source) => [source.id, source]))
     return calendarSourceEntriesForMonths(calendarSources.sources, timelineMonths).flatMap((entry) => {
       const source = sourceById.get(entry.sourceId)
@@ -206,7 +262,7 @@ export default function App() {
         calendarSource: true,
       }]
     })
-  }, [calendarSources.sources, showCalendarSources, timelineMonths])
+  }, [calendarSources.sources, timelineMonths])
   const timelineCards = useMemo(() => state.cards.filter((card) => card.date.slice(0, 7) >= timelineWindow.start && card.date.slice(0, 7) <= timelineWindow.end), [state.cards, timelineWindow])
   const entries = useMemo(() => buildTimeline(timelineCards, filter, timelineSourceEntries), [timelineCards, filter, timelineSourceEntries])
   const overdueCards = useMemo(() => rolloverCandidates(state.cards, FOCUS_DATE), [state.cards])
@@ -372,7 +428,7 @@ export default function App() {
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} onFilter={changeFilter} onCalendarSourcesChange={setShowCalendarSources} />
+          <StreamHeader calendarSources={calendarSources.sources} count={state.cards.length} filter={filter} month={`${timelineMonth}-01`} onFilter={changeFilter} onSourceEnabled={calendarSources.setSourceEnabled} />
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={FOCUS_DATE} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />

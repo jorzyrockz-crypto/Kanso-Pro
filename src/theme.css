@@ -94,10 +94,15 @@
     :root[data-theme='dark'] .button-jump-today:hover { border-color: rgb(189 234 255 / 74%); background: linear-gradient(135deg, rgb(32 145 203 / 84%), rgb(63 107 204 / 78%)); }
     :root[data-theme='dark'] .bottom-bar { background: linear-gradient(180deg, transparent, rgb(12 23 36 / 88%) 80%); }
     :root[data-theme='dark'] .bottom-navigation { background: rgb(20 37 55 / 96%); box-shadow: 0 10px 35px rgb(0 0 0 / 35%); }
-    :root[data-theme='dark'] .stream-source-select { color: #d9c99d; }
-    :root[data-theme='dark'] .stream-source-select > svg { color: #e0c57e; }
-    :root[data-theme='dark'] .stream-source-select > select, :root[data-theme='dark'] .stream-filter-select > select { border-color: #4b667f; color: #d8e8f5; background: #1b3146; }
-    :root[data-theme='dark'] .stream-source-select > select:hover, :root[data-theme='dark'] .stream-filter-select > select:hover { border-color: #78a1c1; background: #23445e; }
+    :root[data-theme='dark'] .stream-dropdown-trigger { border-color: #4b667f; color: #d8e8f5; background: #1b3146; }
+    :root[data-theme='dark'] .stream-dropdown-trigger:hover, :root[data-theme='dark'] .stream-dropdown-trigger[aria-expanded='true'] { border-color: #78a1c1; color: #d8efff; background: #23445e; }
+    :root[data-theme='dark'] .stream-dropdown-trigger-copy > svg { color: #e0c57e; }
+    :root[data-theme='dark'] .stream-dropdown-panel { border-color: #3d5871; background: #16283a; box-shadow: 0 .875rem 2rem rgb(0 0 0 / 35%); }
+    :root[data-theme='dark'] .stream-dropdown-list > button:hover, :root[data-theme='dark'] .stream-dropdown-list > button:focus-visible, :root[data-theme='dark'] .stream-dropdown-list > button.is-selected, :root[data-theme='dark'] .stream-sources-list > button.is-shown { background: #1b3d57; color: #cce9fc; }
+    :root[data-theme='dark'] .stream-sources-heading { border-color: #3d5871; }
+    :root[data-theme='dark'] .stream-sources-list > button:hover, :root[data-theme='dark'] .stream-sources-list > button:focus-visible { background: #1c3449; }
+    :root[data-theme='dark'] .stream-source-check { border-color: #6892b2; background: #102234; }
+    :root[data-theme='dark'] .stream-sources-list > button.is-shown .stream-source-check { border-color: #71b9e2; background: #34749f; }
     :root[data-theme='dark'] .month-backdrop > .month-artwork { opacity: .16; }
     :root[data-theme='dark'] .month-calendar-hero > .month-hero-artwork { opacity: .23; }
     :root[data-theme='dark'] .settings-month-art { opacity: .3; }
