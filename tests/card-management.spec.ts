@@ -1,5 +1,27 @@
 import { expect, test } from '@playwright/test'
 
+test('Task lists and projects explain their distinct planning scopes while creating a card', async ({ page }) => {
+  await page.goto('/new')
+
+  await page.getByRole('radio', { name: 'Task list', exact: true }).check()
+  const guide = page.locator('.composer-type-guide')
+  await expect(guide).toContainText('A short, date-specific checklist')
+  await expect(guide).toContainText('immediate actions and an optional reminder')
+  await expect(page.getByLabel('Reminder time', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Task-list context', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Checklist items', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create task list', exact: true })).toBeVisible()
+
+  await page.getByRole('radio', { name: 'Project', exact: true }).check()
+  await expect(guide).toContainText('A larger outcome over time')
+  await expect(guide).toContainText('milestones, a due date, progress, and collaborators')
+  await expect(page.getByLabel('Due date', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Project purpose', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Project milestones', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Reminder time', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Create project', exact: true })).toBeVisible()
+})
+
 test('Calendar events and task cards can be edited without replacing task checklist progress', async ({ page }) => {
   await page.goto('/calendar')
   await page.getByRole('button', { name: 'Preview Faculty Alignment & Curriculum Sync details', exact: true }).click()
@@ -12,14 +34,23 @@ test('Calendar events and task cards can be edited without replacing task checkl
   await expect(page.getByText('Updated faculty alignment', { exact: true })).toBeVisible()
 
   await page.goto('/tasks/task-grades')
-  await page.getByRole('link', { name: 'Edit task', exact: true }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Edit Task', exact: true })).toBeVisible()
+  await page.locator('.checklist-panel').getByRole('link', { name: 'Edit task list', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit Task list', exact: true })).toBeVisible()
   await page.locator('#card-title').fill('Updated advisory record')
   await page.getByRole('button', { name: 'Save changes', exact: true }).click()
   await expect(page).toHaveURL('/tasks/task-grades')
   await expect(page.getByRole('heading', { name: 'Updated advisory record', exact: true })).toBeVisible()
   await expect(page.getByRole('checkbox').first()).toBeChecked()
   await expect(page.getByRole('checkbox').nth(1)).not.toBeChecked()
+})
+
+test('Event backgrounds are customized in the event editor, not its preview', async ({ page }) => {
+  await page.goto('/calendar')
+  await page.getByRole('button', { name: 'Preview Faculty Alignment & Curriculum Sync details', exact: true }).click()
+  const preview = page.getByRole('dialog')
+  await expect(preview.getByRole('group', { name: 'Occasion background', exact: true })).toHaveCount(0)
+  await preview.getByRole('link', { name: 'Edit event', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Occasion background', exact: true })).toBeVisible()
 })
 
 test('Calendar event cards can be deleted deliberately', async ({ page }) => {
@@ -48,9 +79,9 @@ test('Journal cards remain editable and can be deleted deliberately', async ({ p
 
 test('Task cards can be deleted from their workspace with a confirmation step', async ({ page }) => {
   await page.goto('/tasks/task-prep')
-  await page.getByRole('button', { name: 'Delete task card', exact: true }).click()
-  const confirmation = page.getByRole('group', { name: 'Delete task card', exact: true })
-  await confirmation.getByRole('button', { name: 'Yes, delete task card', exact: true }).click()
+  await page.locator('.checklist-panel').getByRole('button', { name: 'Delete task list', exact: true }).click()
+  const confirmation = page.getByRole('group', { name: 'Delete task list', exact: true })
+  await confirmation.getByRole('button', { name: 'Yes, delete task list', exact: true }).click()
   await expect(page).toHaveURL('/tasks')
   await expect(page.getByRole('option', { name: 'Weekly Classroom Supply Inventory', exact: true })).toHaveCount(0)
 })

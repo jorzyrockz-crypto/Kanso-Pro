@@ -2,12 +2,11 @@ import { CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, FileText, Flag
 import { useEffect, useId, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { PointerEvent as ReactPointerEvent, ReactNode, TouchEvent as ReactTouchEvent } from 'react'
-import type { EventCard, NoteCard, OccasionChoice, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry } from '../types'
+import type { EventCard, NoteCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry } from '../types'
 import { destinationPath } from '../lib/navigation'
 import { formatDate, formatTime, progress, TYPE_CONFIG } from '../lib/journey'
 import { occasionLabel, resolveOccasion } from '../lib/occasions'
 import { AvatarStack, ProgressBar, TypeIcon } from './Common'
-import { EventThemePicker } from './EventThemePicker'
 import { CardDeleteAction } from './CardDeleteAction'
 
 const focusable = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -41,7 +40,7 @@ function ChecklistPreview({ items, label }: { items: TaskCard['subtasks']; label
   </PreviewSection>
 }
 
-function EventPreview({ card, onEventBackgroundChange }: { card: EventCard; onEventBackgroundChange?: (card: EventCard, occasion: OccasionChoice) => void }) {
+function EventPreview({ card }: { card: EventCard }) {
   const occasion = resolveOccasion(card)
   const time = card.allDay ? 'All day' : `${formatTime(card.time) || 'Time not set'}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`
   return <>
@@ -53,7 +52,6 @@ function EventPreview({ card, onEventBackgroundChange }: { card: EventCard; onEv
       {occasion !== 'none' && <Detail label="Background">{occasionLabel(occasion)}</Detail>}
     </DetailGrid>
     {card.context && <PreviewSection title="Context"><p className="timeline-preview-copy">{card.context}</p></PreviewSection>}
-    {onEventBackgroundChange && <PreviewSection title="Event background"><EventThemePicker value={card.occasion ?? 'auto'} title={card.title} holiday={card.holiday} compact onChange={(occasion) => onEventBackgroundChange(card, occasion)} /></PreviewSection>}
   </>
 }
 
@@ -98,11 +96,10 @@ function SourcePreview({ entry }: { entry: TimelineSourceEntry }) {
   </>
 }
 
-export function TimelineCardPreview({ item, items = [], onClose, onEventBackgroundChange, onItemChange, onDeleteCard }: {
+export function TimelineCardPreview({ item, items = [], onClose, onItemChange, onDeleteCard }: {
   item: TimelineItem | null
   items?: readonly TimelineItem[]
   onClose: () => void
-  onEventBackgroundChange?: (card: EventCard, occasion: OccasionChoice) => void
   onItemChange?: (item: TimelineItem) => void
   onDeleteCard?: (card: EventCard | TaskCard | NoteCard) => void
 }) {
@@ -191,13 +188,13 @@ export function TimelineCardPreview({ item, items = [], onClose, onEventBackgrou
   const actionLabel = source ? 'View in Calendar' : config!.link
   const canManage = !source && (item.type === 'event' || item.type === 'task' || item.type === 'note')
   const canEdit = !source && (item.type === 'event' || item.type === 'task')
-  const preview = source ? <SourcePreview entry={item} /> : item.type === 'event' ? <EventPreview card={item} onEventBackgroundChange={onEventBackgroundChange} /> : item.type === 'task' ? <TaskPreview card={item} /> : item.type === 'project' ? <ProjectPreview card={item} /> : <NotePreview card={item} />
+  const preview = source ? <SourcePreview entry={item} /> : item.type === 'event' ? <EventPreview card={item} /> : item.type === 'task' ? <TaskPreview card={item} /> : item.type === 'project' ? <ProjectPreview card={item} /> : <NotePreview card={item} />
 
   return <div className="timeline-preview-backdrop" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section ref={dialogRef} className={`timeline-preview-dialog ${source ? 'is-source' : `is-${item.type}`}`} role="dialog" aria-modal="true" aria-labelledby={headingId} aria-describedby={descriptionId} onPointerDown={onSwipeStart} onPointerUp={onSwipeEnd} onPointerCancel={() => { swipeStart.current = null }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <header className="timeline-preview-header"><span className="timeline-preview-type-icon">{source ? <Landmark size="1.125rem" aria-hidden="true" /> : <TypeIcon type={item.type} size={18} />}</span><div className="timeline-preview-heading"><span>{typeLabel}</span><h2 id={headingId}>{item.title || 'Untitled reflection'}</h2></div>{items.length > 1 && <div className="timeline-preview-navigation"><button type="button" className="icon-button timeline-preview-previous" aria-label="Previous preview" disabled={!previous} onClick={() => navigatePreview(-1)}><ChevronLeft size="1rem" aria-hidden="true" /></button><span aria-live="polite">{activeIndex + 1} of {items.length}</span><button type="button" className="icon-button timeline-preview-next" aria-label="Next preview" disabled={!next} onClick={() => navigatePreview(1)}><ChevronRight size="1rem" aria-hidden="true" /></button><span className="sr-only">Swipe left or right to browse nearby entries.</span></div>}<button ref={closeRef} type="button" className="timeline-preview-close" aria-label="Close card preview" onClick={onClose}><X size="1rem" aria-hidden="true" /></button></header>
       <div className="timeline-preview-body"><p id={descriptionId} className="timeline-preview-intro">{source ? 'A calendar reference kept separate from your personal cards.' : 'A complete preview of this card, without leaving your timeline.'}</p>{preview}</div>
-      <footer className="timeline-preview-actions"><button type="button" className="button timeline-preview-dismiss" onClick={onClose}>Close</button>{canEdit ? <Link className="button timeline-preview-open" to={`/new?edit=${encodeURIComponent(item.id)}`} state={{ from: actionHref }} onClick={onClose}>Edit {item.type === 'event' ? 'event' : 'task'}</Link> : <Link className="button timeline-preview-open" to={actionHref} onClick={onClose}>{actionLabel}</Link>}{canManage && onDeleteCard && <CardDeleteAction card={item} onDelete={(card) => { onClose(); onDeleteCard(card as EventCard | TaskCard | NoteCard) }} />}</footer>
+      <footer className="timeline-preview-actions"><button type="button" className="button timeline-preview-dismiss" onClick={onClose}>Close</button>{canEdit ? <Link className="button timeline-preview-open" to={`/new?edit=${encodeURIComponent(item.id)}`} state={{ from: actionHref }} onClick={onClose}>Edit {item.type === 'event' ? 'event' : 'task list'}</Link> : <Link className="button timeline-preview-open" to={actionHref} onClick={onClose}>{actionLabel}</Link>}{canManage && onDeleteCard && <CardDeleteAction card={item} onDelete={(card) => { onClose(); onDeleteCard(card as EventCard | TaskCard | NoteCard) }} />}</footer>
     </section>
   </div>
 }

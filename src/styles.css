@@ -517,9 +517,9 @@
   .agenda-add { margin-top: 0.9375rem; }
 
   /* Connected lists and milestones */
-  .workspace-card-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
-  .workspace-card-actions .button { padding: .5rem .6875rem; font-size: .625rem; }
-  .workspace-card-actions .card-delete-confirm { justify-content: flex-end; }
+  .task-card-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; margin-top: .875rem; padding-top: .8125rem; border-top: 1px solid var(--theme-border, #e5edf1); }
+  .task-card-actions .button { padding: .5rem .6875rem; font-size: .625rem; }
+  .task-card-actions .card-delete-confirm { justify-content: flex-end; }
   .workspace-selector { display: flex; align-items: center; gap: 0.9375rem; }
   .workspace-selector > label { flex-shrink: 0; font-size: 0.625rem; color: var(--theme-text-secondary, #637287); font-weight: 700; }
   .workspace-selector > select { flex: 1; width: 0.0625rem; padding: 0.6875rem 0.75rem; border: 1px solid var(--theme-border, #e0e7ef); border-radius: 0.75rem; background: var(--theme-field, white); color: var(--theme-text-secondary, #617087); font-size: 0.65625rem; line-height: 1.5; font-weight: 650; }
@@ -638,6 +638,14 @@
   .option-project > input:checked + span { background: var(--theme-violet-soft, #f2f0ff); border-color: var(--theme-border-strong, #b0a7ed); color: var(--theme-violet, #7058b0); }
   .option-note > input:checked + span { background: var(--theme-pink-soft, #fff1f5); border-color: var(--theme-border-strong, #ebadc2); color: var(--theme-pink, #ae4a70); }
   .type-option > input:focus-visible + span { outline: 3px solid var(--theme-focus, #38bdf8); outline-offset: 3px; }
+  .composer-type-choice { display: flex; flex-direction: column; gap: .625rem; }
+  .composer-type-guide { display: grid; grid-template-columns: 1rem minmax(0, 1fr); align-items: start; gap: .5rem; margin: 0; padding: .6875rem .75rem; border: 1px solid var(--theme-border, #dce7ef); border-radius: .6875rem; background: var(--theme-surface-muted, #f7fafc); color: var(--theme-text-secondary, #62758a); font-size: .59375rem; line-height: 1.55; }
+  .composer-type-guide > svg { margin-top: .0625rem; color: var(--theme-blue, #0876ad); }
+  .composer-type-guide strong, .composer-type-guide strong + span { display: block; }
+  .composer-type-guide strong { color: var(--theme-text-primary, #33465b); font-size: .625rem; }
+  .type-guide-task { border-color: #b9dfcc; background: var(--theme-green-soft, #edfaf4); }.type-guide-task > svg { color: var(--theme-green, #157b60); }
+  .type-guide-project { border-color: #d4cef4; background: var(--theme-violet-soft, #f2f0ff); }.type-guide-project > svg { color: var(--theme-violet, #7058b0); }
+  .type-guide-note { border-color: #f1cbd8; background: var(--theme-pink-soft, #fff1f5); }.type-guide-note > svg { color: var(--theme-pink, #ae4a70); }
   .form-field { display: flex; flex-direction: column; gap: 0.4375rem; min-width: 0; }
   .form-field > label { display: flex; align-items: center; gap: 0.3125rem; color: var(--theme-text-secondary, #68768a); font-size: 0.625rem; font-weight: 700; }
   .form-field > label > span:not(.optional-label) { color: var(--theme-blue, #34779b); }
@@ -800,7 +808,7 @@
     .journal-editor-footer { flex-wrap: wrap; font-size: 0.5rem; }
     .journal-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .journal-metadata-fields, .journal-card-fields { grid-template-columns: 1fr; }
-    .workspace-card-actions { justify-content: stretch; }.workspace-card-actions > .button { flex: 1; }.workspace-card-actions > .card-delete-confirm { width: 100%; justify-content: flex-end; }
+    .task-card-actions { justify-content: stretch; }.task-card-actions > .button { flex: 1; }.task-card-actions > .card-delete-confirm { width: 100%; justify-content: flex-end; }
     .journal-note-tags { display: none; }
     .storage-alert { margin-left: 0.75rem; margin-right: 0.75rem; }
     .ipad-frame-active { max-width: calc(100vw - 1rem); min-height: calc(100dvh - 1rem); margin: 0.5rem auto; border-width: 8px; border-radius: 2rem; }

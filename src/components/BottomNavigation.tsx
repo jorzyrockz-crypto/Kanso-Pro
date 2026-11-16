@@ -10,7 +10,7 @@ const icons = { timeline: Waypoints, calendar: CalendarDays, tasks: CircleCheck,
 
 const composerForPage = {
   calendar: { label: 'New event', type: 'event' },
-  tasks: { label: 'New task', type: 'task' },
+  tasks: { label: 'New task list', type: 'task' },
   project: { label: 'New project', type: 'project' },
   journal: { label: 'New note', type: 'note' },
 } as const

@@ -180,7 +180,7 @@ test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', 
 })
 
 test('the bottom create action follows the active workspace', async ({ page }) => {
-  for (const [tab, action] of [['Timeline', 'New card'], ['Calendar', 'New event'], ['Tasks', 'New task'], ['Projects', 'New project'], ['Journal', 'New note']] as const) {
+  for (const [tab, action] of [['Timeline', 'New card'], ['Calendar', 'New event'], ['Tasks', 'New task list'], ['Projects', 'New project'], ['Journal', 'New note']] as const) {
     await navigation(page).getByRole('link', { name: tab, exact: true }).click()
     await expect(navigation(page).getByRole('button', { name: action, exact: true })).toBeVisible()
   }
@@ -373,8 +373,9 @@ test('task checks sync both ways, added actions join the card, and changes survi
   await expect(page.locator('.hero-stat strong')).toHaveText('100%')
   await content(page).getByRole('checkbox', { name: /Export Q1 attendance sheet/ }).uncheck()
   await expect(page.locator('.hero-stat strong')).toHaveText('50%')
-  await page.getByPlaceholder('Add a personal task…').fill('Print the parent conference agenda')
-  await page.getByRole('button', { name: 'Add task', exact: true }).click()
+  const taskCard = content(page).locator('.checklist-panel')
+  await taskCard.getByPlaceholder('Add a checklist item…').fill('Print the parent conference agenda')
+  await taskCard.getByRole('button', { name: 'Add item', exact: true }).click()
   await expect(page.locator('.hero-stat strong')).toHaveText('33%')
   await timeline(page)
   await expect(timelineTask).toContainText('1 of 3 completed')
@@ -442,9 +443,9 @@ for (const type of ['event', 'task', 'project', 'note'] as const) {
     await composer.getByLabel('Card title', { exact: false }).fill(`My new ${type} card`)
     await composer.getByLabel('Journey date', { exact: false }).fill('2026-11-05')
     if (type === 'project') await composer.getByLabel('Due date', { exact: false }).fill('2026-11-15')
-    await composer.getByLabel('A little context', { exact: false }).fill('Made just for this journey')
+    await composer.getByLabel(type === 'event' ? 'Notes and context' : type === 'task' ? 'Task-list context' : type === 'project' ? 'Project purpose' : 'A little context', { exact: false }).fill('Made just for this journey')
     if (type !== 'event') await composer.locator('#card-details').fill(type === 'note' ? 'An idea worth keeping.' : 'First step\nSecond step')
-    await composer.getByRole('button', { name: 'Add to Timeline', exact: true }).click()
+    await composer.getByRole('button', { name: type === 'task' ? 'Create task list' : type === 'project' ? 'Create project' : 'Add to Timeline', exact: true }).click()
     await expect(page).toHaveURL('/')
     await expect(page.locator('.filter-count')).toHaveText('9')
     const custom = page.locator('.journey-card').filter({ has: page.getByRole('heading', { name: `My new ${type} card`, exact: true }) })
@@ -471,7 +472,7 @@ test('the new-card page validates whitespace titles, focuses the form, and never
   await expect(page.getByLabel('Card title', { exact: false })).toBeFocused()
   await expect(page.getByRole('radio', { name: 'Project', exact: true })).toBeChecked()
   await page.getByLabel('Card title', { exact: false }).fill('   ')
-  await page.getByRole('button', { name: 'Add to Timeline', exact: true }).click()
+  await page.getByRole('button', { name: 'Create project', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('title between 1 and 160 characters')
   await page.keyboard.press('Escape')
   await expect(page).toHaveURL('/new?type=project&date=2026-11-14')
@@ -625,7 +626,7 @@ test('an empty new project can grow from zero to its first completed milestone',
   await openNewCard(page)
   await page.locator('.option-project').click()
   await page.getByLabel('Card title', { exact: false }).fill('Start small')
-  await page.getByRole('button', { name: 'Add to Timeline', exact: true }).click()
+  await page.getByRole('button', { name: 'Create project', exact: true }).click()
   const project = page.locator('.journey-card').filter({ has: page.getByRole('heading', { name: 'Start small', exact: true }) })
   await expect(project.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0')
   await project.locator('.card-open').click({ position: { x: 10, y: 10 } })

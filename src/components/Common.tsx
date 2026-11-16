@@ -59,7 +59,7 @@ export function EmptyState({ icon, title, children, action }: {
   )
 }
 
-export function AddChecklistItem({ onAdd, placeholder = 'Add a task…', label = 'Add task' }: {
+export function AddChecklistItem({ onAdd, placeholder = 'Add an item…', label = 'Add item' }: {
   onAdd: (title: string) => void
   placeholder?: string
   label?: string
