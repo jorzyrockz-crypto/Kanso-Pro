@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import { FOCUS_DATE } from './data'
 import type { ComposerOptions, Destination, Filter, JourneyCard, TimelineSourceEntry, Workspace } from './types'
-import { buildTimeline, focusCard, formatDate, shiftMonth } from './lib/journey'
+import { buildTimeline, focusCard, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
@@ -197,6 +197,7 @@ export default function App() {
   }, [calendarSources.sources, showCalendarSources, timelineMonths])
   const timelineCards = useMemo(() => state.cards.filter((card) => card.date.slice(0, 7) >= timelineWindow.start && card.date.slice(0, 7) <= timelineWindow.end), [state.cards, timelineWindow])
   const entries = useMemo(() => buildTimeline(timelineCards, filter, timelineSourceEntries), [timelineCards, filter, timelineSourceEntries])
+  const overdueCards = useMemo(() => rolloverCandidates(state.cards, FOCUS_DATE), [state.cards])
   const defaultMonth = entries.find((entry) => entry.kind === 'day')?.date.slice(0, 7) ?? timelineWindow.start
   const timelineMonth = visibleTimelineMonth && visibleTimelineMonth >= timelineWindow.start && visibleTimelineMonth <= timelineWindow.end ? visibleTimelineMonth : defaultMonth
 
@@ -360,7 +361,7 @@ export default function App() {
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
           <StreamHeader filter={filter} count={state.cards.length} month={`${timelineMonth}-01`} showCalendarSources={showCalendarSources} calendarSourceCount={timelineSourceEntries.length} jumpDirection={jumpDirection} onFilter={changeFilter} onJumpToToday={jumpToToday} onCalendarSourcesChange={setShowCalendarSources} />
           <Timeline entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
-            months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
+            rolloverCandidates={overdueCards} rolloverDate={FOCUS_DATE} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
           element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} storageAvailable={storageAvailable} />} />)}

@@ -1,8 +1,8 @@
-import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Landmark, MoreHorizontal, Pin, Plus, School, Users, Zap } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Folder, Landmark, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, ReactNode, RefObject } from 'react'
-import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
+import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
 import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, projectStatus, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { Avatar, AvatarStack, ProgressBar, TypeIcon } from './Common'
 import { destinationPath } from '../lib/navigation'
@@ -325,7 +325,30 @@ function TimelineBoundary({ direction, month, canLoad, onLoad }: { direction: 'p
   </section>
 }
 
-export function Timeline({ entries, filter, onCompose, dispatch, highlightId, containerRef, openGaps, onToggleGap, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture }: {
+function DawnRollover({ candidates, today, filter, dispatch }: { candidates: RolloverCandidate[]; today: string; filter: Filter; dispatch: Dispatch<JourneyAction> }) {
+  const [dismissed, setDismissed] = useState<string | null>(null)
+  const visible = candidates.filter((card) => (filter === 'all' || card.type === filter) && card.id !== dismissed)
+  const card = visible[0]
+  if (!card) return null
+  const scheduledFor = card.type === 'project' ? card.dueDate : card.date
+  const count = visible.length
+  const countLabel = `${count} uncompleted from past ${count === 1 ? 'day' : 'days'}`
+  return <section className="dawn-rollover" aria-labelledby="dawn-rollover-title">
+    <div className="dawn-rollover-heading">
+      <span className="dawn-rollover-icon"><Zap size="1rem" aria-hidden="true" /></span>
+      <div><h2 id="dawn-rollover-title">The Dawn Rollover</h2><span>{countLabel}</span></div>
+      <button type="button" className="dawn-rollover-dismiss" onClick={() => setDismissed(card.id)} aria-label="Hide this rollover reminder until your next visit" title="Hide for now"><X size="1rem" /></button>
+    </div>
+    <p>Incomplete deliverables carried forward — choose one clear next step for today.</p>
+    <div className="dawn-rollover-item"><span aria-hidden="true" /><strong>{card.title}</strong><small>Due {shortDate(scheduledFor)}</small></div>
+    <div className="dawn-rollover-actions">
+      <button type="button" className="dawn-rollover-apply" onClick={() => dispatch({ type: 'rollover-card', id: card.id, date: today })}><ArrowRight size=".875rem" />Roll Over to Today</button>
+      <button type="button" className="dawn-rollover-backlog" onClick={() => dispatch({ type: 'backlog-card', id: card.id })}><Folder size=".875rem" />To Backlog</button>
+    </div>
+  </section>
+}
+
+export function Timeline({ entries, filter, onCompose, dispatch, highlightId, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture }: {
   entries: TimelineEntry[]
   filter: Filter
   onCompose: (options?: ComposerOptions) => void
@@ -334,6 +357,8 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
   containerRef: RefObject<HTMLElement | null>
   openGaps: string[]
   onToggleGap: (key: string) => void
+  rolloverCandidates: RolloverCandidate[]
+  rolloverDate: string
   months: string[]
   canLoadPast: boolean
   canLoadFuture: boolean
@@ -356,6 +381,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
   return (
     <section ref={containerRef} id="journey-stream" className="timeline" aria-label="Journey timeline">
       <div className="timeline-spine" aria-hidden="true" /><div className="timeline-glow" aria-hidden="true" />
+      <DawnRollover candidates={rolloverCandidates} today={rolloverDate} filter={filter} dispatch={dispatch} />
       {firstMonth && <TimelineBoundary key={`past-${firstMonth}`} direction="past" month={firstMonth} canLoad={canLoadPast} onLoad={onLoadPast} />}
       {months.map((month, index) => {
         const monthEntries = entriesForMonth(month)

@@ -21,6 +21,8 @@ interface BaseCard {
   side: Side
   context: string
   quiet?: boolean
+  /** Parked cards remain in their workspace but do not appear in the scheduled Timeline. */
+  backlog?: boolean
   isCustom?: boolean
 }
 
@@ -59,6 +61,7 @@ export interface NoteCard extends BaseCard {
 }
 
 export type JourneyCard = EventCard | TaskCard | ProjectCard | NoteCard
+export type RolloverCandidate = TaskCard | ProjectCard
 
 /** A non-editable calendar reference rendered beside personal Timeline cards. */
 export interface TimelineSourceEntry {
@@ -86,6 +89,8 @@ export type JourneyAction =
   | { type: 'add-card'; card: JourneyCard }
   | { type: 'update-note'; id: string; title?: string; body?: string }
   | { type: 'update-event-background'; id: string; occasion: OccasionChoice }
+  | { type: 'rollover-card'; id: string; date: string }
+  | { type: 'backlog-card'; id: string }
   | { type: 'toggle-item'; cardId: string; itemId: string }
   | { type: 'add-item'; cardId: string; item: ChecklistItem }
   | { type: 'toggle-bezel' }

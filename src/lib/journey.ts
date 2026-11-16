@@ -1,5 +1,5 @@
 import type {
-  CardType, Filter, JourneyCard, NewCardInput, TimelineEntry, TimelineItem, TimelineSourceEntry, Workspace,
+  CardType, Filter, JourneyCard, NewCardInput, RolloverCandidate, TimelineEntry, TimelineItem, TimelineSourceEntry, Workspace,
 } from '../types'
 import { isOccasionChoice } from './occasions'
 
@@ -71,12 +71,31 @@ export function makeId(prefix = 'card'): string {
   return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
 }
 
+/**
+ * Scheduled, unfinished work from before today deserves one explicit choice rather
+ * than silently following the user around the Timeline. Quiet and parked cards are
+ * deliberately excluded: they are already a conscious deferment.
+ */
+export function rolloverCandidates(cards: JourneyCard[], today: string): RolloverCandidate[] {
+  if (!isValidDate(today)) return []
+  return cards.filter((card): card is RolloverCandidate => {
+    if (card.backlog || card.quiet || (card.type !== 'task' && card.type !== 'project')) return false
+    const scheduledFor = card.type === 'project' ? card.dueDate : card.date
+    return scheduledFor < today && card.subtasks.some((item) => !item.done)
+  }).sort((first, second) => {
+    const firstDate = first.type === 'project' ? first.dueDate : first.date
+    const secondDate = second.type === 'project' ? second.dueDate : second.date
+    return firstDate.localeCompare(secondDate) || first.title.localeCompare(second.title)
+  })
+}
+
 /** Quiet notes/actions live inside genuine gaps, never hiding scheduled cards. */
 export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all', sourceEntries: TimelineSourceEntry[] = []): TimelineEntry[] {
+  const timelineCards = cards.filter((card) => !card.backlog)
   const visibleSources = (filter === 'all' || filter === 'event') ? sourceEntries : []
-  const scheduledDates = [...new Set(cards.filter((card) => !card.quiet).map((card) => card.date))].sort()
+  const scheduledDates = [...new Set(timelineCards.filter((card) => !card.quiet).map((card) => card.date))].sort()
   const compact = new Set<string>()
-  for (const card of cards) {
+  for (const card of timelineCards) {
     if (!card.quiet || scheduledDates.includes(card.date)) continue
     const previous = scheduledDates.filter((date) => date < card.date).at(-1)
     const next = scheduledDates.find((date) => date > card.date)
@@ -84,7 +103,7 @@ export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all', sour
   }
 
   const groups = new Map<string, TimelineItem[]>()
-  cards.filter((card) => !compact.has(card.id)).forEach((card) => {
+  timelineCards.filter((card) => !compact.has(card.id)).forEach((card) => {
     groups.set(card.date, [...(groups.get(card.date) ?? []), card])
   })
   visibleSources.forEach((entry) => {
@@ -96,7 +115,7 @@ export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all', sour
   // one-day quiet buffers so a reference date never accidentally hides a personal note.
   if (visibleSources.length) {
     const quietByDate = new Map<string, JourneyCard[]>()
-    cards.filter((card) => compact.has(card.id) && (filter === 'all' || card.type === filter)).forEach((card) => {
+    timelineCards.filter((card) => compact.has(card.id) && (filter === 'all' || card.type === filter)).forEach((card) => {
       quietByDate.set(card.date, [...(quietByDate.get(card.date) ?? []), card])
     })
     const allDates = [...new Set([...dates, ...quietByDate.keys()])].sort()
@@ -114,7 +133,7 @@ export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all', sour
   dates.forEach((date, index) => {
     const previous = dates[index - 1]
     if (previous && daysBetween(previous, date) > 3) {
-      const gapCards = cards.filter((card) => compact.has(card.id) && card.date > previous && card.date < date)
+      const gapCards = timelineCards.filter((card) => compact.has(card.id) && card.date > previous && card.date < date)
         .filter((card) => filter === 'all' || card.type === filter)
         .sort((a, b) => a.date.localeCompare(b.date))
       if (filter === 'all' || filter === 'event' || gapCards.length) {
@@ -128,9 +147,9 @@ export function buildTimeline(cards: JourneyCard[], filter: Filter = 'all', sour
 }
 
 export function focusCard(cards: JourneyCard[], date: string): JourneyCard | undefined {
-  return cards.find((card) => card.date === date && !card.quiet)
-    ?? cards.find((card) => card.type === 'project' && card.dueDate === date)
-    ?? [...cards].filter((card) => !card.quiet).sort((a, b) => (
+  return cards.find((card) => card.date === date && !card.quiet && !card.backlog)
+    ?? cards.find((card) => card.type === 'project' && card.dueDate === date && !card.backlog)
+    ?? [...cards].filter((card) => !card.quiet && !card.backlog).sort((a, b) => (
       Math.abs(daysBetween(a.date, date)) - Math.abs(daysBetween(b.date, date))
     ))[0]
 }

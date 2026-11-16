@@ -101,7 +101,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, dispatch, onCompose
   const [preview, setPreview] = useState<TimelineItem | null>(null)
   const closePreview = useCallback(() => setPreview(null), [])
   const { month, selectedDate } = calendarPeriod(query, initialCard?.date)
-  const monthCards = cards.filter((card) => card.date.startsWith(month))
+  const monthCards = cards.filter((card) => !card.backlog && card.date.startsWith(month))
   const events = monthCards.filter((card): card is EventCard => card.type === 'event')
   const sourceEntries = calendarSourceEntriesForMonth(calendarSources, month)
   const sourceById = new Map(calendarSources.map((source) => [source.id, source]))
