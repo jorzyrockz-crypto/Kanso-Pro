@@ -174,23 +174,28 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDelet
     <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
       {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>
-    <section className="workspace-panel checklist-panel">
-      <div className="checklist-heading"><div><span className="eyebrow">{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><h3>{selected.title}</h3></div>
-        {selected.reminder && <span className="reminder-pill"><Bell size="0.75rem" />{formatTime(selected.reminder)} reminder</span>}</div>
-      <div className="task-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}>Edit task list</Link><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
-      <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span></div>
-      <div className="workspace-checklist">{selected.subtasks.map((item) => <label key={item.id} className={`workspace-check task-check ${item.done ? 'is-done' : ''}`}>
-        <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
-        <span className="check-copy"><strong>{item.title}</strong><small>{item.done ? 'Complete. A little more room to breathe.' : 'Connected to your timeline task list'}</small></span>
-        {item.label && <span className="check-label">{item.done ? <Check size="0.75rem" /> : <Clock3 size="0.6875rem" />}{item.label}</span>}
-      </label>)}</div>
-      {!total && <p className="inline-empty">No items yet. Add the first one below.</p>}
-      <AddChecklistItem key={selected.id} placeholder="Add a checklist item…" label="Add item" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false } })} />
-    </section>
-    {tasks.length > 1 && <div className="other-lists"><span className="eyebrow">Your other lists</span>{tasks.filter((card) => card.id !== selected.id).map((card) => <Link key={card.id} className="list-summary" to={destinationPath({ page: 'tasks', cardId: card.id })}>
-      <span className="list-icon"><TypeIcon type="task" size={17} /></span><span><strong>{card.title}</strong><small>{shortDate(card.date)} · {progress(card.subtasks).done} of {card.subtasks.length} completed</small></span><ChevronRight size="1rem" />
-    </Link>)}</div>}
-    <p className="workspace-fineprint"><Bell size="0.75rem" />Reminder times are planning labels, not device notifications.</p>
+    <div className="workspace-desktop-split">
+      <section className="workspace-panel checklist-panel">
+        <div className="checklist-heading"><div><span className="eyebrow">{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><h3>{selected.title}</h3></div>
+          {selected.reminder && <span className="reminder-pill"><Bell size="0.75rem" />{formatTime(selected.reminder)} reminder</span>}</div>
+        <div className="task-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}>Edit task list</Link><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
+        <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span></div>
+        <div className="workspace-checklist">{selected.subtasks.map((item) => <label key={item.id} className={`workspace-check task-check ${item.done ? 'is-done' : ''}`}>
+          <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
+          <span className="check-copy"><strong>{item.title}</strong><small>{item.done ? 'Complete. A little more room to breathe.' : 'Connected to your timeline task list'}</small></span>
+          {item.label && <span className="check-label">{item.done ? <Check size="0.75rem" /> : <Clock3 size="0.6875rem" />}{item.label}</span>}
+        </label>)}</div>
+        {!total && <p className="inline-empty">No items yet. Add the first one below.</p>}
+        <AddChecklistItem key={selected.id} placeholder="Add a checklist item…" label="Add item" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false } })} />
+      </section>
+      <aside className="workspace-desktop-aside task-workspace-aside" aria-label="Task list context">
+        <section className="workspace-insight-card task-insight-card"><span className="eyebrow"><TypeIcon type="task" size={11} />Task-list plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Planned for</dt><dd>{formatDate(selected.date, { weekday: 'short', month: 'short', day: 'numeric' })}</dd></div><div><dt>Reminder</dt><dd>{selected.reminder ? formatTime(selected.reminder) : 'No reminder'}</dd></div><div><dt>Actions left</dt><dd>{total - done} of {total}</dd></div></dl></section>
+        {tasks.length > 1 && <div className="other-lists"><span className="eyebrow">Your other lists</span>{tasks.filter((card) => card.id !== selected.id).map((card) => <Link key={card.id} className="list-summary" to={destinationPath({ page: 'tasks', cardId: card.id })}>
+          <span className="list-icon"><TypeIcon type="task" size={17} /></span><span><strong>{card.title}</strong><small>{shortDate(card.date)} · {progress(card.subtasks).done} of {card.subtasks.length} completed</small></span><ChevronRight size="1rem" />
+        </Link>)}</div>}
+        <p className="workspace-fineprint"><Bell size="0.75rem" />Reminder times are planning labels, not device notifications.</p>
+      </aside>
+    </div>
   </div>
 }
 
@@ -208,19 +213,24 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate }: Wo
     {projects.length > 1 && <div className="workspace-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
       {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>}
-    <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
-    <section className="workspace-panel checklist-panel">
-      <div className="panel-heading"><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div>
-      <ProgressBar value={percent} label="Project completion" />
-      <div className="workspace-checklist">{selected.subtasks.map((item, index) => <label key={item.id} className={`workspace-check project-check ${item.done ? 'is-done' : ''}`}>
-        <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
-        <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee} · ` : ''}{item.done ? 'Completed' : 'To do'}</small></span>
-        {item.label && <span className="check-label">{item.label}</span>}
-      </label>)}</div>
-      {!total && <p className="inline-empty">Every project starts with one small step. Add a milestone below.</p>}
-      <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: 'You' } })} />
-    </section>
-    <p className="workspace-fineprint"><Users size="0.75rem" />Team names are planning references. This workspace is stored on your device.</p>
+    <div className="workspace-desktop-split">
+      <section className="workspace-panel checklist-panel">
+        <div className="panel-heading"><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div>
+        <ProgressBar value={percent} label="Project completion" />
+        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <label key={item.id} className={`workspace-check project-check ${item.done ? 'is-done' : ''}`}>
+          <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
+          <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee} · ` : ''}{item.done ? 'Completed' : 'To do'}</small></span>
+          {item.label && <span className="check-label">{item.label}</span>}
+        </label>)}</div>
+        {!total && <p className="inline-empty">Every project starts with one small step. Add a milestone below.</p>}
+        <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: 'You' } })} />
+      </section>
+      <aside className="workspace-desktop-aside project-workspace-aside" aria-label="Project context">
+        <section className="workspace-insight-card project-insight-card"><span className="eyebrow"><Zap size={11} />Project plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Started</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Due</dt><dd>{shortDate(selected.dueDate)}</dd></div><div><dt>Progress</dt><dd>{percent}% · {done} of {total}</dd></div></dl></section>
+        <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
+        <p className="workspace-fineprint"><Users size="0.75rem" />Team names are planning references. This workspace is stored on your device.</p>
+      </aside>
+    </div>
   </div>
 }
 
