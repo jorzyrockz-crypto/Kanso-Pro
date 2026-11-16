@@ -2,12 +2,13 @@ import { BadgeCheck, Check, KeyRound, LoaderCircle, LogOut, Mail, RefreshCw, Use
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import type { JourneyState } from '../types'
-import { accountError, accountInitials, accountMode, accountName } from '../lib/account'
+import { accountError, accountMode, accountName } from '../lib/account'
 import type { AccountController } from '../lib/useAccount'
 import { BACKUP_FAILED, BACKUP_READY, downloadWorkspaceBackup } from '../lib/workspaceBackup'
 import { DeviceWorkspacePanel } from './DeviceWorkspace'
 import { PageHeader } from './PageHeader'
 import { SignInPage } from './SignInPage'
+import { AccountAvatar } from './AccountAvatar'
 
 type Feedback = { kind: 'error' | 'success'; message: string } | null
 
@@ -66,14 +67,14 @@ export function AccountPage({ account, state, storageAvailable }: { account: Acc
   if (!user) return <SignInPage account={account} mode={mode} notices={notices} deviceWorkspace={deviceWorkspace} onAction={perform} />
 
   return <main id="main-content" tabIndex={-1} className="workspace-page account-page" aria-labelledby="page-title">
-    <PageHeader title="My workspace" breadcrumb="Account & workspace" description="Your personal account, and the plans you’re making room for." />
+    <PageHeader title="User Profile" breadcrumb="User Profile" description="Your personal account, and the plans you’re making room for." />
     <div className="account-layout">
       <section className="account-card" aria-labelledby="account-title">
         <div className="account-card-heading"><span className="account-heading-icon"><UserRound size="1.375rem" /></span><span className="eyebrow">Personal account</span></div>
         <h2 id="account-title">Good to have you here.</h2>
         <p className="account-intro">Manage your identity and how you sign in.</p>
         {notices}
-        <div className="account-identity"><span className="account-large-avatar" aria-hidden="true">{accountInitials(user)}</span><div><strong>{accountName(user)}</strong><span>{user.email ?? 'Firebase account'}</span><small>{user.providers.includes('google.com') ? 'Google' : 'Email & password'}{user.providers.includes('google.com') && user.providers.includes('password') && ' · Email & password'}</small></div></div>
+        <div className="account-identity"><AccountAvatar user={user} className="account-large-avatar" /><div><strong>{accountName(user)}</strong><span>{user.email ?? 'Firebase account'}</span><small>{user.providers.includes('google.com') ? 'Google' : 'Email & password'}{user.providers.includes('google.com') && user.providers.includes('password') && ' · Email & password'}</small></div></div>
         <div className={`account-verification ${user.emailVerified ? 'is-verified' : ''}`}>
           <div><BadgeCheck size="1.0625rem" /><span><strong>{user.emailVerified ? 'Email verified' : 'Verify your email'}</strong><small>{user.emailVerified ? 'Your email address is confirmed.' : 'Open the verification email, then check your status here.'}</small></span></div>
           {!user.emailVerified && <div className="account-inline-actions"><button className="button button-soft" disabled={disabled} onClick={() => void perform(account.sendVerification, 'Verification email sent. Open the link in your inbox, then choose Check verification.')}>{busy === 'verify' ? 'Sending…' : 'Send verification email'}<Mail size="0.8125rem" /></button><button className="button button-quiet" disabled={disabled} onClick={() => void perform(account.refresh, 'Your verification status has been refreshed.')}>{busy === 'refresh' ? 'Checking…' : 'Check verification'}<RefreshCw size="0.8125rem" /></button></div>}

@@ -1,8 +1,8 @@
-import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Landmark, MoreHorizontal, Pin, Plus, School, Users, Zap } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Folder, Landmark, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, ReactNode, RefObject } from 'react'
-import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
+import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
 import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, projectStatus, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { Avatar, AvatarStack, ProgressBar, TypeIcon } from './Common'
 import { destinationPath } from '../lib/navigation'
@@ -273,59 +273,49 @@ function TimelineMonthEmpty({ month, filter, onCompose }: { month: string; filte
 }
 
 function TimelineBoundary({ direction, month, canLoad, onLoad }: { direction: 'past' | 'future'; month: string; canLoad: boolean; onLoad: () => void }) {
-  const ref = useRef<HTMLElement>(null)
-  const loaded = useRef(false)
-  const pastReady = useRef(typeof window !== 'undefined' && window.scrollY > 96)
+  const loading = useRef(false)
   const load = useCallback(() => {
-    if (!canLoad || loaded.current) return
-    loaded.current = true
+    // Loading is intentional: observing or listening for a fling here could chain through
+    // several months after the person has stopped scrolling.
+    if (!canLoad || loading.current) return
+    loading.current = true
     onLoad()
   }, [canLoad, onLoad])
 
-  useEffect(() => {
-    const element = ref.current
-    if (!element || !canLoad || !('IntersectionObserver' in window)) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && (direction === 'future' || pastReady.current)) load()
-    }, { rootMargin: direction === 'future' ? '280px 0px' : '0px' })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [canLoad, direction, load])
-
-  useEffect(() => {
-    if (direction !== 'past') return
-    let touchStart = 0
-    const rememberScroll = () => { if (window.scrollY > 96) pastReady.current = true }
-    const atTopBoundary = () => window.scrollY <= 2 && (ref.current?.getBoundingClientRect().top ?? Infinity) < window.innerHeight * .8
-    const revealWithWheel = (event: WheelEvent) => { if (event.deltaY < -8 && atTopBoundary()) load() }
-    const rememberTouch = (event: TouchEvent) => { touchStart = event.touches[0]?.clientY ?? 0 }
-    const revealWithPull = (event: TouchEvent) => {
-      const position = event.touches[0]?.clientY ?? touchStart
-      if (position - touchStart > 28 && atTopBoundary()) load()
-    }
-    window.addEventListener('scroll', rememberScroll, { passive: true })
-    window.addEventListener('wheel', revealWithWheel, { passive: true })
-    window.addEventListener('touchstart', rememberTouch, { passive: true })
-    window.addEventListener('touchmove', revealWithPull, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', rememberScroll)
-      window.removeEventListener('wheel', revealWithWheel)
-      window.removeEventListener('touchstart', rememberTouch)
-      window.removeEventListener('touchmove', revealWithPull)
-    }
-  }, [direction, load])
-
   const period = formatDate(`${month}-01`, { month: 'long', year: 'numeric' })
   const earlier = direction === 'past'
-  return <section ref={ref} className={`timeline-boundary timeline-boundary-${direction}`} data-timeline-month={month} aria-label={earlier ? `Load dates before ${period}` : `Load dates after ${period}`}>
+  return <section className={`timeline-boundary timeline-boundary-${direction}`} data-timeline-month={month} aria-label={earlier ? `Load dates before ${period}` : `Load dates after ${period}`}>
     <button type="button" onClick={load} disabled={!canLoad}>
       {earlier ? <ArrowUp size=".875rem" aria-hidden="true" /> : <ArrowDown size=".875rem" aria-hidden="true" />}
-      <span>{canLoad ? `Keep scrolling for ${earlier ? 'earlier' : 'later'} dates` : 'End of the timeline'}</span>
+      <span>{canLoad ? `Load ${earlier ? 'earlier' : 'later'} dates` : 'End of the timeline'}</span>
     </button>
   </section>
 }
 
-export function Timeline({ entries, filter, onCompose, dispatch, highlightId, containerRef, openGaps, onToggleGap, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture }: {
+function DawnRollover({ candidates, today, filter, dispatch }: { candidates: RolloverCandidate[]; today: string; filter: Filter; dispatch: Dispatch<JourneyAction> }) {
+  const [dismissed, setDismissed] = useState<string | null>(null)
+  const visible = candidates.filter((card) => (filter === 'all' || card.type === filter) && card.id !== dismissed)
+  const card = visible[0]
+  if (!card) return null
+  const scheduledFor = card.type === 'project' ? card.dueDate : card.date
+  const count = visible.length
+  const countLabel = `${count} uncompleted from past ${count === 1 ? 'day' : 'days'}`
+  return <section className="dawn-rollover" aria-labelledby="dawn-rollover-title">
+    <div className="dawn-rollover-heading">
+      <span className="dawn-rollover-icon"><Zap size="1rem" aria-hidden="true" /></span>
+      <div><h2 id="dawn-rollover-title">The Dawn Rollover</h2><span>{countLabel}</span></div>
+      <button type="button" className="dawn-rollover-dismiss" onClick={() => setDismissed(card.id)} aria-label="Hide this rollover reminder until your next visit" title="Hide for now"><X size="1rem" /></button>
+    </div>
+    <p>Incomplete deliverables carried forward — choose one clear next step for today.</p>
+    <div className="dawn-rollover-item"><span aria-hidden="true" /><strong>{card.title}</strong><small>Due {shortDate(scheduledFor)}</small></div>
+    <div className="dawn-rollover-actions">
+      <button type="button" className="dawn-rollover-apply" onClick={() => dispatch({ type: 'rollover-card', id: card.id, date: today })}><ArrowRight size=".875rem" />Roll Over to Today</button>
+      <button type="button" className="dawn-rollover-backlog" onClick={() => dispatch({ type: 'backlog-card', id: card.id })}><Folder size=".875rem" />To Backlog</button>
+    </div>
+  </section>
+}
+
+export function Timeline({ entries, filter, onCompose, dispatch, highlightId, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture }: {
   entries: TimelineEntry[]
   filter: Filter
   onCompose: (options?: ComposerOptions) => void
@@ -334,6 +324,8 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
   containerRef: RefObject<HTMLElement | null>
   openGaps: string[]
   onToggleGap: (key: string) => void
+  rolloverCandidates: RolloverCandidate[]
+  rolloverDate: string
   months: string[]
   canLoadPast: boolean
   canLoadFuture: boolean
@@ -341,6 +333,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
   onLoadFuture: () => void
 }) {
   const [preview, setPreview] = useState<TimelineItem | null>(null)
+  const previewItems = useMemo(() => entries.flatMap((entry) => entry.cards), [entries])
   const openPreview = useCallback((item: TimelineItem) => setPreview(item), [])
   const closePreview = useCallback(() => setPreview(null), [])
   const entriesForMonth = (month: string) => entries.filter((entry) => (entry.kind === 'day' ? entry.date : entry.start).startsWith(month))
@@ -356,6 +349,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
   return (
     <section ref={containerRef} id="journey-stream" className="timeline" aria-label="Journey timeline">
       <div className="timeline-spine" aria-hidden="true" /><div className="timeline-glow" aria-hidden="true" />
+      <DawnRollover candidates={rolloverCandidates} today={rolloverDate} filter={filter} dispatch={dispatch} />
       {firstMonth && <TimelineBoundary key={`past-${firstMonth}`} direction="past" month={firstMonth} canLoad={canLoadPast} onLoad={onLoadPast} />}
       {months.map((month, index) => {
         const monthEntries = entriesForMonth(month)
@@ -368,7 +362,7 @@ export function Timeline({ entries, filter, onCompose, dispatch, highlightId, co
         <p>A little structure. A lot of possibility.</p>
       </div>
       {lastMonth && <TimelineBoundary key={`future-${lastMonth}`} direction="future" month={lastMonth} canLoad={canLoadFuture} onLoad={onLoadFuture} />}
-      <TimelineCardPreview item={preview} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
+      <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onEventBackgroundChange={(card, occasion) => dispatch({ type: 'update-event-background', id: card.id, occasion })} />
     </section>
   )
 }

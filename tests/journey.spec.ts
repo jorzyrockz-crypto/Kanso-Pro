@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { LEGACY_STORAGE_KEY, STORAGE_KEY } from '../src/data'
+import { CALENDAR_SOURCES_STORAGE_KEY } from '../src/lib/calendarSources'
 
 const navigation = (page: Page) => page.getByRole('navigation', { name: 'Main navigation' })
 const filters = (page: Page) => page.getByRole('navigation', { name: 'Filter journey cards' })
@@ -14,8 +15,7 @@ const timeline = async (page: Page) => {
   await expect(page).toHaveURL('/')
 }
 const openNewCard = async (page: Page) => {
-  await page.getByRole('button', { name: 'More', exact: true }).click()
-  await page.getByRole('button', { name: 'New card', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('button', { name: 'New card', exact: true }).click()
 }
 const audit = async (page: Page) => {
   const report = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
@@ -26,6 +26,9 @@ const audit = async (page: Page) => {
 }
 
 test.beforeEach(async ({ page }) => {
+  // Most journey assertions concern personal cards. Keep this explicit local preference
+  // off here; the dedicated test below covers the product default for a new browser.
+  await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, depedEnabled: false, legislatedEnabled: false, localSources: [] })), CALENDAR_SOURCES_STORAGE_KEY)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
@@ -51,11 +54,98 @@ test('renders the portrait timeline with Kanso Pro branding, local assets, and n
   expect(errors).toEqual([])
 })
 
+test('timeline boundaries load one month only after an explicit action, never from a fast fling', async ({ page }) => {
+  const future = page.locator('.timeline-boundary-future button')
+  await future.scrollIntoViewIfNeeded()
+  const before = await page.locator('.month-marker').count()
+  await page.mouse.wheel(0, 8_000)
+  await expect(page.locator('.month-marker')).toHaveCount(before)
+  await expect(future).toHaveAccessibleName('Load later dates')
+  await future.click()
+  await expect(page.locator('.month-marker')).toHaveCount(before + 1)
+})
+
+test('the verified school calendar starts on, while the Timeline keeps only its useful controls', async ({ page }) => {
+  await expect(page.locator('.stream-reference-controls')).not.toContainText('All your pages, connected')
+  await page.evaluate((key) => localStorage.removeItem(key), CALENDAR_SOURCES_STORAGE_KEY)
+  const fresh = await page.context().newPage()
+  try {
+    await fresh.goto('/settings#calendar')
+    await expect(fresh.getByRole('switch', { name: 'Hide DepEd Calendar in Calendar', exact: true })).toHaveAttribute('aria-checked', 'true')
+    await expect(fresh.getByRole('switch', { name: 'Show Legislated activities & celebrations in Calendar', exact: true })).toHaveAttribute('aria-checked', 'false')
+  } finally {
+    await fresh.close()
+  }
+})
+
+test('responsive Timeline menus provide styled filters and individual Calendar source controls', async ({ page }) => {
+  const sourceTrigger = page.getByRole('button', { name: /^Calendar sources, \d+ shown$/ })
+  await expect(filters(page)).toBeVisible()
+  await expect(sourceTrigger).toBeVisible()
+  await page.setViewportSize({ width: 375, height: 812 })
+  await expect(filters(page)).toBeHidden()
+  const filterTrigger = page.getByRole('button', { name: /^Filter journey cards:/ })
+  await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: All Stream')
+  const [filterBox, sourceBox] = await Promise.all([filterTrigger.boundingBox(), sourceTrigger.boundingBox()])
+  expect(filterBox).not.toBeNull()
+  expect(sourceBox).not.toBeNull()
+  expect(Math.abs(filterBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
+  expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(sourceBox!.x)
+  await filterTrigger.click()
+  await page.getByRole('dialog', { name: 'Filter journey cards' }).getByRole('option', { name: 'Tasks', exact: true }).click()
+  await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: Tasks')
+  await sourceTrigger.click()
+  const sourcesMenu = page.getByRole('dialog', { name: 'Calendar sources' })
+  const depEdSource = sourcesMenu.getByRole('checkbox', { name: 'Show DepEd Calendar in Calendar and Timeline', exact: true })
+  await expect(depEdSource).toHaveAttribute('aria-checked', 'false')
+  await depEdSource.click()
+  await expect(sourcesMenu.getByRole('checkbox', { name: 'Hide DepEd Calendar in Calendar and Timeline', exact: true })).toHaveAttribute('aria-checked', 'true')
+  await expect(sourceTrigger).toHaveAccessibleName('Calendar sources, 1 shown')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
+  await page.keyboard.press('Escape')
+  await expect(sourcesMenu).not.toBeVisible()
+})
+
+test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', async ({ page }) => {
+  await navigation(page).getByRole('link', { name: 'Calendar', exact: true }).click()
+  const hero = page.locator('.month-calendar-hero')
+  await expect(page.getByRole('main', { name: 'Calendar', exact: true })).toBeVisible()
+  await expect(page.locator('.workspace-calendar > .page-header')).toHaveCount(0)
+  await expect(hero.getByRole('heading', { name: 'Calendar', exact: true })).toHaveCount(0)
+  await expect(hero.getByRole('heading', { level: 2, name: 'November 2026 Schedule', exact: true })).toBeVisible()
+  await expect(hero.getByRole('button', { name: 'New event', exact: true })).toHaveCount(0)
+  await expect(navigation(page).getByRole('button', { name: 'New event', exact: true })).toBeVisible()
+})
+
+test('the bottom create action follows the active workspace', async ({ page }) => {
+  for (const [tab, action] of [['Timeline', 'New card'], ['Calendar', 'New event'], ['Tasks', 'New task'], ['Projects', 'New project'], ['Journal', 'New note']] as const) {
+    await navigation(page).getByRole('link', { name: tab, exact: true }).click()
+    await expect(navigation(page).getByRole('button', { name: action, exact: true })).toBeVisible()
+  }
+})
+
+test('preview dialogs browse nearby timeline entries with desktop buttons and touch swipes', async ({ page }) => {
+  await card(page, 'evt-holiday').locator('.card-open').click({ position: { x: 10, y: 10 } })
+  const dialog = page.getByRole('dialog')
+  const title = dialog.getByRole('heading', { level: 2 })
+  const firstTitle = await title.textContent()
+  await expect(dialog.getByRole('button', { name: 'Next preview', exact: true })).toBeEnabled()
+  await dialog.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 1, clientX: 280, clientY: 360 })
+  await dialog.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 1, clientX: 120, clientY: 360 })
+  await expect(title).not.toHaveText(firstTitle!)
+  await dialog.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 2, clientX: 120, clientY: 360 })
+  await dialog.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 2, clientX: 280, clientY: 360 })
+  await expect(title).toHaveText(firstTitle!)
+  await dialog.getByRole('button', { name: 'Next preview', exact: true }).click()
+  await expect(title).not.toHaveText(firstTitle!)
+  await dialog.getByRole('button', { name: 'Previous preview', exact: true }).click()
+  await expect(title).toHaveText(firstTitle!)
+})
+
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {
-  for (const [name, path, heading] of [
-    ['Calendar', '/calendar', 'Calendar'], ['Tasks', '/tasks', 'Personal Tasks'],
-    ['Projects', '/projects', 'Projects'], ['Journal', '/journal', 'Journal'],
-    ['Timeline', '/', 'Journey Stream'],
+  for (const [name, path] of [
+    ['Calendar', '/calendar'], ['Tasks', '/tasks'], ['Projects', '/projects'], ['Journal', '/journal'],
+    ['Timeline', '/'],
   ]) {
     const link = navigation(page).getByRole('link', { name, exact: true })
     await expect(link).toHaveAttribute('href', path)
@@ -65,7 +155,7 @@ test('the bottom navigation opens ordinary pages with URLs, active links, titles
     await expect(link).toHaveAttribute('aria-current', 'page')
     await expect(navigation(page).locator('[aria-current="page"]')).toHaveCount(1)
     await expect(content(page)).toHaveCount(1)
-    await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible()
+    await expect(content(page)).toHaveAccessibleName(name)
     await expect(content(page)).toBeFocused()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     expect(await page.evaluate(() => document.body.style.overflow)).toBe('')
@@ -108,13 +198,13 @@ test('Back and Forward restore the selected task list and calendar state', async
   await navigation(page).getByRole('link', { name: 'Calendar', exact: true }).click()
   await page.getByRole('button', { name: 'Next month', exact: true }).click()
   await expect(page).toHaveURL('/calendar?month=2026-12')
-  await page.getByRole('button', { name: 'Tuesday, December 8, 0 cards', exact: true }).click()
+  await page.getByRole('button', { name: 'Tuesday, December 8, no entries', exact: true }).click()
   await expect(page).toHaveURL('/calendar?date=2026-12-08')
   await page.goBack()
   await expect(page.getByRole('heading', { name: 'December 2026 Schedule', exact: true })).toBeVisible()
   await expect(page.locator('.calendar-day.is-selected')).toHaveCount(0)
   await page.goForward()
-  await expect(page.getByRole('button', { name: 'Tuesday, December 8, 0 cards', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Tuesday, December 8, no entries', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Dec 8 · Connected agenda', exact: true })).toBeVisible()
 })
@@ -340,26 +430,26 @@ test('the connected calendar uses real dates and opens same-day pages', async ({
   await navigation(page).getByRole('link', { name: 'Calendar', exact: true }).click()
   await expect(page.locator('.hero-stat strong')).toHaveText('2')
   await expect(page.locator('.calendar-day')).toHaveCount(30)
-  await page.getByRole('button', { name: 'Wednesday, November 11, 2 cards', exact: true }).click()
+  await page.getByRole('button', { name: 'Wednesday, November 11, 2 personal cards', exact: true }).click()
   await expect(page).toHaveURL('/calendar?date=2026-11-11')
   await expect(page.locator('.agenda-item')).toHaveCount(2)
   await page.locator('.agenda-item-note').click()
-  await expect(page).toHaveURL('/journal/note-observation')
-  await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('Classroom Observation Reflections & Peer Feedback')
-  await page.goBack()
-  await expect(page.getByRole('button', { name: 'Wednesday, November 11, 2 cards', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  const preview = page.getByRole('dialog')
+  await expect(preview.getByRole('heading', { name: 'Classroom Observation Reflections & Peer Feedback', exact: true })).toBeVisible()
+  await preview.getByRole('button', { name: 'Close card preview', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Wednesday, November 11, 2 personal cards', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Next month', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'December 2026 Schedule', exact: true })).toBeVisible()
   await expect(page.locator('.calendar-day')).toHaveCount(31)
   await expect(page.locator('.hero-stat strong')).toHaveText('0')
-  await page.getByRole('button', { name: 'Tuesday, December 8, 0 cards', exact: true }).click()
+  await page.getByRole('button', { name: 'Tuesday, December 8, no entries', exact: true }).click()
   await page.getByRole('button', { name: 'New event', exact: true }).click()
   await expect(page).toHaveURL('/new?type=event&date=2026-12-08')
 })
 
-test('focus active finds the current due project and the tablet frame preference is saved', async ({ page }) => {
+test('jump to today finds the current due project and the tablet frame preference is saved', async ({ page }) => {
   await filters(page).getByRole('button', { name: 'Events', exact: true }).click()
-  await page.getByRole('button', { name: 'Focus Active', exact: true }).click()
+  await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
   await expect(card(page, 'proj-tos')).toHaveClass(/is-highlighted/)
   await expect(filters(page).getByRole('button', { name: /All Stream/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Tablet frame', exact: true }).click()
@@ -369,6 +459,29 @@ test('focus active finds the current due project and the tablet frame preference
   await timeline(page)
   await page.reload()
   await expect(page.getByRole('button', { name: 'Tablet frame', exact: true })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('Jump to Today floats above bottom navigation and moves into the content canvas in landscape side-rail mode', async ({ page }) => {
+  const jump = page.getByRole('button', { name: 'Jump to Today', exact: true })
+  await expect(page.locator('.stream-header').getByRole('button', { name: 'Jump to Today', exact: true })).toHaveCount(0)
+  await page.setViewportSize({ width: 812, height: 375 })
+  await settle(page)
+  const mobile = await page.evaluate(() => {
+    const jump = document.querySelector<HTMLElement>('.timeline-jump-today')!.getBoundingClientRect()
+    const navigation = document.querySelector<HTMLElement>('.bottom-bar')!.getBoundingClientRect()
+    return { jump: { bottom: jump.bottom }, navigation: { top: navigation.top } }
+  })
+  expect(mobile.jump.bottom).toBeLessThanOrEqual(mobile.navigation.top)
+  await page.setViewportSize({ width: 1194, height: 834 })
+  await settle(page)
+  const landscape = await page.evaluate(() => {
+    const jump = document.querySelector<HTMLElement>('.timeline-jump-today')!.getBoundingClientRect()
+    const navigation = document.querySelector<HTMLElement>('.bottom-bar')!.getBoundingClientRect()
+    return { jump: { left: jump.left, bottom: jump.bottom }, navigation: { right: navigation.right }, viewport: innerHeight }
+  })
+  expect(landscape.jump.left).toBeGreaterThanOrEqual(landscape.navigation.right)
+  expect(landscape.jump.bottom).toBeLessThanOrEqual(landscape.viewport)
+  await expect(jump).toBeVisible()
 })
 
 test('every page and all five navigation links fit from narrow phones through desktop', async ({ page }) => {

@@ -1,12 +1,13 @@
-import { Bell, CircleDashed, Moon, Sun, WifiOff } from 'lucide-react'
+import { CircleDashed, Moon, Sun, WifiOff } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import type { AppearanceController } from '../lib/useAppearance'
 import type { AccountController } from '../lib/useAccount'
+import type { NotificationsController } from '../lib/useNotifications'
 import { useChromeHeight } from '../lib/useChromeHeight'
-import { confirmNotificationNavigation } from '../lib/notifications'
 import { MoreMenu } from './ProfileMenu'
+import { NotificationMenu } from './NotificationMenu'
 
 export function KansoMark({ size = 24 }: { size?: number }) {
   return <img className="kanso-icon" src="/icons/icon-96.png" width={size} height={size} alt="" aria-hidden="true" decoding="async" />
@@ -72,10 +73,11 @@ function HeaderAppearance({ appearance, open, onOpenChange }: { appearance: Appe
   </div>
 }
 
-export function AppHeader({ account, appearance, storageAvailable, onCompose, onSignOut, unread, updateReady, online, artworkVisible = false, titlebar }: { account: AccountController; appearance: AppearanceController; storageAvailable: boolean; onCompose: () => void; onSignOut: () => Promise<void>; unread: number; updateReady: boolean; online: boolean; artworkVisible?: boolean; titlebar?: ReactNode }) {
+export function AppHeader({ account, appearance, storageAvailable, onSignOut, notifications, updateReady, online, artworkVisible = false, titlebar }: { account: AccountController; appearance: AppearanceController; storageAvailable: boolean; onSignOut: () => Promise<void>; notifications: NotificationsController; updateReady: boolean; online: boolean; artworkVisible?: boolean; titlebar?: ReactNode }) {
   const ref = useChromeHeight<HTMLElement>('--topbar-height')
-  const [openMenu, setOpenMenu] = useState<'appearance' | 'more' | null>(null)
+  const [openMenu, setOpenMenu] = useState<'appearance' | 'notifications' | 'more' | null>(null)
   const setAppearanceOpen = (open: boolean) => setOpenMenu(open ? 'appearance' : null)
+  const setNotificationsOpen = (open: boolean) => setOpenMenu(open ? 'notifications' : null)
   const setMoreOpen = (open: boolean) => setOpenMenu(open ? 'more' : null)
 
   return <header ref={ref} className={`topbar ${artworkVisible ? 'has-backdrop' : ''}`}>
@@ -88,8 +90,8 @@ export function AppHeader({ account, appearance, storageAvailable, onCompose, on
       </Link>
       <div className="topbar-actions">
         <HeaderAppearance appearance={appearance} open={openMenu === 'appearance'} onOpenChange={setAppearanceOpen} />
-        <NavLink to="/notifications" onClick={event => { if (!confirmNotificationNavigation(event)) event.preventDefault(); else setOpenMenu(null) }} className="notification-bell header-action" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} title="Notifications"><Bell size="1.125rem" aria-hidden="true" />{unread > 0 && <span className="notification-count" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}</NavLink>
-        <MoreMenu open={openMenu === 'more'} onOpenChange={setMoreOpen} updateReady={updateReady} account={account} storageAvailable={storageAvailable} onCompose={onCompose} onSignOut={onSignOut} />
+        <NotificationMenu notifications={notifications} open={openMenu === 'notifications'} onOpenChange={setNotificationsOpen} />
+        <MoreMenu open={openMenu === 'more'} onOpenChange={setMoreOpen} updateReady={updateReady} account={account} storageAvailable={storageAvailable} onSignOut={onSignOut} />
       </div>
     </div>
   </header>

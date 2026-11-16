@@ -1,7 +1,7 @@
 import type { BrowserContext } from '@playwright/test'
 
 export interface FirebaseHarness {
-  profile: { uid: string; email: string; displayName: string | null; verified: boolean }
+  profile: { uid: string; email: string; displayName: string | null; photoURL: string | null; verified: boolean }
   requests: { endpoint: string; body: Record<string, unknown> }[]
   failures: Record<string, string | undefined>
   unexpectedRequests: string[]
@@ -15,7 +15,7 @@ export interface FirebaseHarness {
  */
 export async function mockFirebase(context: BrowserContext): Promise<FirebaseHarness> {
   const mock: FirebaseHarness = {
-    profile: { uid: 'test-only-ada', email: 'ada@example.test', displayName: 'Ada Reyes', verified: false },
+    profile: { uid: 'test-only-ada', email: 'ada@example.test', displayName: 'Ada Reyes', photoURL: 'https://profiles.example.test/ada-avatar.svg', verified: false },
     requests: [], failures: {}, unexpectedRequests: [],
   }
   const tokens = () => {
@@ -31,8 +31,8 @@ export async function mockFirebase(context: BrowserContext): Promise<FirebaseHar
   }
   const profile = () => ({
     localId: mock.profile.uid, email: mock.profile.email, emailVerified: mock.profile.verified,
-    displayName: mock.profile.displayName ?? undefined,
-    providerUserInfo: [{ providerId: 'password', rawId: mock.profile.email, email: mock.profile.email, displayName: mock.profile.displayName ?? undefined }],
+    displayName: mock.profile.displayName ?? undefined, photoUrl: mock.profile.photoURL ?? undefined,
+    providerUserInfo: [{ providerId: 'password', rawId: mock.profile.email, email: mock.profile.email, displayName: mock.profile.displayName ?? undefined, photoUrl: mock.profile.photoURL ?? undefined }],
     createdAt: '1794614400000', lastLoginAt: `${Date.now()}`,
   })
 
@@ -40,6 +40,7 @@ export async function mockFirebase(context: BrowserContext): Promise<FirebaseHar
     const request = route.request()
     const url = new URL(request.url())
     if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') return route.continue()
+    if (url.hostname === 'profiles.example.test') return route.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="#7ca8be"/><circle cx="48" cy="36" r="18" fill="#f3cfb7"/><path d="M12 96c3-27 20-36 36-36s33 9 36 36" fill="#315970"/></svg>' })
     if (!['identitytoolkit.googleapis.com', 'securetoken.googleapis.com'].includes(url.hostname)) {
       mock.unexpectedRequests.push(request.url())
       return route.abort('blockedbyclient')
@@ -58,7 +59,7 @@ export async function mockFirebase(context: BrowserContext): Promise<FirebaseHar
     const reply = (data: unknown) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })
     switch (endpoint) {
       case 'signInWithPassword':
-        return reply({ kind: 'identitytoolkit#VerifyPasswordResponse', localId: mock.profile.uid, email: mock.profile.email, displayName: mock.profile.displayName, registered: true, ...tokens() })
+        return reply({ kind: 'identitytoolkit#VerifyPasswordResponse', localId: mock.profile.uid, email: mock.profile.email, displayName: mock.profile.displayName, photoUrl: mock.profile.photoURL, registered: true, ...tokens() })
       case 'signUp':
         mock.profile.email = String(body.email)
         mock.profile.displayName = null
@@ -66,7 +67,7 @@ export async function mockFirebase(context: BrowserContext): Promise<FirebaseHar
       case 'lookup': return reply({ kind: 'identitytoolkit#GetAccountInfoResponse', users: [profile()] })
       case 'update':
         if (typeof body.displayName === 'string') mock.profile.displayName = body.displayName
-        return reply({ ...profile(), photoUrl: null, ...tokens() })
+        return reply({ ...profile(), photoUrl: mock.profile.photoURL, ...tokens() })
       case 'sendOobCode': return reply({ kind: 'identitytoolkit#GetOobConfirmationCodeResponse', email: mock.profile.email })
       case 'token': {
         const token = tokens()

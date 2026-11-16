@@ -4,7 +4,7 @@ import type { AccountUser } from './account'
 import { emptyWorkspace, googleSyncUser, isStarterWorkspace, mergeInitialWorkspace, workspaceChangesSince, workspaceFingerprint } from './workspaceSync'
 
 const googleAccount: AccountUser = {
-  uid: 'google-user', displayName: 'Planner', email: 'planner@example.test', emailVerified: true, providers: ['google.com'],
+  uid: 'google-user', displayName: 'Planner', email: 'planner@example.test', photoURL: null, emailVerified: true, providers: ['google.com'],
 }
 
 describe('Google workspace sync policy', () => {

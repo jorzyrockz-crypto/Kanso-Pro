@@ -33,7 +33,7 @@ describe('page navigation', () => {
     expect(pageForPath('/projects/proj-reading').label).toBe('Projects')
     expect(pageForPath('/journal/note-lesson').label).toBe('Journal')
     expect(pageForPath('/new').label).toBe('New card')
-    expect(pageForPath('/account').label).toBe('My workspace')
+    expect(pageForPath('/account').label).toBe('User Profile')
     expect(pageForPath('/account/').page).toBe('account')
   })
   it('names the dedicated sign-in, creation, and recovery pages without accepting arbitrary modes', () => {

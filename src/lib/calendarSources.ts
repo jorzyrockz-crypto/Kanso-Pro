@@ -116,7 +116,9 @@ export function parseCalendarSourcePreferences(raw: string | null): CalendarSour
 }
 
 function initialPreferences(): CalendarSourcePreferences {
-  return { version: 1, depedEnabled: false, legislatedEnabled: false, localSources: [] }
+  // The school calendar is useful reference context immediately. The much denser
+  // recurring observance calendar remains opt-in, so it cannot overwhelm a new stream.
+  return { version: 1, depedEnabled: true, legislatedEnabled: false, localSources: [] }
 }
 
 function sourceFromLocal(source: StoredLocalSource): CalendarSource {

@@ -24,6 +24,7 @@ function isCard(value: unknown): value is JourneyCard {
   if (!isString(card.id) || !isString(card.title) || !isValidDate(card.date)
     || !['left', 'right'].includes(String(card.side)) || !isString(card.context)
     || (card.quiet !== undefined && typeof card.quiet !== 'boolean')
+    || (card.backlog !== undefined && typeof card.backlog !== 'boolean')
     || (card.isCustom !== undefined && typeof card.isCustom !== 'boolean')) return false
   if (card.type === 'event') return typeof card.allDay === 'boolean' && typeof card.holiday === 'boolean'
     && isString(card.owner) && isString(card.organization) && isString(card.location)
@@ -71,6 +72,20 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
     case 'update-event-background': return !isOccasionChoice(action.occasion) ? state : {
       ...state,
       cards: state.cards.map((card) => card.type === 'event' && card.id === action.id ? { ...card, occasion: action.occasion } : card),
+    }
+    case 'rollover-card': return !isValidDate(action.date) ? state : {
+      ...state,
+      cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.id ? {
+        ...card,
+        date: action.date,
+        quiet: false,
+        backlog: false,
+        ...(card.type === 'project' && card.dueDate < action.date ? { dueDate: action.date } : {}),
+      } : card),
+    }
+    case 'backlog-card': return {
+      ...state,
+      cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.id ? { ...card, backlog: true } : card),
     }
     case 'toggle-item': return {
       ...state,

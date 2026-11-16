@@ -49,7 +49,7 @@ async function expectPrimaryNavigation(page: Page, width: number, height: number
 
 test('primary navigation stays fixed and reachable in portrait, landscape, and split-width layouts', async ({ page }) => {
   await page.goto('/projects/proj-reading')
-  await expect(page.getByRole('heading', { level: 1, name: 'Projects', exact: true })).toBeVisible()
+  await expect(page.getByRole('main', { name: 'Projects', exact: true })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await expect(page.locator('header.topbar nav')).toHaveCount(0)
   await expect(navigation(page)).toHaveCount(1)

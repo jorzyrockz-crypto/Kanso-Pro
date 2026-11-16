@@ -2,6 +2,8 @@ export interface AccountUser {
   uid: string
   displayName: string | null
   email: string | null
+  /** Firebase Authentication profile image, kept separate from device-only cards. */
+  photoURL: string | null
   emailVerified: boolean
   providers: string[]
 }
@@ -29,6 +31,18 @@ export function accountName(user: AccountUser | null): string {
 export function accountInitials(user: AccountUser | null): string {
   if (!user) return 'Y'
   return accountName(user).split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((part) => Array.from(part)[0]).join('').toLocaleUpperCase('en-US') || 'Y'
+}
+
+/** Only render normal secure web image URLs supplied by Firebase Authentication. */
+export function accountPhotoUrl(user: AccountUser | null): string | null {
+  const value = user?.photoURL?.trim()
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' ? url.href : null
+  } catch {
+    return null
+  }
 }
 
 export function validName(value: string): string {

@@ -27,6 +27,16 @@ describe('the single journey store', () => {
     const other = next.cards.find((card) => card.id === 'proj-tos')
     if (other?.type === 'project') expect(other.subtasks).toHaveLength(4)
   })
+  it('rolls unfinished work forward or parks it in the backlog without touching other cards', () => {
+    const state = createInitialState()
+    const rolled = journeyReducer(state, { type: 'rollover-card', id: 'task-grades', date: '2026-11-14' })
+    const task = rolled.cards.find((card) => card.id === 'task-grades')
+    expect(task?.date).toBe('2026-11-14')
+    expect(task?.backlog).toBe(false)
+    const parked = journeyReducer(rolled, { type: 'backlog-card', id: 'task-grades' })
+    expect(parked.cards.find((card) => card.id === 'task-grades')?.backlog).toBe(true)
+    expect(parked.cards.find((card) => card.id === 'proj-tos')).toEqual(rolled.cards.find((card) => card.id === 'proj-tos'))
+  })
   it('updates the selected journal note, including deliberate empty strings', () => {
     const state = createInitialState()
     const next = journeyReducer(state, { type: 'update-note', id: 'note-lesson', title: '', body: 'A quiet idea.' })

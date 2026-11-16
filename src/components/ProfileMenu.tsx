@@ -1,18 +1,18 @@
-import { ArrowRight, LogIn, LogOut, Menu, Plus, Settings2, ShieldCheck, UserRound, UserRoundPlus } from 'lucide-react'
+import { ArrowRight, LogIn, LogOut, Menu, Settings2, ShieldCheck, UserRound, UserRoundPlus } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { accountInitials, accountName } from '../lib/account'
+import { accountName } from '../lib/account'
 import type { AccountController } from '../lib/useAccount'
+import { AccountAvatar } from './AccountAvatar'
 
 /**
  * One compact disclosure for actions that do not belong in the primary navigation.
  * It intentionally keeps real links and buttons rather than pretending to be an
  * ARIA application menu, so browser affordances and ordinary tab navigation work.
  */
-export function MoreMenu({ account, storageAvailable, onCompose, onSignOut, open, onOpenChange, updateReady = false }: {
+export function MoreMenu({ account, storageAvailable, onSignOut, open, onOpenChange, updateReady = false }: {
   account: AccountController
   storageAvailable: boolean
-  onCompose: () => void
   onSignOut: () => Promise<void>
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -25,7 +25,7 @@ export function MoreMenu({ account, storageAvailable, onCompose, onSignOut, open
   const panelId = useId()
   const location = useLocation()
   const { user, phase, busy } = account
-  const identity = JSON.stringify([phase, user?.uid, user?.displayName, user?.email, user?.emailVerified])
+  const identity = JSON.stringify([phase, user?.uid, user?.displayName, user?.email, user?.photoURL, user?.emailVerified])
   const previous = useRef({ route: location.key, identity })
   const status = user ? 'Personal · Signed in' : phase === 'loading' ? 'Checking account…' : phase === 'error' ? 'Sign-in unavailable' : 'Personal · Guest'
 
@@ -82,11 +82,10 @@ export function MoreMenu({ account, storageAvailable, onCompose, onSignOut, open
       // Remember focus before a background account update removes a panel link.
       if (event.relatedTarget instanceof Node) panelHadFocus.current = event.currentTarget.contains(event.relatedTarget)
     }}>
-      <button type="button" className="more-compose" onClick={() => { onOpenChange(false); onCompose() }}><Plus size="1.0625rem" aria-hidden="true" /><span>New card</span><ArrowRight size="0.875rem" aria-hidden="true" /></button>
-      <div className="profile-panel-identity"><span className="workspace-avatar" aria-hidden="true">{accountInitials(user)}</span><div><strong>{user ? accountName(user) : 'Your personal workspace'}</strong>{user?.email && <span>{user.email}</span>}<small>{status}</small></div></div>
+      <div className="profile-panel-identity"><AccountAvatar user={user} className="workspace-avatar" /><div><strong>{user ? accountName(user) : 'Your personal workspace'}</strong>{user?.email && <span>{user.email}</span>}<small>{status}</small></div></div>
       {!user && <p className="profile-device-status">{storageAvailable ? 'Your plans are saved in this browser.' : 'Session only · device storage is unavailable.'}</p>}
       <nav aria-label="More" className="profile-links">
-        {user ? <NavLink to="/account" end onClick={() => close(false)}><UserRound size="1.125rem" aria-hidden="true" /><span>Profile & account</span><ArrowRight size="0.875rem" aria-hidden="true" /></NavLink> : <>
+        {user ? <NavLink to="/account" end onClick={() => close(false)}><UserRound size="1.125rem" aria-hidden="true" /><span>User Profile</span><ArrowRight size="0.875rem" aria-hidden="true" /></NavLink> : <>
           <NavLink to="/sign-in" end onClick={() => close(false)}><LogIn size="1.125rem" aria-hidden="true" /><span>Sign in</span><ArrowRight size="0.875rem" aria-hidden="true" /></NavLink>
           <NavLink to="/sign-in?mode=create" onClick={() => close(false)}><UserRoundPlus size="1.125rem" aria-hidden="true" /><span>Create account</span><ArrowRight size="0.875rem" aria-hidden="true" /></NavLink>
         </>}

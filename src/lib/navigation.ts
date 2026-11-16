@@ -21,7 +21,7 @@ export const PAGE_LINKS = [
 ] as const
 
 export const SETTINGS_SECTIONS = [
-  { id: 'account', label: 'Profile & account' },
+  { id: 'account', label: 'User Profile' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'calendar', label: 'Calendar sources' },
   { id: 'workspace', label: 'Workspace & backup' },
@@ -57,7 +57,7 @@ export function pageForPath(path: string, search = '') {
   if (pathname === '/notifications') return { label: 'Notifications', page: 'notifications' as const }
   if (pathname === '/whats-new') return { label: 'What’s new', page: 'whats-new' as const }
   if (pathname === '/settings') return { label: 'Settings', page: 'settings' as const }
-  if (pathname === '/account') return { label: 'My workspace', page: 'account' as const }
+  if (pathname === '/account') return { label: 'User Profile', page: 'account' as const }
   if (pathname === '/sign-in') {
     const mode = new URLSearchParams(search).get('mode')
     return { label: mode === 'create' ? 'Create account' : mode === 'reset' ? 'Reset password' : 'Sign in', page: 'sign-in' as const }

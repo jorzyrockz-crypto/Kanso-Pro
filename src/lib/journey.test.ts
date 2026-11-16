@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createInitialState } from '../data'
 import type { NewCardInput, TimelineSourceEntry } from '../types'
-import { addDays, buildTimeline, calendarDays, createCard, daysBetween, focusCard, formatDate, formatTime, gapLabel, isValidDate, progress, projectStatus, shiftMonth } from './journey'
+import { addDays, buildTimeline, calendarDays, createCard, daysBetween, focusCard, formatDate, formatTime, gapLabel, isValidDate, progress, projectStatus, rolloverCandidates, shiftMonth } from './journey'
 
 const input: NewCardInput = {
   type: 'event', title: 'A new little chapter', date: '2026-11-14', context: 'Personal',
@@ -79,6 +79,11 @@ describe('timeline grouping and real per-card filters', () => {
     expect(gap).toMatchObject({ kind: 'gap', start: '2026-11-03', end: '2026-11-09' })
     expect(gap?.cards.map((card) => card.id)).toEqual(['note-lesson', 'task-prep'])
     expect(timeline.filter((entry) => entry.kind === 'day')).toHaveLength(5)
+  })
+  it('finds only active, unfinished deliverables scheduled before today for a rollover', () => {
+    expect(rolloverCandidates(cards(), '2026-11-14').map((card) => card.id)).toEqual(['task-grades'])
+    const parked = { ...cards()[4], backlog: true }
+    expect(buildTimeline([parked, ...cards().filter((card) => card.id !== parked.id)]).flatMap((entry) => entry.cards).map((card) => card.id)).not.toContain(parked.id)
   })
   it('places enabled calendar references in dated rows without turning them into personal cards', () => {
     const timeline = buildTimeline(cards(), 'all', [legislatedReference])

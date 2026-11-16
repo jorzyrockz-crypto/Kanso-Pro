@@ -207,7 +207,7 @@ test('provider setup, rate limits, and offline errors leave guest navigation usa
   }
   await page.getByRole('link', { name: 'Continue as guest', exact: true }).click()
   await navigation(page).getByRole('link', { name: 'Tasks', exact: true }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Personal Tasks', exact: true })).toBeVisible()
+  await expect(page.getByRole('main', { name: 'Personal Tasks', exact: true })).toBeVisible()
 })
 
 test('password recovery uses a real page and generic confirmation even for unknown accounts', async ({ page }) => {

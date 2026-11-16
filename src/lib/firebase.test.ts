@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the SDK boundary, not our application adapter. No production accounts or emails.
 const sdk = vi.hoisted(() => {
-  const user = { uid: 'fake-uid', displayName: 'Ada Reyes', email: 'ada@example.test', emailVerified: false, providerData: [{ providerId: 'password' }, { providerId: 'password' }], refreshToken: 'private-test-token' }
+  const user = { uid: 'fake-uid', displayName: 'Ada Reyes', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providerData: [{ providerId: 'password' }, { providerId: 'password' }], refreshToken: 'private-test-token' }
   const auth: { currentUser: typeof user | null; languageCode: string | null } = { currentUser: user, languageCode: null }
   return {
     user, auth, app: { name: '[DEFAULT]' },
@@ -76,7 +76,7 @@ describe('Firebase account adapter', () => {
       return unsubscribe
     })
     const stop = client.observeAccount(onUser, onError)
-    expect(onUser).toHaveBeenCalledWith({ uid: 'fake-uid', displayName: 'Ada Reyes', email: 'ada@example.test', emailVerified: false, providers: ['password'] })
+    expect(onUser).toHaveBeenCalledWith({ uid: 'fake-uid', displayName: 'Ada Reyes', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providers: ['password'] })
     expect(onError).toHaveBeenCalledWith('example-failure')
     expect(client.currentAccount()).not.toHaveProperty('refreshToken')
     stop()
