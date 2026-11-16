@@ -14,6 +14,7 @@ import { calendarPeriod, monthScene } from '../lib/months'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
 import { calendarSourceEntriesForMonth } from '../lib/calendarSources'
 import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
+import { legislatedActivityIllustration } from '../lib/legislatedActivityVisuals'
 
 const workspaceNames: Record<Workspace, string> = {
   calendar: 'Calendar', tasks: 'Personal Tasks', project: 'Projects', journal: 'Journal',
@@ -84,7 +85,8 @@ function CalendarSourceEvent({ entry, source }: { entry: CalendarSourceEntry; so
   const isLegislated = source?.id === 'deped-legislated-activities'
   const SourceIcon = isSchoolCalendar ? School : isLegislated ? Landmark : FileText
   const visualClass = isSchoolCalendar ? 'source-school-calendar' : isLegislated ? 'source-legislated-activity' : 'source-local-memo'
-  return <article className={`calendar-source-event ${visualClass}`} data-source-id={entry.sourceId}>
+  const illustration = isLegislated ? legislatedActivityIllustration(entry.title) : undefined
+  return <article className={`calendar-source-event ${visualClass}${illustration ? ` legislated-illustration-${illustration}` : ''}`} data-source-id={entry.sourceId} data-illustration={illustration}>
     <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{source?.shortLabel ?? 'Calendar source'}</span></div>
     <h4>{entry.title}</h4>
     <p>{entry.detail ?? source?.provenance ?? 'Reference date from an enabled calendar source.'}</p>
