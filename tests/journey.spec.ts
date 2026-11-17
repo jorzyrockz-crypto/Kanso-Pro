@@ -468,6 +468,10 @@ for (const type of ['event', 'task', 'project', 'note'] as const) {
     await openNewCard(page)
     const composer = page.locator('.composer-card')
     await composer.locator(`.option-${type}`).click()
+    if (type === 'event') {
+      await expect(composer.getByLabel('Calendar or organization', { exact: false })).toHaveValue('Personal Calendar')
+      await expect(composer.getByLabel('Organizer', { exact: false })).toHaveValue('You')
+    }
     await composer.getByLabel(type === 'project' ? 'Project title' : 'Card title', { exact: false }).fill(`My new ${type} card`)
     await composer.getByLabel(type === 'project' ? 'Start date' : 'Journey date', { exact: false }).fill('2026-11-05')
     if (type === 'project') await composer.getByLabel('Due date', { exact: false }).fill('2026-11-15')

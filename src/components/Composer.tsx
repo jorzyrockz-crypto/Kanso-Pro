@@ -39,7 +39,7 @@ export function Composer({ options, cards, members = ['You'], editingCard, onCan
     ...(editingCard.type === 'event' ? { owner: editingCard.owner, organization: editingCard.organization, location: editingCard.location, occasion: editingCard.occasion ?? 'auto' } : {}),
   } : {
     type: options.type ?? 'event', title: '', date: options.date ?? FOCUS_DATE,
-    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: 'You', organization: '', location: '', occasion: 'auto', team: members[0] ?? 'You',
+    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: 'You', organization: 'Personal Calendar', location: '', occasion: 'auto', team: members[0] ?? 'You',
   })
   const [error, setError] = useState('')
   const update = <K extends keyof NewCardInput>(key: K, value: NewCardInput[K]) => {
