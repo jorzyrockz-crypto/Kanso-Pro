@@ -141,47 +141,42 @@
   .app-update-link { display: inline-flex; align-items: center; gap: .25rem; min-height: 2.75rem; padding: 0; color: var(--theme-blue, #205c7f); background: transparent; font-size: .6875rem; font-weight: 750; }
   .app-update-link:hover { color: var(--theme-text-primary, #294b63); text-decoration: underline; text-underline-offset: .1875rem; }
 
-  /* About, releases, and update controls share one calm surface wherever they are opened. */
-  .about-updates-backdrop { position: fixed; z-index: 140; inset: 0; display: grid; place-items: center; padding: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); overflow-y: auto; overscroll-behavior: contain; background: rgb(8 23 39 / 58%); backdrop-filter: blur(.75rem) saturate(.9); -webkit-backdrop-filter: blur(.75rem) saturate(.9); }
-  .about-updates-dialog { display: flex; width: min(100%, 44rem); max-height: min(52rem, calc(100dvh - 2.5rem)); flex-direction: column; overflow: hidden; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.5rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); box-shadow: 0 1.5rem 5rem rgb(4 20 36 / 38%); }
-  .about-updates-banner { position: relative; flex: 0 0 auto; overflow: hidden; width: 100%; aspect-ratio: 1600 / 893; border-bottom: 1px solid var(--theme-border, #d4e5ed); background: #122e76; }
-  .about-updates-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(7 24 54 / 22%), transparent 54%); pointer-events: none; }
-  .about-updates-banner img { display: block; width: 100%; height: auto; object-fit: contain; }
-  .about-updates-close { position: absolute; z-index: 1; top: .875rem; right: .875rem; display: grid; place-items: center; width: 2.375rem; height: 2.375rem; border: 1px solid rgb(255 255 255 / 64%); border-radius: 50%; background: rgb(8 24 42 / 54%); color: #fff; box-shadow: 0 .25rem .75rem rgb(4 15 30 / 18%); backdrop-filter: blur(.375rem); }
-  .about-updates-close:hover { background: rgb(8 24 42 / 76%); transform: scale(1.04); }
-  .about-updates-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1.5rem; }
-  .about-updates-intro { max-width: 36rem; }
-  .about-overline, .about-section-label { display: block; color: var(--theme-blue, #205c7f); font-size: .59375rem; font-weight: 800; letter-spacing: .075rem; text-transform: uppercase; }
-  .about-updates-intro h2 { margin-top: .35rem; color: var(--theme-text-primary, #294b63); font-family: var(--serif); font-size: clamp(1.875rem, 4vw, 2.5rem); font-weight: 500; letter-spacing: -.04rem; line-height: 1.08; }
-  .about-updates-intro > p:last-child { margin-top: .75rem; color: var(--theme-text-secondary, #526f83); font-size: .75rem; line-height: 1.85; }
-  .about-update-status { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .8125rem; margin-top: 1.375rem; padding: .875rem; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1rem; background: var(--theme-surface-muted, #f4faff); }
-  .about-update-ready { border-color: #d9b969; background: linear-gradient(135deg, #fff7de, #fffdf6); }
-  .about-update-icon { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: var(--theme-blue-soft, #e0f2fe); color: var(--theme-blue, #205c7f); }
-  .about-update-ready .about-update-icon { background: #f5c558; color: #573e05; }
+  /* A compact release card: updates feel like a quiet arrival over the work itself. */
+  .about-updates-backdrop { position: fixed; z-index: 140; inset: 0; display: grid; place-items: center; padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); overflow-y: auto; overscroll-behavior: contain; background: rgb(10 20 35 / 50%); backdrop-filter: blur(.5rem) saturate(.84); -webkit-backdrop-filter: blur(.5rem) saturate(.84); }
+  .about-updates-dialog { display: flex; width: min(100%, 34.5rem); max-height: min(46rem, calc(100dvh - 2rem)); flex-direction: column; gap: 1rem; overflow: hidden; padding: 1.25rem; border: 1px solid rgb(255 255 255 / 80%); border-radius: 1.375rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #263b54); box-shadow: 0 1.5rem 5rem rgb(3 13 28 / 42%), 0 .25rem 1rem rgb(3 13 28 / 16%); }
+  .about-updates-banner { position: relative; flex: 0 0 auto; overflow: hidden; width: 100%; aspect-ratio: 1600 / 893; border-radius: .8125rem; background: #122e76; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%); }
+  .about-updates-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(7 24 54 / 16%), transparent 56%); pointer-events: none; }
+  .about-updates-banner img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .about-updates-close { position: absolute; z-index: 1; top: .625rem; right: .625rem; display: grid; place-items: center; width: 2.375rem; height: 2.375rem; border: 1px solid rgb(255 255 255 / 84%); border-radius: 50%; background: rgb(255 255 255 / 94%); color: #304561; box-shadow: 0 .1875rem .625rem rgb(4 15 30 / 24%); }
+  .about-updates-close:hover { background: #fff; color: #172b45; transform: scale(1.04); }
+  .about-updates-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0; }
+  .about-updates-intro { max-width: 30rem; }
+  .about-updates-intro h2 { color: var(--theme-text-primary, #263b54); font-size: 1.0625rem; font-weight: 800; letter-spacing: -.025rem; line-height: 1.35; }
+  .about-updates-intro h2 > span { color: var(--theme-text-secondary, #647990); font-weight: 600; }
+  .about-updates-intro > p { margin-top: .25rem; color: var(--theme-text-secondary, #687d92); font-size: .65625rem; line-height: 1.55; }
+  .about-update-status { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .6875rem; margin-top: .9375rem; padding: .8125rem; border: 1px solid var(--theme-border, #dce6ed); border-radius: .75rem; background: var(--theme-surface-muted, #f6f8fb); }
+  .about-update-ready { border-color: #d7b970; background: linear-gradient(135deg, #fff7df, #fffdf7); }
+  .about-update-icon { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .625rem; background: var(--theme-blue-soft, #e4f2fa); color: var(--theme-blue, #21668e); }
+  .about-update-ready .about-update-icon { background: #f4c456; color: #513807; }
   .about-update-status > div { min-width: 0; }
-  .about-update-status strong { display: block; color: var(--theme-text-primary, #294b63); font-size: .75rem; line-height: 1.55; }
-  .about-update-status p { margin-top: .125rem; color: var(--theme-text-secondary, #526f83); font-size: .625rem; line-height: 1.7; }
-  .about-update-action { flex-shrink: 0; min-height: 2.5rem; border-color: var(--theme-border-strong, #b9d5e4); background: var(--theme-surface, #fff); color: var(--theme-blue, #205c7f); }
-  .about-update-action:hover:not(:disabled) { border-color: var(--theme-blue, #205c7f); background: var(--theme-blue-soft, #eaf4fa); }
-  .about-update-ready .about-update-action { border-color: #9b6b11; background: #173b75; color: #fff; }
-  .about-update-ready .about-update-action:hover { background: #0f2e60; }
-  .about-background-note { display: flex; align-items: flex-start; gap: .375rem; margin-top: .75rem; color: var(--theme-text-muted, #63798a); font-size: .59375rem; line-height: 1.7; }
-  .about-background-note svg { flex-shrink: 0; margin-top: .125rem; }
-  .about-release-section { margin-top: 1.625rem; }
-  .about-release-list { margin-top: .625rem; border-top: 1px solid var(--theme-border, #d4e5ed); }
-  .about-release { padding: .9375rem 0; border-bottom: 1px solid var(--theme-border, #d4e5ed); }
-  .about-release header { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
-  .about-release header > div { min-width: 0; }
-  .about-release header span { display: block; color: var(--theme-text-muted, #63798a); font-size: .5625rem; font-weight: 650; line-height: 1.6; }
-  .about-release h3 { margin-top: .1875rem; color: var(--theme-text-primary, #294b63); font-size: .8125rem; line-height: 1.55; font-weight: 800; }
-  .about-release b { flex-shrink: 0; padding: .1875rem .4375rem; border-radius: 999px; background: var(--theme-blue-soft, #eaf4fa); color: var(--theme-blue, #205c7f); font-size: .53125rem; letter-spacing: .025rem; text-transform: uppercase; }
-  .about-release ul { margin: .5625rem 0 0; padding-left: 1rem; }
-  .about-release li { margin-top: .375rem; color: var(--theme-text-secondary, #526f83); font-size: .65625rem; line-height: 1.75; }
-  .about-release li::marker { color: var(--theme-blue, #205c7f); }
-  .about-updates-actions { display: flex; flex-wrap: wrap; gap: .625rem; margin-top: 1.25rem; }
-  .about-share-action, .about-github-action { min-height: 2.625rem; border-color: var(--theme-border, #d4e5ed); background: var(--theme-surface, #fff); color: var(--theme-text-primary, #294b63); }
-  .about-share-action:hover, .about-github-action:hover { border-color: var(--theme-border-strong, #b9d5e4); background: var(--theme-surface-muted, #f4faff); }
-  .about-github-action { margin-left: auto; }
+  .about-update-status strong { display: block; color: var(--theme-text-primary, #263b54); font-size: .6875rem; line-height: 1.45; }
+  .about-update-status p { margin-top: .0625rem; color: var(--theme-text-secondary, #718398); font-size: .5625rem; line-height: 1.45; }
+  .about-update-action { flex: 0 0 auto; min-height: 2.375rem; padding: .4375rem .75rem; border-color: var(--theme-border, #dbe5ed); border-radius: .6875rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #2e4058); font-size: .625rem; font-weight: 800; box-shadow: 0 1px 3px rgb(29 52 76 / 7%); }
+  .about-update-action:hover:not(:disabled) { border-color: var(--theme-border-strong, #8fb4cb); background: var(--theme-blue-soft, #edf7fc); }
+  .about-update-ready .about-update-action { border-color: #1f4b85; background: #1d4789; color: #fff; }
+  .about-update-ready .about-update-action:hover { background: #173b75; }
+  .about-section-label { display: block; color: var(--theme-text-secondary, #6c7f93); font-size: .5625rem; font-weight: 800; letter-spacing: .045rem; text-transform: uppercase; }
+  .about-release-section { margin-top: 1.25rem; }
+  .about-release-section h3 { margin-top: .375rem; color: var(--theme-text-primary, #2b405a); font-size: .8125rem; line-height: 1.45; font-weight: 800; }
+  .about-release-section ul { display: grid; gap: .3125rem; margin: .5rem 0 0; padding-left: 1.125rem; }
+  .about-release-section li { color: var(--theme-text-secondary, #5f748a); font-size: .625rem; line-height: 1.55; }
+  .about-release-section li::marker { color: var(--theme-blue, #2d789f); }
+  .about-updates-actions { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: .5625rem; margin-top: 1rem; }
+  .about-share-action, .about-github-action { justify-content: center; min-height: 2.625rem; border-radius: .6875rem; font-size: .65625rem; font-weight: 800; }
+  .about-share-action { border-color: #1b4c91; background: #1f478d; color: #fff; box-shadow: 0 .25rem .625rem rgb(29 71 141 / 18%); }
+  .about-share-action:hover { border-color: #163c77; background: #173d7d; }
+  .about-github-action { border-color: var(--theme-border, #dbe5ed); background: var(--theme-surface, #fff); color: var(--theme-text-primary, #2a3e56); text-decoration: none; }
+  .about-github-action:hover { border-color: var(--theme-border-strong, #a5c0d0); background: var(--theme-surface-muted, #f6f9fb); }
   .whats-new-hero-card { overflow: hidden; margin-bottom: 1.25rem; border: 1px solid var(--theme-border, #d4e5ed); border-radius: 1.25rem; background: var(--theme-surface, #fff); box-shadow: var(--card-shadow); }
   .whats-new-hero-card > img { display: block; width: 100%; height: auto; aspect-ratio: 1600 / 893; object-fit: contain; background: #122e76; }
   .whats-new-hero-card > div { padding: 1.5rem; }
@@ -204,15 +199,20 @@
 
   @container page (max-width: 60rem) { .notification-layout { grid-template-columns: minmax(0, 1fr); } }
   @media screen and (forced-colors: none) {
+    :root[data-theme='dark'] .about-updates-dialog { border-color: #476076; background: #162537; box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 52%); }
+    :root[data-theme='dark'] .about-update-status { border-color: #405a70; background: #1d3044; }
     :root[data-theme='dark'] .about-update-ready { border-color: #8d7236; background: linear-gradient(135deg, #342d1d, #242b36); }
     :root[data-theme='dark'] .about-update-ready .about-update-icon { background: #735c25; color: #fff2ca; }
     :root[data-theme='dark'] .about-update-ready .about-update-action { border-color: #d2ad5c; background: #c7a14c; color: #1c2a39; }
-    :root[data-theme='dark'] .about-updates-close { border-color: rgb(255 255 255 / 35%); }
+    :root[data-theme='dark'] .about-updates-close { border-color: #55718a; background: #243b50; color: #e5f0f8; }
+    :root[data-theme='dark'] .about-github-action, :root[data-theme='dark'] .about-update-action { border-color: #4a6479; background: #20364a; color: #e5f0f8; }
+    :root[data-theme='dark'] .about-updates-intro h2, :root[data-theme='dark'] .about-update-status strong, :root[data-theme='dark'] .about-release-section h3 { color: #e6eff8; }
+    :root[data-theme='dark'] .about-updates-intro h2 > span, :root[data-theme='dark'] .about-updates-intro > p, :root[data-theme='dark'] .about-update-status p, :root[data-theme='dark'] .about-release-section li, :root[data-theme='dark'] .about-section-label { color: #b8c9db; }
   }
   @media (max-width: 640px) {
     .about-updates-backdrop { align-items: end; padding: 2rem 0 0; }
     .about-updates-dialog { width: 100%; max-height: calc(100dvh - 2rem); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 1.375rem 1.375rem 0 0; }
-    .about-updates-body { padding: 1.25rem max(1.125rem, env(safe-area-inset-right)) max(1.375rem, env(safe-area-inset-bottom)) max(1.125rem, env(safe-area-inset-left)); }
+    .about-updates-body { padding: 0; }
     .about-update-status { grid-template-columns: auto minmax(0, 1fr); }
     .about-update-action { grid-column: 1 / -1; width: 100%; }
     .about-updates-actions { display: grid; grid-template-columns: 1fr 1fr; }

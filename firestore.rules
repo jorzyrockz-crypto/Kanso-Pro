@@ -30,5 +30,74 @@ service cloud.firestore {
         && request.resource.data.updatedBy is string;
       allow delete: if false;
     }
+
+    // The activity listener is used by the in-app bell. It remains private to the owner
+    // for Personal Space, matching the cards above.
+    match /users/{uid}/workspaces/{workspaceId}/activity/{activityId} {
+      allow read, create, update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    match /users/{uid}/workspaces/{workspaceId}/journalImages/{imageId} {
+      allow read, create, update, delete: if isOwner(uid);
+    }
+
+    function signedInGoogle() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    function isSpaceMember(spaceId) {
+      return signedInGoogle()
+        && request.auth.token.email != null
+        && get(/databases/$(database)/documents/spaces/$(spaceId)).data.memberEmails.hasAny([request.auth.token.email.lower()]);
+    }
+
+    function isSpaceOwner(spaceId) {
+      return signedInGoogle()
+        && request.auth.token.email != null
+        && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerEmails.hasAny([request.auth.token.email.lower()]);
+    }
+
+    // Shared-space membership is email-scoped. The app writes only role/name metadata;
+    // Firestore rules remain the final gate for every card, image, and activity request.
+    match /spaces/{spaceId} {
+      allow read: if isSpaceMember(spaceId);
+      allow create: if signedInGoogle()
+        && request.auth.token.email != null
+        && request.resource.data.ownerEmails.hasAny([request.auth.token.email.lower()])
+        && request.resource.data.memberEmails.hasAny([request.auth.token.email.lower()]);
+      allow update: if (isSpaceOwner(spaceId)
+          || (isSpaceMember(spaceId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'initialized', 'bezel', 'updatedAt'])))
+        && request.resource.data.schemaVersion == 1;
+      allow delete: if false;
+    }
+
+    match /spaces/{spaceId}/cards/{cardId} {
+      allow read: if isSpaceMember(spaceId);
+      allow create, update: if isSpaceMember(spaceId)
+        && request.resource.data.id == cardId
+        && request.resource.data.title is string
+        && request.resource.data.date is string
+        && request.resource.data.type in ['event', 'task', 'project', 'note']
+        && request.resource.data.revision is int
+        && request.resource.data.updatedBy is string;
+      allow delete: if false;
+    }
+
+    match /spaces/{spaceId}/activity/{activityId} {
+      allow read, create: if isSpaceMember(spaceId)
+        && request.resource.data.id == activityId
+        && request.resource.data.title is string
+        && request.resource.data.detail is string
+        && request.resource.data.href is string
+        && request.resource.data.createdAt is string;
+      allow update, delete: if false;
+    }
+
+    match /spaces/{spaceId}/journalImages/{imageId} {
+      allow read, create, update: if isSpaceMember(spaceId);
+      allow delete: if isSpaceOwner(spaceId);
+    }
   }
 }

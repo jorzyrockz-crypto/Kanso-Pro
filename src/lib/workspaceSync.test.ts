@@ -4,13 +4,16 @@ import type { AccountUser } from './account'
 import { emptyWorkspace, googleSyncUser, isStarterWorkspace, mergeInitialWorkspace, workspaceChangesSince, workspaceFingerprint } from './workspaceSync'
 
 const googleAccount: AccountUser = {
-  uid: 'google-user', displayName: 'Planner', email: 'planner@example.test', photoURL: null, emailVerified: true, providers: ['google.com'],
+  uid: 'google-user', displayName: 'Planner', email: 'planner@example.test', photoURL: null, emailVerified: true, providers: ['google.com'], signInProvider: 'google.com',
 }
 
 describe('Google workspace sync policy', () => {
   it('only enables cloud sync for a Google-authenticated account', () => {
     expect(googleSyncUser(googleAccount)).toBe('google-user')
-    expect(googleSyncUser({ ...googleAccount, providers: ['password'] })).toBeNull()
+    expect(googleSyncUser({ ...googleAccount, providers: ['password'], signInProvider: 'password' })).toBeNull()
+    // A linked Google provider is not enough when this token was issued by password auth.
+    expect(googleSyncUser({ ...googleAccount, providers: ['google.com', 'password'], signInProvider: 'password' })).toBeNull()
+    expect(googleSyncUser({ ...googleAccount, email: null })).toBeNull()
     expect(googleSyncUser(null)).toBeNull()
   })
 

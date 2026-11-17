@@ -7,14 +7,14 @@ const sdk = vi.hoisted(() => {
   return {
     user, auth, app: { name: '[DEFAULT]' },
     getApps: vi.fn(), getApp: vi.fn(), initializeApp: vi.fn(), initializeAuth: vi.fn(), getAuth: vi.fn(),
-    onAuthStateChanged: vi.fn(), createUserWithEmailAndPassword: vi.fn(), signInWithEmailAndPassword: vi.fn(),
+    onIdTokenChanged: vi.fn(), getIdTokenResult: vi.fn(), createUserWithEmailAndPassword: vi.fn(), signInWithEmailAndPassword: vi.fn(),
     signInWithPopup: vi.fn(), signOut: vi.fn(), updateProfile: vi.fn(), sendPasswordResetEmail: vi.fn(),
     sendEmailVerification: vi.fn(), reload: vi.fn(), setCustomParameters: vi.fn(),
   }
 })
 vi.mock('firebase/app', () => ({ getApps: sdk.getApps, getApp: sdk.getApp, initializeApp: sdk.initializeApp }))
 vi.mock('firebase/auth', () => ({
-  initializeAuth: sdk.initializeAuth, getAuth: sdk.getAuth, onAuthStateChanged: sdk.onAuthStateChanged,
+  initializeAuth: sdk.initializeAuth, getAuth: sdk.getAuth, onIdTokenChanged: sdk.onIdTokenChanged, getIdTokenResult: sdk.getIdTokenResult,
   createUserWithEmailAndPassword: sdk.createUserWithEmailAndPassword, signInWithEmailAndPassword: sdk.signInWithEmailAndPassword,
   signInWithPopup: sdk.signInWithPopup, signOut: sdk.signOut, updateProfile: sdk.updateProfile,
   sendPasswordResetEmail: sdk.sendPasswordResetEmail, sendEmailVerification: sdk.sendEmailVerification, reload: sdk.reload,
@@ -27,6 +27,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.unstubAllEnvs()
   sdk.auth.currentUser = sdk.user
+  sdk.user.providerData = [{ providerId: 'password' }]
   sdk.auth.languageCode = null
   sdk.getApps.mockReturnValue([])
   sdk.initializeApp.mockReturnValue(sdk.app)
@@ -34,6 +35,7 @@ beforeEach(() => {
   sdk.initializeAuth.mockReturnValue(sdk.auth)
   sdk.getAuth.mockReturnValue(sdk.auth)
   sdk.createUserWithEmailAndPassword.mockResolvedValue({ user: sdk.user })
+  sdk.getIdTokenResult.mockResolvedValue({ claims: { firebase: { sign_in_provider: 'password' } } })
 })
 
 describe('Firebase account adapter', () => {
@@ -67,18 +69,21 @@ describe('Firebase account adapter', () => {
     await expect(import('./firebase')).rejects.toBe(error)
   })
 
-  it('emits safe, deduplicated identity snapshots and cleans up its observer', async () => {
+  it('emits safe identity snapshots with the active token provider and cleans up its observer', async () => {
+    // A Google provider may be linked, while the active ID token was issued by password auth.
+    sdk.user.providerData = [{ providerId: 'google.com' }, { providerId: 'password' }]
     const client = await import('./firebase')
     const onUser = vi.fn(), onError = vi.fn(), unsubscribe = vi.fn()
-    sdk.onAuthStateChanged.mockImplementation((_auth, callback, errorCallback) => {
+    sdk.onIdTokenChanged.mockImplementation((_auth, callback, errorCallback) => {
       callback(sdk.user)
       errorCallback('example-failure')
       return unsubscribe
     })
     const stop = client.observeAccount(onUser, onError)
-    expect(onUser).toHaveBeenCalledWith({ uid: 'fake-uid', displayName: 'Ada Reyes', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providers: ['password'] })
+    await vi.waitFor(() => expect(onUser).toHaveBeenCalledWith({ uid: 'fake-uid', displayName: 'Ada Reyes', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providers: ['google.com', 'password'], signInProvider: 'password' }))
     expect(onError).toHaveBeenCalledWith('example-failure')
     expect(client.currentAccount()).not.toHaveProperty('refreshToken')
+    expect(client.currentAccount()).toMatchObject({ signInProvider: 'password' })
     stop()
     expect(unsubscribe).toHaveBeenCalledOnce()
     sdk.auth.currentUser = null

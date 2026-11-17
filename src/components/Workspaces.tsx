@@ -3,12 +3,14 @@ import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, FormEvent, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
-import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
+import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, ProjectCard, Space, SpaceMember, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
-import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TypeIcon } from './Common'
+import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TeamScopeToggle, TypeIcon } from './Common'
+import type { CloudSaveState } from './Common'
 import { NotFoundPage } from './PageHeader'
 import { destinationPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from '../lib/navigation'
 import { calendarPeriod, monthScene } from '../lib/months'
+import { cardAssignedTo } from '../lib/spaces'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
 import { calendarSourceEntriesForMonth } from '../lib/calendarSources'
 import type { CalendarSource, CalendarSourceEntry } from '../lib/calendarSources'
@@ -28,6 +30,12 @@ type WorkspaceProps = {
   onCompose: (options?: ComposerOptions) => void
   onNavigate: (destination: Destination) => void
   onDeleteCard: (card: JourneyCard) => void
+  members: SpaceMember[]
+  currentMember: SpaceMember
+  scope: 'all' | 'assigned'
+  onScopeChange: (scope: 'all' | 'assigned') => void
+  canEdit: boolean
+  space: Space
 }
 
 function WorkspaceHero({ type, eyebrow, title, children, stat, extra, actions, month }: {
@@ -118,7 +126,7 @@ function CalendarDateAddMenu({ date, onCompose }: { date: string; onCompose: (op
   </div>
 }
 
-function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
+function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNavigate, onDeleteCard, canEdit }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
@@ -160,6 +168,20 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNaviga
         <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ChevronRight size="0.9375rem" aria-hidden="true" />
       </button>
   const selectedHeading = selectedDate ? formatDate(selectedDate, { weekday: 'long', month: 'short', day: 'numeric' }) : 'Connected calendar details'
+  if (initialCard?.type === 'event') {
+    const event = initialCard
+    const time = event.allDay ? 'All day' : `${formatTime(event.time)}${event.endTime ? ` – ${formatTime(event.endTime)}` : ''}`
+    return <div className="workspace-content calendar-workspace calendar-event-detail-page">
+      <WorkspaceHero type="event" eyebrow="Calendar event" title={event.title || 'Untitled event'} stat={{ label: 'Planned for', value: shortDate(event.date) }} extra={<span className="hero-date">{time || 'Time not set'}</span>}
+        actions={<div className="calendar-event-detail-actions"><Link className="button button-soft" to={`/calendar?date=${event.date}`}><CalendarDays size=".8125rem" />View schedule</Link>{canEdit && <CardDeleteAction card={event} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'calendar' }) }} />}</div>}>
+        {event.context || 'A focused moment in this Space’s shared calendar.'}
+      </WorkspaceHero>
+      <section className="workspace-panel calendar-event-detail" aria-label={`${event.title || 'Untitled event'} details`}>
+        <dl><div><dt>Date</dt><dd>{formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</dd></div><div><dt>Time</dt><dd>{time || 'Time not set'}</dd></div><div><dt>Calendar</dt><dd>{event.organization || 'Personal Calendar'}</dd></div>{event.location && <div><dt>Location</dt><dd>{event.location}</dd></div>}{event.owner && <div><dt>Organizer</dt><dd>{event.owner}</dd></div>}</dl>
+        <Link className="text-button" to="/">View on timeline <ArrowRight size=".75rem" /></Link>
+      </section>
+    </div>
+  }
   return <div className="workspace-content calendar-workspace">
     <WorkspaceHero type="event" month={month} eyebrow="Connected Calendar View" title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
       stat={{ label: visibleEntryCount === 1 ? 'Entry this month' : 'Entries this month', value: visibleEntryCount }}>
@@ -222,32 +244,50 @@ function taskReminderState(task: TaskCard) {
     : { text: `${formatted} reminder`, passed: false }
 }
 
-function TaskChecklistRow({ item, index, task, dispatch }: { item: TaskCard['subtasks'][number]; index: number; task: TaskCard; dispatch: Dispatch<JourneyAction> }) {
+function InlineComments({ item, cardId, dispatch, author, canEdit }: { item: TaskCard['subtasks'][number] | ProjectCard['subtasks'][number]; cardId: string; dispatch: Dispatch<JourneyAction>; author: string; canEdit: boolean }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const comments = item.comments ?? []
+  const addComment = (event: FormEvent) => {
+    event.preventDefault()
+    const body = draft.trim()
+    if (!body) return
+    dispatch({ type: 'update-item', cardId, item: { ...item, comments: [...comments, { id: makeId('comment'), body: body.slice(0, 360), author, createdAt: new Date().toISOString() }] } })
+    setDraft('')
+    setOpen(true)
+  }
+  return <div className="inline-comments"><button type="button" className="inline-comments-toggle" aria-expanded={open} onClick={() => setOpen((current) => !current)}><MessageSquareText size=".6875rem" />{comments.length ? `${comments.length} ${comments.length === 1 ? 'comment' : 'comments'}` : 'Add comment'}</button>
+    {open && <div className="inline-comments-panel">{comments.length > 0 && <ol>{comments.map((comment) => <li key={comment.id}><strong>{comment.author}</strong><span>{comment.body}</span></li>)}</ol>}{canEdit && <form onSubmit={addComment}><label className="sr-only" htmlFor={`comment-${cardId}-${item.id}`}>Add a comment</label><input id={`comment-${cardId}-${item.id}`} value={draft} maxLength={360} placeholder="Add a concise update…" onChange={(event) => setDraft(event.target.value)} /><button type="submit" className="text-button">Send</button></form>}</div>}
+  </div>
+}
+
+function TaskChecklistRow({ item, index, task, dispatch, members, currentMember, canEdit }: { item: TaskCard['subtasks'][number]; index: number; task: TaskCard; dispatch: Dispatch<JourneyAction>; members: SpaceMember[]; currentMember: SpaceMember; canEdit: boolean }) {
   const [editing, setEditing] = useState(false)
   const [removing, setRemoving] = useState(false)
-  const [draft, setDraft] = useState(() => ({ title: item.title, time: item.time ?? '', note: item.note ?? '' }))
-  const reset = () => setDraft({ title: item.title, time: item.time ?? '', note: item.note ?? '' })
+  const [draft, setDraft] = useState(() => ({ title: item.title, time: item.time ?? '', note: item.note ?? '', assignee: item.assignee ?? '' }))
+  const reset = () => setDraft({ title: item.title, time: item.time ?? '', note: item.note ?? '', assignee: item.assignee ?? '' })
   const save = (event: FormEvent) => {
     event.preventDefault()
     const title = draft.title.trim()
     if (!title) return
-    dispatch({ type: 'update-item', cardId: task.id, item: { ...item, title: title.slice(0, 240), time: draft.time || undefined, note: draft.note.trim().slice(0, 240) || undefined } })
+    dispatch({ type: 'update-item', cardId: task.id, item: { ...item, title: title.slice(0, 240), time: draft.time || undefined, note: draft.note.trim().slice(0, 240) || undefined, assignee: draft.assignee || undefined } })
     setEditing(false)
   }
   const subtext = [item.time ? formatTime(item.time) : '', item.note].filter(Boolean).join(' · ')
   return <article className={`workspace-check task-check task-check-item ${item.done ? 'is-done' : ''}`}>
-    <div className="task-check-row"><label className="task-check-toggle"><input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: task.id, itemId: item.id })} /><span className="check-copy"><strong>{item.title}</strong>{subtext && <small>{subtext}</small>}</span></label>
-      <div className="task-item-actions">{removing ? <span className="task-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button task-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: task.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit checklist item ${index + 1}`} title="Edit item" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} up`} title="Move up" disabled={index === 0} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'up' })}><ArrowUp size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} down`} title="Move down" disabled={index === task.subtasks.length - 1} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'down' })}><ArrowDown size=".8125rem" /></button><button type="button" className="icon-button task-delete-button" aria-label={`Delete checklist item ${index + 1}`} title="Delete item" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>
+    <div className="task-check-row"><label className="task-check-toggle"><input type="checkbox" checked={item.done} disabled={!canEdit} onChange={() => dispatch({ type: 'toggle-item', cardId: task.id, itemId: item.id, actor: currentMember.name })} /><span className="check-copy"><strong>{item.title}</strong>{subtext && <small>{subtext}</small>}{item.assignee && <small className="item-attribution">Assigned to {item.assignee}</small>}{item.done && item.completedBy && <small className="item-attribution is-complete">Completed by {item.completedBy}</small>}</span></label>
+      {canEdit && <div className="task-item-actions">{removing ? <span className="task-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button task-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: task.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit checklist item ${index + 1}`} title="Edit item" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} up`} title="Move up" disabled={index === 0} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'up' })}><ArrowUp size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} down`} title="Move down" disabled={index === task.subtasks.length - 1} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'down' })}><ArrowDown size=".8125rem" /></button><button type="button" className="icon-button task-delete-button" aria-label={`Delete checklist item ${index + 1}`} title="Delete item" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>}
     </div>
-    {editing && <form className="task-item-editor" onSubmit={save}><div className="task-edit-fields"><label>Item<input aria-label={`Checklist item ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Time<input aria-label={`Checklist item ${index + 1} time`} type="time" value={draft.time} onChange={(event) => setDraft((current) => ({ ...current, time: event.target.value }))} /></label></div><label className="task-item-note">Note<input aria-label={`Checklist item ${index + 1} note`} maxLength={240} value={draft.note} onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note" /></label><div className="task-item-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save item</button></div></form>}
+    <InlineComments item={item} cardId={task.id} dispatch={dispatch} author={currentMember.name} canEdit={canEdit} />
+    {editing && <form className="task-item-editor" onSubmit={save}><div className="task-edit-fields"><label>Item<input aria-label={`Checklist item ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Assignee<select aria-label={`Checklist item ${index + 1} assignee`} value={draft.assignee} onChange={(event) => setDraft((current) => ({ ...current, assignee: event.target.value }))}><option value="">Unassigned</option>{members.map((member) => <option key={member.id} value={member.name}>{member.name}</option>)}</select></label><label>Time<input aria-label={`Checklist item ${index + 1} time`} type="time" value={draft.time} onChange={(event) => setDraft((current) => ({ ...current, time: event.target.value }))} /></label></div><label className="task-item-note">Note<input aria-label={`Checklist item ${index + 1} note`} maxLength={240} value={draft.note} onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note" /></label><div className="task-item-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save item</button></div></form>}
   </article>
 }
 
-function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
-  const tasks = cards.filter((card): card is TaskCard => card.type === 'task')
+function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard, members, currentMember, scope, onScopeChange, canEdit }: WorkspaceProps) {
+  const tasks = cards.filter((card): card is TaskCard => card.type === 'task' && (scope === 'all' || cardAssignedTo(card, currentMember)))
   const activeId = cardId ?? 'task-grades'
   const selected = tasks.find((card) => card.id === activeId) ?? tasks[0]
-  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task list</button>}>Keep related, date-specific actions together. Add a reminder when the timing matters.</EmptyState>
+  if (!selected) return <div className="workspace-content task-workspace"><TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} /><EmptyState title={scope === 'assigned' ? `No tasks assigned to ${currentMember.name}` : 'Small steps start here'} action={canEdit ? <button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task list</button> : undefined}>Keep related, date-specific actions together. Add a reminder when the timing matters.</EmptyState></div>
   const { done, total, percent } = progress(selected.subtasks)
   const unfinished = selected.subtasks.filter((item) => !item.done)
   const reminder = taskReminderState(selected)
@@ -269,7 +309,7 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDelet
     onNavigate({ page: 'tasks', cardId: tomorrowList.id })
   }
   const promoteToProject = () => {
-    const project: ProjectCard = { id: makeId('project'), type: 'project', title: selected.title, date: selected.date, dueDate: selected.date, side: selected.side, context: selected.context, quiet: selected.quiet, backlog: selected.backlog, isCustom: true, featured: true, team: ['You'], subtasks: selected.subtasks.map((item) => ({ ...item })) }
+    const project: ProjectCard = { id: makeId('project'), type: 'project', title: selected.title, date: selected.date, dueDate: selected.date, side: selected.side, context: selected.context, quiet: selected.quiet, backlog: selected.backlog, isCustom: true, featured: true, team: members.map((member) => member.name), subtasks: selected.subtasks.map((item) => ({ ...item })) }
     dispatch({ type: 'add-card', card: project })
     dispatch({ type: 'delete-card', id: selected.id })
     onNavigate({ page: 'project', cardId: project.id })
@@ -278,18 +318,19 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDelet
     <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
       {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>
-    <WorkspaceHero type="task" eyebrow="Task lists · immediate action" title={selected.title} stat={{ label: 'Completion', value: `${percent}%` }} extra={<span className="hero-date">Planned {shortDate(selected.date)}</span>}>
+    <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
+    <WorkspaceHero type="task" eyebrow={scope === 'assigned' ? `Tasks assigned to ${currentMember.name}` : 'Task lists · immediate action'} title={selected.title} stat={{ label: 'Completion', value: `${percent}%` }} extra={<span className="hero-date">Planned {shortDate(selected.date)}</span>}>
       {selected.context || 'A focused list for the actions that matter today.'}
     </WorkspaceHero>
     <div className="workspace-desktop-split">
       <section className="workspace-panel checklist-panel">
         <div className="checklist-heading"><div><span className="eyebrow">{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><h3>Checklist</h3></div>
           {reminder && <span className={`reminder-pill ${reminder.passed ? 'is-passed' : ''}`}><Bell size="0.75rem" />{reminder.text}</span>}</div>
-        <div className="task-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}><Pencil size=".8125rem" />Edit task list</Link>{unfinished.length > 0 && <button type="button" className="button task-rollover-action" onClick={moveUnfinishedToTomorrow}><ArrowRight size=".8125rem" />Move unfinished to tomorrow</button>}<button type="button" className="button button-soft" onClick={promoteToProject}><Zap size=".8125rem" />Promote to project</button><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
-        <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span>{done > 0 && <button type="button" className="text-button clear-completed" onClick={clearCompleted}>Clear completed</button>}</div>
-        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <TaskChecklistRow key={item.id} item={item} index={index} task={selected} dispatch={dispatch} />)}</div>
+        {canEdit && <div className="task-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}><Pencil size=".8125rem" />Edit task list</Link>{unfinished.length > 0 && <button type="button" className="button task-rollover-action" onClick={moveUnfinishedToTomorrow}><ArrowRight size=".8125rem" />Move unfinished to tomorrow</button>}<button type="button" className="button button-soft" onClick={promoteToProject}><Zap size=".8125rem" />Promote to project</button><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>}
+        <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span>{canEdit && done > 0 && <button type="button" className="text-button clear-completed" onClick={clearCompleted}>Clear completed</button>}</div>
+        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <TaskChecklistRow key={item.id} item={item} index={index} task={selected} dispatch={dispatch} members={members} currentMember={currentMember} canEdit={canEdit} />)}</div>
         {!total && <p className="inline-empty">No items yet. Add the first one below.</p>}
-        <AddChecklistItem key={selected.id} placeholder="Add a checklist item…" label="Add item" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false } })} />
+        {canEdit && <AddChecklistItem key={selected.id} placeholder="Add a checklist item…" label="Add item" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false, assignee: currentMember.name } })} />}
       </section>
       <aside className="workspace-desktop-aside task-workspace-aside" aria-label="Task list context">
         <section className="workspace-insight-card task-insight-card"><span className="eyebrow"><TypeIcon type="task" size={11} />Task-list plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Planned for</dt><dd>{formatDate(selected.date, { weekday: 'short', month: 'short', day: 'numeric' })}</dd></div><div><dt>Reminder</dt><dd>{reminder?.text ?? 'No reminder'}</dd></div><div><dt>Actions left</dt><dd>{total - done} of {total}</dd></div></dl></section>
@@ -327,11 +368,10 @@ function printProjectSummary(project: ProjectCard) {
   summary.focus()
 }
 
-function ProjectMilestoneRow({ item, index, project, dispatch }: { item: ProjectCard['subtasks'][number]; index: number; project: ProjectCard; dispatch: Dispatch<JourneyAction> }) {
+function ProjectMilestoneRow({ item, index, project, dispatch, members, currentMember, canEdit }: { item: ProjectCard['subtasks'][number]; index: number; project: ProjectCard; dispatch: Dispatch<JourneyAction>; members: SpaceMember[]; currentMember: SpaceMember; canEdit: boolean }) {
   const [editing, setEditing] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [draft, setDraft] = useState(() => ({ title: item.title, assignee: item.assignee ?? '', targetDate: item.targetDate ?? '', label: item.label ?? '', remarks: item.remarks ?? '' }))
-  const datalistId = `project-team-${project.id}-${item.id}`
   const reset = () => setDraft({ title: item.title, assignee: item.assignee ?? '', targetDate: item.targetDate ?? '', label: item.label ?? '', remarks: item.remarks ?? '' })
   const save = (event: FormEvent) => {
     event.preventDefault()
@@ -350,24 +390,25 @@ function ProjectMilestoneRow({ item, index, project, dispatch }: { item: Project
   const meta = [item.targetDate ? `Target ${shortDate(item.targetDate)}` : '', item.label ? item.label : ''].filter(Boolean)
   return <article className={`workspace-check project-check project-milestone ${item.done ? 'is-done' : ''}`}>
     <div className="project-milestone-row">
-      <label className="project-milestone-toggle"><input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: project.id, itemId: item.id })} />
-        <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee}` : 'No assignee yet'}{meta.length ? ` · ${meta.join(' · ')}` : ''}</small>{item.remarks && <em className="milestone-remark"><MessageSquareText size=".6875rem" />{item.remarks}</em>}</span>
+      <label className="project-milestone-toggle"><input type="checkbox" checked={item.done} disabled={!canEdit} onChange={() => dispatch({ type: 'toggle-item', cardId: project.id, itemId: item.id, actor: currentMember.name })} />
+        <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee}` : 'No assignee yet'}{meta.length ? ` · ${meta.join(' · ')}` : ''}</small>{item.done && item.completedBy && <small className="item-attribution is-complete">Completed by {item.completedBy}</small>}{item.remarks && <em className="milestone-remark"><MessageSquareText size=".6875rem" />{item.remarks}</em>}</span>
       </label>
-      <div className="project-milestone-actions">{removing ? <span className="milestone-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button milestone-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: project.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit milestone ${index + 1}`} title="Edit milestone" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button milestone-delete-button" aria-label={`Delete milestone ${index + 1}`} title="Delete milestone" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>
+      {canEdit && <div className="project-milestone-actions">{removing ? <span className="milestone-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button milestone-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: project.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit milestone ${index + 1}`} title="Edit milestone" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button milestone-delete-button" aria-label={`Delete milestone ${index + 1}`} title="Delete milestone" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>}
     </div>
+    <InlineComments item={item} cardId={project.id} dispatch={dispatch} author={currentMember.name} canEdit={canEdit} />
     {editing && <form className="milestone-editor" onSubmit={save}>
-      <div className="milestone-edit-fields"><label>Milestone<input aria-label={`Milestone ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Assignee<input aria-label={`Milestone ${index + 1} assignee`} list={datalistId} maxLength={120} value={draft.assignee} onChange={(event) => setDraft((current) => ({ ...current, assignee: event.target.value }))} placeholder="You" /><datalist id={datalistId}>{project.team.map((member) => <option key={member} value={member} />)}</datalist></label><label>Target date<input aria-label={`Milestone ${index + 1} target date`} type="date" min={project.date} value={draft.targetDate} onChange={(event) => setDraft((current) => ({ ...current, targetDate: event.target.value }))} /></label><label>Tag / label<input aria-label={`Milestone ${index + 1} tag`} maxLength={80} value={draft.label} onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))} placeholder="Q1, MOOE…" /></label></div>
+      <div className="milestone-edit-fields"><label>Milestone<input aria-label={`Milestone ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Assignee<select aria-label={`Milestone ${index + 1} assignee`} value={draft.assignee} onChange={(event) => setDraft((current) => ({ ...current, assignee: event.target.value }))}><option value="">Unassigned</option>{members.map((member) => <option key={member.id} value={member.name}>{member.name}</option>)}</select></label><label>Target date<input aria-label={`Milestone ${index + 1} target date`} type="date" min={project.date} value={draft.targetDate} onChange={(event) => setDraft((current) => ({ ...current, targetDate: event.target.value }))} /></label><label>Tag / label<input aria-label={`Milestone ${index + 1} tag`} maxLength={80} value={draft.label} onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))} placeholder="Q1, MOOE…" /></label></div>
       <label className="milestone-remarks">Remarks<input aria-label={`Milestone ${index + 1} remarks`} maxLength={240} value={draft.remarks} onChange={(event) => setDraft((current) => ({ ...current, remarks: event.target.value }))} placeholder="Optional blocker or status update" /></label>
       <div className="milestone-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save milestone</button></div>
     </form>}
   </article>
 }
 
-function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
-  const projects = cards.filter((card): card is ProjectCard => card.type === 'project')
+function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard, members, currentMember, scope, onScopeChange, canEdit, space }: WorkspaceProps) {
+  const projects = cards.filter((card): card is ProjectCard => card.type === 'project' && (scope === 'all' || cardAssignedTo(card, currentMember)))
   const activeId = cardId ?? 'proj-tos'
   const selected = projects.find((card) => card.id === activeId) ?? projects[0]
-  if (!selected) return <EmptyState icon={<Zap size="1.5rem" />} title="Turn a bigger outcome into milestones" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />New project</button>}>Set a start and due date, then build the milestones and collaborators around it.</EmptyState>
+  if (!selected) return <div className="workspace-content project-workspace"><TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} /><EmptyState icon={<Zap size="1.5rem" />} title={scope === 'assigned' ? `No projects assigned to ${currentMember.name}` : 'Turn a bigger outcome into milestones'} action={canEdit ? <button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />New project</button> : undefined}>Set a start and due date, then build the milestones and collaborators around it.</EmptyState></div>
   const { done, total, percent } = progress(selected.subtasks)
   const nextMilestone = selected.subtasks.find((item) => !item.done)
   const allMilestonesComplete = total > 0 && done === total
@@ -376,9 +417,10 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDe
     {projects.length > 1 && <div className="workspace-selector project-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
       {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>}
-    <WorkspaceHero type="project" eyebrow="Projects · outcomes over time" title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
+    <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
+    <WorkspaceHero type="project" eyebrow={scope === 'assigned' ? `Projects assigned to ${currentMember.name}` : 'Projects · outcomes over time'} title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
       extra={<><span className="hero-date">Start {shortDate(selected.date)}</span><span className="hero-date">Due {shortDate(selected.dueDate)}</span></>}
-      actions={<div className="project-hero-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'project', cardId: selected.id }) }}><Pencil size=".8125rem" />Edit project</Link><button type="button" className="button hero-print-summary" onClick={() => printProjectSummary(selected)}><Printer size=".8125rem" />Export / Print summary</button><CardDeleteAction card={selected} onDelete={() => { onDeleteCard(selected); onNavigate({ page: 'project' }) }} /></div>}>
+      actions={<div className="project-hero-actions">{canEdit && <Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'project', cardId: selected.id }) }}><Pencil size=".8125rem" />Edit project</Link>}<button type="button" className="button hero-print-summary" onClick={() => printProjectSummary(selected)}><Printer size=".8125rem" />Export / Print summary</button>{canEdit && <CardDeleteAction card={selected} onDelete={() => { onDeleteCard(selected); onNavigate({ page: 'project' }) }} />}</div>}>
       {selected.context || 'Guide a larger outcome from its start date to its due date with milestones and collaborators.'}
     </WorkspaceHero>
     <section className={`project-pulse ${allMilestonesComplete ? 'is-complete' : ''}`} aria-label="Project pulse"><div><span className="eyebrow"><Zap size={11} />{allMilestonesComplete ? 'Project complete' : 'Next milestone'}</span><strong>{allMilestonesComplete ? 'All milestones completed' : nextMilestone?.title ?? 'Add your first milestone'}</strong><p>{allMilestonesComplete ? 'Every listed deliverable is complete. Keep this plan as a finished reference.' : nextMilestone?.assignee ? `Owned by ${nextMilestone.assignee}` : nextMilestone ? 'Keep the next meaningful step visible.' : 'A clear next step makes the project easier to move forward.'}</p></div><span className={`project-due-status ${allMilestonesComplete ? 'is-complete' : dueStatus.tone}`}>{allMilestonesComplete ? <Check size=".8125rem" /> : <Clock3 size=".8125rem" />}{allMilestonesComplete ? 'Complete' : dueStatus.text}</span></section>
@@ -386,23 +428,23 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDe
       <section className="workspace-panel checklist-panel">
         <div className="panel-heading project-milestone-heading"><div><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div></div>
         <ProgressBar value={percent} label="Project completion" />
-        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <ProjectMilestoneRow key={item.id} item={item} index={index} project={selected} dispatch={dispatch} />)}</div>
+        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <ProjectMilestoneRow key={item.id} item={item} index={index} project={selected} dispatch={dispatch} members={members} currentMember={currentMember} canEdit={canEdit} />)}</div>
         {!total && <p className="inline-empty">Every project starts with one small step. Add a milestone below.</p>}
-        <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: selected.team[0] ?? 'You' } })} />
+        {canEdit && <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: currentMember.name } })} />}
       </section>
       <aside className="workspace-desktop-aside project-workspace-aside" aria-label="Project context">
         <section className="workspace-insight-card project-insight-card"><span className="eyebrow"><Zap size={11} />Project plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Started</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Due</dt><dd>{shortDate(selected.dueDate)}</dd></div><div><dt>Progress</dt><dd>{percent}% · {done} of {total}</dd></div><div><dt>Next up</dt><dd>{nextMilestone?.title ?? 'Complete'}</dd></div></dl></section>
         {projects.length > 1 && <div className="other-lists project-other-projects"><span className="eyebrow">Other projects</span>{projects.filter((project) => project.id !== selected.id).map((project) => { const milestone = project.subtasks.find((item) => !item.done); const projectProgress = progress(project.subtasks); return <Link key={project.id} className="list-summary" to={destinationPath({ page: 'project', cardId: project.id })}>
           <span className="list-icon"><Zap size={17} /></span><span><strong>{project.title}</strong><small>Due {shortDate(project.dueDate)} · {projectProgress.percent}% complete{milestone ? ` · Next: ${milestone.title}` : ''}</small></span><ChevronRight size="1rem" />
         </Link> })}</div>}
-        <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
-        <p className="workspace-fineprint"><Users size="0.75rem" />Team names are planning references. This workspace is stored on your device.</p>
+        <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Space members</span><div className="team-members">{members.map((member) => <span className="person-pill" key={member.id}><Avatar name={member.name} />{member.name}<small>{member.role}</small></span>)}{selected.team.filter((name) => !members.some((member) => member.name === name)).map((name) => <span className="person-pill is-project-member" key={name}><Avatar name={name} />{name}<small>project member</small></span>)}</div></div>
+        <p className="workspace-fineprint"><Users size=".75rem" />{space.kind === 'shared' ? 'Assignments, comments, and milestone handoffs stay visible to this Space.' : 'Personal Space is private to you. Create a shared Space when you are ready to collaborate.'}</p>
       </aside>
     </div>
   </div>
 }
 
-export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, onDeleteCard, storageAvailable, journalUserId }: {
+export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, onDeleteCard, storageAvailable, cloudSaveState, journalUserId, space, currentMember, members, scope, onScopeChange, canEdit }: {
   page: Workspace
   cards: JourneyCard[]
   calendarSources: CalendarSource[]
@@ -411,20 +453,27 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
   onCompose: (options?: ComposerOptions) => void
   onDeleteCard: (card: JourneyCard) => void
   storageAvailable: boolean
+  cloudSaveState: CloudSaveState
   journalUserId: string | null
+  space: Space
+  currentMember: SpaceMember
+  members: SpaceMember[]
+  scope: 'all' | 'assigned'
+  onScopeChange: (scope: 'all' | 'assigned') => void
+  canEdit: boolean
 }) {
   const { cardId } = useParams()
   const selected = cards.find((card) => card.id === cardId && card.type === WORKSPACE_TYPES[page])
   if (cardId && !selected) return <NotFoundPage card backTo={WORKSPACE_PATHS[page]} />
-  const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate, onDeleteCard }
+  const props = { cards, calendarSources, cardId, dispatch, onCompose, onNavigate, onDeleteCard, members, currentMember, scope, onScopeChange, canEdit, space }
 
   return <main id="main-content" tabIndex={-1} className={`workspace-page workspace-${page}`} aria-label={workspaceNames[page]}>
     <div className="workspace-body" key={`${page}-${cardId ?? 'default'}`}>
       {page === 'calendar' && <CalendarWorkspace {...props} />}
       {page === 'tasks' && <TaskWorkspace {...props} />}
       {page === 'project' && <ProjectWorkspace {...props} />}
-      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} firestoreUserId={journalUserId} />}
-      <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} />
+      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} firestoreUserId={journalUserId} />}
+      <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} shared={space.kind === 'shared'} cloud={cloudSaveState} />
         <Link to="/" state={cardId ? { focusCardId: cardId } : null} className="text-button">View your timeline<ArrowRight size="0.75rem" /></Link>
       </div>
     </div>

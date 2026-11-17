@@ -92,7 +92,7 @@ export function MoreMenu({ account, storageAvailable, onSignOut, open, onOpenCha
         <NavLink to="/settings" end onClick={() => close(false)}><Settings2 size="1.125rem" aria-hidden="true" /><span>Settings</span>{updateReady && <span className="update-badge" aria-hidden="true">Update</span>}<ArrowRight size="0.875rem" aria-hidden="true" /></NavLink>
       </nav>
       {user && <div className="profile-sign-out"><button type="button" disabled={phase !== 'ready' || busy !== null} onClick={() => { close(true); void onSignOut() }}><LogOut size="1.0625rem" aria-hidden="true" /><span>{busy === 'sign-out' ? 'Signing out…' : 'Sign out'}</span></button></div>}
-      <p className="profile-local-note"><ShieldCheck size="0.875rem" aria-hidden="true" /><span>Cards stay in this browser. Sign-in is not cloud sync or a lock on shared-device plans.</span></p>
+      <p className="profile-local-note"><ShieldCheck size="0.875rem" aria-hidden="true" /><span>Cards stay in this browser. Online sync requires a Google-authenticated session and never locks local plans on a shared device.</span></p>
     </div>}
   </div>
 }

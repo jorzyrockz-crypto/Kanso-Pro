@@ -89,6 +89,13 @@
       --month-adaptive-wash: color-mix(in srgb, var(--month-ink) 12%, #0c1724);
     }
     :root[data-theme='dark'] .topbar { background: rgb(14 29 44 / 94%); }
+    :root[data-theme='dark'] .space-switcher-trigger:hover, :root[data-theme='dark'] .space-switcher-trigger[aria-expanded='true'] { border-color: #405d75; background: #1b3145; }
+    :root[data-theme='dark'] .space-switcher-trigger strong, :root[data-theme='dark'] .space-switcher-panel header strong, :root[data-theme='dark'] .invite-menu-panel header strong { color: #e3edf5; }
+    :root[data-theme='dark'] .space-switcher-panel, :root[data-theme='dark'] .invite-menu-panel { border-color: #405c74; background: #172a3d; box-shadow: 0 1.125rem 3.5rem rgb(0 0 0 / 42%); }
+    :root[data-theme='dark'] .space-switcher-list > button:hover, :root[data-theme='dark'] .space-switcher-list > button.is-selected { border-color: #416b86; background: #1c3b52; }
+    :root[data-theme='dark'] .space-switcher-list strong, :root[data-theme='dark'] .invite-members strong, :root[data-theme='dark'] .invite-code strong { color: #dbeaf4; }
+    :root[data-theme='dark'] .space-create-form input, :root[data-theme='dark'] .invite-form input, :root[data-theme='dark'] .invite-form select, :root[data-theme='dark'] .invite-members select { border-color: #405d74; background: #1b3246; color: #e3edf5; }
+    :root[data-theme='dark'] .invite-code { border-color: #405d74; background: #1b3145; }
     :root[data-theme='dark'] .topbar.has-backdrop { background: rgb(14 29 44 / 62%); }
     :root[data-theme='dark'] .button-jump-today { border-color: rgb(156 221 255 / 48%); background: linear-gradient(135deg, rgb(25 128 183 / 72%), rgb(50 93 185 / 68%)); box-shadow: inset 0 1px 0 rgb(222 247 255 / 20%), 0 .375rem 1rem rgb(0 0 0 / 24%); }
     :root[data-theme='dark'] .button-jump-today:hover { border-color: rgb(189 234 255 / 74%); background: linear-gradient(135deg, rgb(32 145 203 / 84%), rgb(63 107 204 / 78%)); }
@@ -156,7 +163,7 @@
     :root[data-theme='dark'] .task-check-item:hover { background: #203b36; }
     :root[data-theme='dark'] .task-item-editor { border-color: #397462; background: #173a35; }
     :root[data-theme='dark'] .task-edit-fields > label, :root[data-theme='dark'] .task-item-note { color: #b6e1cd; }
-    :root[data-theme='dark'] .task-edit-fields input, :root[data-theme='dark'] .task-item-note input { border-color: #3b665b; background: #1a2b32; color: #e3f6ed; }
+    :root[data-theme='dark'] .task-edit-fields input, :root[data-theme='dark'] .task-edit-fields select, :root[data-theme='dark'] .task-item-note input { border-color: #3b665b; background: #1a2b32; color: #e3f6ed; }
     :root[data-theme='dark'] .project-pulse { border-color: #554b80; background: linear-gradient(120deg, #302d49, #172b3d); }
     :root[data-theme='dark'] .project-pulse strong { color: #e7e0fb; }
     :root[data-theme='dark'] .project-pulse p { color: #bac9dc; }
@@ -224,7 +231,7 @@
     :root[data-theme='dark'] .milestone-remark { color: #b9c8d4; }
     :root[data-theme='dark'] .milestone-editor { border-color: #51467e; background: #292640; }
     :root[data-theme='dark'] .milestone-edit-fields > label, :root[data-theme='dark'] .milestone-remarks { color: #c8c1e9; }
-    :root[data-theme='dark'] .milestone-edit-fields input, :root[data-theme='dark'] .milestone-remarks input { border-color: #554d79; background: #1b2735; color: #e8e4fb; }
+    :root[data-theme='dark'] .milestone-edit-fields input, :root[data-theme='dark'] .milestone-edit-fields select, :root[data-theme='dark'] .milestone-remarks input { border-color: #554d79; background: #1b2735; color: #e8e4fb; }
     /* The Journal stays calm and readable after dark-mode color-scheme changes native fields. */
     :root[data-theme='dark'] .journal-paper { background-color: #202a36; background-image: linear-gradient(to bottom, transparent 25px, rgb(236 181 113 / 9%) 26px); }
     :root[data-theme='dark'] .journal-editor { border-color: #485c70; box-shadow: 0 .75rem 1.75rem rgb(0 0 0 / 18%); }

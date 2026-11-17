@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { AccountInputError, accountError, accountInitials, accountMode, accountName, accountPhotoUrl, errorCode, validEmail, validName, validPassword } from './account'
 import type { AccountUser } from './account'
 
-const user: AccountUser = { uid: 'test-user', displayName: '  Ada Reyes  ', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providers: ['password'] }
+const user: AccountUser = { uid: 'test-user', displayName: '  Ada Reyes  ', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providers: ['password'], signInProvider: 'password' }
 
 describe('account input and safe presentation', () => {
   it('only recognizes the three supported account modes', () => {

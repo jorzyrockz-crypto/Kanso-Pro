@@ -1,10 +1,11 @@
-import { collection, deleteDoc, doc, getDoc, getFirestore, increment, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getFirestore, increment, initializeFirestore, limit, onSnapshot, orderBy, persistentLocalCache, persistentMultipleTabManager, query, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
 import type { Firestore, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { firebaseApp } from './firebase'
 import { parseSavedState } from './store'
-import type { JournalAttachment, JourneyCard, JourneyState } from '../types'
+import type { JournalAttachment, JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember } from '../types'
 
 const WORKSPACE_ID = 'default'
+export type FirestoreSpace = Pick<Space, 'id' | 'kind'>
 const CARD_BATCH_SIZE = 450
 
 let database: Firestore
@@ -27,22 +28,29 @@ export interface RemoteWorkspaceSnapshot {
   deletedCardIds: string[]
   fromCache: boolean
   pendingWrites: boolean
+  /** Shared-space membership metadata; authorization remains a Firestore rules concern. */
+  members?: SpaceMember[]
+  activity?: SpaceActivity[]
 }
 
-function workspaceRef(uid: string) {
-  return doc(database, 'users', uid, 'workspaces', WORKSPACE_ID)
+function workspaceRef(uid: string, space?: FirestoreSpace) {
+  // Personal workspaces retain the original user-owned path for backward compatibility.
+  // Shared spaces use a stable space id, allowing every invited Google identity to observe
+  // the same parent document and card subcollection when Firestore rules permit membership.
+  if (space?.kind === 'shared') return doc(database, 'spaces', space.id)
+  return doc(database, 'users', uid, 'workspaces', space?.id && space.id !== 'personal' ? space.id : WORKSPACE_ID)
 }
 
-function journalImageRef(uid: string, id: string) {
-  return doc(workspaceRef(uid), 'journalImages', id)
+function journalImageRef(uid: string, id: string, space?: FirestoreSpace) {
+  return doc(workspaceRef(uid, space), 'journalImages', id)
 }
 
 const FIRESTORE_IMAGE_DATA_LIMIT = 850_000
 
 /** Images are optimised in the browser before reaching Firestore, never embedded in a card document. */
-export async function writeJournalImage(uid: string, attachment: JournalAttachment, dataUrl: string) {
+export async function writeJournalImage(uid: string, attachment: JournalAttachment, dataUrl: string, space?: FirestoreSpace) {
   if (attachment.kind !== 'image' || attachment.storage !== 'firestore' || !dataUrl.startsWith('data:image/') || dataUrl.length > FIRESTORE_IMAGE_DATA_LIMIT) throw new Error('This image is too large for private Firestore storage.')
-  await setDoc(journalImageRef(uid, attachment.id), {
+  await setDoc(journalImageRef(uid, attachment.id, space), {
     dataUrl,
     name: attachment.name,
     mimeType: attachment.mimeType,
@@ -53,15 +61,15 @@ export async function writeJournalImage(uid: string, attachment: JournalAttachme
   })
 }
 
-export async function readJournalImage(uid: string, id: string) {
-  const snapshot = await getDoc(journalImageRef(uid, id))
+export async function readJournalImage(uid: string, id: string, space?: FirestoreSpace) {
+  const snapshot = await getDoc(journalImageRef(uid, id, space))
   if (!snapshot.exists()) return null
   const data = snapshot.data()
   return typeof data.dataUrl === 'string' && data.dataUrl.startsWith('data:image/') ? data.dataUrl : null
 }
 
-export async function deleteJournalImage(uid: string, id: string) {
-  await deleteDoc(journalImageRef(uid, id))
+export async function deleteJournalImage(uid: string, id: string, space?: FirestoreSpace) {
+  await deleteDoc(journalImageRef(uid, id, space))
 }
 
 function cleanCard(value: Record<string, unknown>): JourneyCard | null {
@@ -71,14 +79,34 @@ function cleanCard(value: Record<string, unknown>): JourneyCard | null {
   return parsed?.cards[0] ?? null
 }
 
+function remoteMembers(value: unknown): SpaceMember[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const members = value.flatMap((candidate): SpaceMember[] => {
+    if (!candidate || typeof candidate !== 'object') return []
+    const item = candidate as Record<string, unknown>
+    if (typeof item.id !== 'string' || typeof item.name !== 'string' || !['owner', 'editor', 'viewer'].includes(String(item.role))) return []
+    return [{ id: item.id, name: item.name, ...(typeof item.email === 'string' ? { email: item.email } : {}), role: item.role as SpaceMember['role'], presence: 'offline' }]
+  })
+  return members.length ? members : undefined
+}
+
+function remoteActivity(entries: QueryDocumentSnapshot[]): SpaceActivity[] {
+  return entries.flatMap((entry): SpaceActivity[] => {
+    const data = entry.data()
+    if (typeof data.kind !== 'string' || typeof data.title !== 'string' || typeof data.detail !== 'string' || typeof data.href !== 'string' || typeof data.createdAt !== 'string') return []
+    if (!['invite', 'assignment', 'completion', 'comment', 'note', 'member'].includes(data.kind)) return []
+    return [{ id: entry.id, kind: data.kind as SpaceActivity['kind'], title: data.title, detail: data.detail, href: data.href, createdAt: data.createdAt, ...(typeof data.actor === 'string' ? { actor: data.actor } : {}) }]
+  })
+}
+
 function serializeCard(card: JourneyCard) {
   // Optional UI fields are intentionally omitted rather than sent as undefined, which
   // Firestore rejects. Cards contain only JSON-compatible workspace data.
   return JSON.parse(JSON.stringify(card)) as JourneyCard
 }
 
-export function subscribeWorkspace(uid: string, onValue: (snapshot: RemoteWorkspaceSnapshot) => void, onError: (error: unknown) => void): Unsubscribe {
-  const workspace = workspaceRef(uid)
+export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefined, onValue: (snapshot: RemoteWorkspaceSnapshot) => void, onError: (error: unknown) => void): Unsubscribe {
+  const workspace = workspaceRef(uid, space)
   const cards = collection(workspace, 'cards')
   let workspaceData: Record<string, unknown> | null = null
   let workspaceExists = false
@@ -87,6 +115,7 @@ export function subscribeWorkspace(uid: string, onValue: (snapshot: RemoteWorksp
   let cardData: QueryDocumentSnapshot[] | null = null
   let cardsFromCache = true
   let cardsPendingWrites = false
+  let activityData: QueryDocumentSnapshot[] = []
 
   const publish = () => {
     if (!workspaceData || !cardData) return
@@ -98,6 +127,8 @@ export function subscribeWorkspace(uid: string, onValue: (snapshot: RemoteWorksp
       deletedCardIds,
       fromCache: workspaceFromCache || cardsFromCache,
       pendingWrites: workspacePendingWrites || cardsPendingWrites,
+      members: remoteMembers(workspaceData.members),
+      activity: remoteActivity(activityData),
     })
   }
 
@@ -114,13 +145,18 @@ export function subscribeWorkspace(uid: string, onValue: (snapshot: RemoteWorksp
     cardsPendingWrites = snapshot.metadata.hasPendingWrites
     publish()
   }, onError)
-  return () => { unsubscribeWorkspace(); unsubscribeCards() }
+  const activityLog = query(collection(workspace, 'activity'), orderBy('createdAt', 'desc'), limit(80))
+  const unsubscribeActivity = onSnapshot(activityLog, { includeMetadataChanges: true }, (snapshot) => {
+    activityData = [...snapshot.docs]
+    publish()
+  }, onError)
+  return () => { unsubscribeWorkspace(); unsubscribeCards(); unsubscribeActivity() }
 }
 
-async function writeCardBatch(uid: string, cards: JourneyCard[]) {
+async function writeCardBatch(uid: string, cards: JourneyCard[], space?: FirestoreSpace) {
   const batch = writeBatch(database)
   for (const card of cards) {
-    batch.set(doc(workspaceRef(uid), 'cards', card.id), {
+    batch.set(doc(workspaceRef(uid, space), 'cards', card.id), {
       ...serializeCard(card),
       revision: increment(1),
       updatedAt: serverTimestamp(),
@@ -131,10 +167,10 @@ async function writeCardBatch(uid: string, cards: JourneyCard[]) {
   await batch.commit()
 }
 
-async function deleteCardBatch(uid: string, cardIds: string[]) {
+async function deleteCardBatch(uid: string, cardIds: string[], space?: FirestoreSpace) {
   const batch = writeBatch(database)
   for (const id of cardIds) {
-    batch.set(doc(workspaceRef(uid), 'cards', id), {
+    batch.set(doc(workspaceRef(uid, space), 'cards', id), {
       revision: increment(1),
       updatedAt: serverTimestamp(),
       updatedBy: 'browser',
@@ -144,8 +180,8 @@ async function deleteCardBatch(uid: string, cardIds: string[]) {
   await batch.commit()
 }
 
-export async function writeWorkspace(uid: string, state: JourneyState, cards: JourneyCard[], deletedCardIds: string[] = []) {
-  const workspace = workspaceRef(uid)
+export async function writeWorkspace(uid: string, state: JourneyState, cards: JourneyCard[], deletedCardIds: string[] = [], space?: FirestoreSpace) {
+  const workspace = workspaceRef(uid, space)
   // Keep a real parent document even when the first personal change is a card. Firestore
   // permits orphaned subcollections, but a root document makes first-device hydration safe.
   await setDoc(workspace, {
@@ -154,10 +190,33 @@ export async function writeWorkspace(uid: string, state: JourneyState, cards: Jo
     bezel: state.bezel,
     updatedAt: serverTimestamp(),
   }, { merge: true })
-  for (let start = 0; start < cards.length; start += CARD_BATCH_SIZE) await writeCardBatch(uid, cards.slice(start, start + CARD_BATCH_SIZE))
-  for (let start = 0; start < deletedCardIds.length; start += CARD_BATCH_SIZE) await deleteCardBatch(uid, deletedCardIds.slice(start, start + CARD_BATCH_SIZE))
+  for (let start = 0; start < cards.length; start += CARD_BATCH_SIZE) await writeCardBatch(uid, cards.slice(start, start + CARD_BATCH_SIZE), space)
+  for (let start = 0; start < deletedCardIds.length; start += CARD_BATCH_SIZE) await deleteCardBatch(uid, deletedCardIds.slice(start, start + CARD_BATCH_SIZE), space)
 }
 
-export async function createWorkspace(uid: string, state: JourneyState) {
-  await writeWorkspace(uid, state, state.cards)
+export async function createWorkspace(uid: string, state: JourneyState, space?: FirestoreSpace) {
+  await writeWorkspace(uid, state, state.cards, [], space)
+}
+
+/** Persist non-sensitive membership metadata beside a shared Space's cards. Firestore rules
+ * must still enforce who may read or write the document; the browser never treats this list
+ * as authorization. */
+export async function writeSpaceMembers(uid: string, space: Space) {
+  if (space.kind !== 'shared') return
+  await setDoc(workspaceRef(uid, space), {
+    schemaVersion: 1,
+    name: space.name,
+    joinCode: space.joinCode,
+    members: space.members.map(({ id, name, email, role }) => ({ id, name, ...(email ? { email } : {}), role })),
+    memberEmails: space.members.flatMap((member) => member.email ? [member.email.toLocaleLowerCase()] : []),
+    ownerEmails: space.members.flatMap((member) => member.id === space.ownerId && member.email ? [member.email.toLocaleLowerCase()] : []),
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+}
+
+/** Activity entries are intentionally tiny, card-linkable records. They make the header bell
+ * useful across collaborators without duplicating card content or private note bodies. */
+export async function writeSpaceActivity(uid: string, space: FirestoreSpace, entry: SpaceActivity) {
+  if (space.kind !== 'shared') return
+  await setDoc(doc(workspaceRef(uid, space), 'activity', entry.id), { ...entry })
 }

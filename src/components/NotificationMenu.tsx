@@ -3,10 +3,13 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import type { NotificationsController } from '../lib/useNotifications'
+import type { SpaceActivity } from '../types'
 
 /** A compact, Facebook-style inbox disclosure for the header bell. */
-export function NotificationMenu({ notifications: n, open, onOpenChange }: {
+export function NotificationMenu({ notifications: n, activity = [], spaceName, open, onOpenChange }: {
   notifications: NotificationsController
+  activity?: SpaceActivity[]
+  spaceName?: string
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -73,8 +76,12 @@ export function NotificationMenu({ notifications: n, open, onOpenChange }: {
           {p.quiet && <div className="notification-menu-times"><label>From<input type="time" value={p.quietStart} onChange={(event) => time('quietStart', event.target.value)} /></label><label>Until<input type="time" value={p.quietEnd} onChange={(event) => time('quietEnd', event.target.value)} /></label></div>}
           {quietError && <p className="notification-menu-feedback" role="status">{quietError}</p>}
         </section>
+        {activity.length > 0 && <section className="notification-menu-inbox team-activity-inbox" aria-labelledby={`${panelId}-team-activity`}>
+          <div className="notification-menu-subheading"><strong id={`${panelId}-team-activity`}>{spaceName ? `${spaceName} activity` : 'Team activity'}</strong><span>Live in this Space</span></div>
+          <ol className="notification-menu-list">{activity.slice(0, 6).map((item) => <li key={item.id} className="is-unread"><Link to={item.href} onClick={() => close(false)}><span className={`notification-type notification-${item.kind}`}><Bell size=".875rem" aria-hidden="true" /></span><span><strong>{item.title}</strong><small>{item.detail}</small><time dateTime={new Date(item.createdAt).toISOString()}>{new Date(item.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</time></span><ArrowRight size=".8125rem" aria-hidden="true" /></Link></li>)}</ol>
+        </section>}
         <section className="notification-menu-inbox" aria-labelledby={`${panelId}-updates`}>
-          <div className="notification-menu-subheading"><strong id={`${panelId}-updates`}>Recent updates</strong><span>{items.length ? `${items.length} saved` : 'No alerts yet'}</span></div>
+          <div className="notification-menu-subheading"><strong id={`${panelId}-updates`}>Personal reminders</strong><span>{items.length ? `${items.length} saved` : 'No alerts yet'}</span></div>
           {items.length ? <ol className="notification-menu-list">{items.slice(0, 8).map((item) => <li key={item.id} className={item.read ? '' : 'is-unread'}><Link to={item.href} onClick={() => { void n.markRead(item.id); close(false) }}><span className={`notification-type notification-${item.kind}`}><Bell size=".875rem" aria-hidden="true" /></span><span><strong>{item.title}</strong><small>{item.detail}</small><time dateTime={new Date(item.createdAt).toISOString()}>{new Date(item.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</time></span><ArrowRight size=".8125rem" aria-hidden="true" /></Link></li>)}</ol> : <div className="notification-menu-empty"><BellOff size="1.75rem" aria-hidden="true" /><strong>A little breathing room.</strong><p>New event, task, and project reminders will appear here.</p></div>}
         </section>
         <details className="notification-menu-options"><summary><Settings2 size=".875rem" aria-hidden="true" />Reminder categories</summary><div>

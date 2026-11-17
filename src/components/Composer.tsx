@@ -15,9 +15,10 @@ const typeGuides: Record<CardType, { title: string; description: string }> = {
   note: { title: 'A private reflection', description: 'Use Journal for a thought, recording, or image you want to keep.' },
 }
 
-export function Composer({ options, cards, editingCard, onCancel, onCreate, onUpdate }: {
+export function Composer({ options, cards, members = ['You'], editingCard, onCancel, onCreate, onUpdate }: {
   options: ComposerOptions
   cards: JourneyCard[]
+  members?: string[]
   editingCard?: EventCard | TaskCard | ProjectCard
   onCancel: () => void
   onCreate: (card: JourneyCard) => void
@@ -38,7 +39,7 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
     ...(editingCard.type === 'event' ? { owner: editingCard.owner, organization: editingCard.organization, location: editingCard.location, occasion: editingCard.occasion ?? 'auto' } : {}),
   } : {
     type: options.type ?? 'event', title: '', date: options.date ?? FOCUS_DATE,
-    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: 'You', organization: '', location: '', occasion: 'auto', team: 'You',
+    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: 'You', organization: '', location: '', occasion: 'auto', team: members[0] ?? 'You',
   })
   const [error, setError] = useState('')
   const update = <K extends keyof NewCardInput>(key: K, value: NewCardInput[K]) => {
@@ -47,9 +48,13 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
   }
   const submit = (event: FormEvent) => {
     event.preventDefault()
+    const memberNames = new Set(members)
+    const normalizedInput = input.type === 'project'
+      ? { ...input, team: (input.team ?? '').split(',').map((member) => member.trim()).filter((member) => memberNames.has(member)).join(', ') }
+      : input
     try {
-      if (editingCard) onUpdate(updateCardFromInput(editingCard, input))
-      else onCreate(createCard(input, cards))
+      if (editingCard) onUpdate(updateCardFromInput(editingCard, normalizedInput))
+      else onCreate(createCard(normalizedInput, cards))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Something went wrong. Please try again.')
     }
@@ -72,7 +77,15 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
         {input.type === 'project' ? <div className="form-field"><label htmlFor="card-due">Due date <span>*</span></label><input id="card-due" type="date" required min={input.date} max="2100-12-31" value={input.dueDate} onChange={(event) => update('dueDate', event.target.value)} /></div>
           : input.type !== 'note' && <><div className="form-field"><label htmlFor="card-time">{input.type === 'task' ? 'Reminder time' : 'Start time'}</label><input id="card-time" type="time" disabled={input.type === 'event' && input.allDay} value={input.time} onChange={(event) => update('time', event.target.value)} /></div>{input.type === 'event' && <div className="form-field"><label htmlFor="card-end-time">End time <span className="optional-label">optional</span></label><input id="card-end-time" type="time" disabled={input.allDay} value={input.endTime ?? ''} onChange={(event) => update('endTime', event.target.value)} /></div>}</>}
       </div>
-      {input.type === 'project' && <div className="form-field"><label htmlFor="project-team">Planning team <span className="optional-label">optional</span></label><input id="project-team" value={input.team ?? 'You'} maxLength={480} onChange={(event) => update('team', event.target.value)} placeholder="You, Alex, Sam" /><span className="form-field-help">Separate names with commas. Leave blank to keep a personal project.</span></div>}
+      {input.type === 'project' && <div className="form-field"><span id="project-team-label">Planning team <span className="optional-label">optional</span></span><div className="member-picker" role="group" aria-labelledby="project-team-label">{members.map((member) => {
+        const selected = (input.team ?? '').split(',').map((name) => name.trim()).includes(member)
+        return <label key={member}><input type="checkbox" checked={selected} onChange={() => {
+          const selectedNames = new Set((input.team ?? '').split(',').map((name) => name.trim()).filter(Boolean))
+          if (selected) selectedNames.delete(member)
+          else selectedNames.add(member)
+          update('team', members.filter((name) => selectedNames.has(name)).join(', '))
+        }} />{member}</label>
+      })}</div><span className="form-field-help">Only active Space members can be added to a planning team.</span></div>}
       {input.type === 'event' && <><label className="all-day-toggle"><input type="checkbox" checked={input.allDay} onChange={(event) => update('allDay', event.target.checked)} /><span>Make it an all-day event</span></label><div className="form-row">
         <div className="form-field"><label htmlFor="card-organization">Calendar or organization <span className="optional-label">optional</span></label><input id="card-organization" value={input.organization ?? ''} maxLength={160} onChange={(event) => update('organization', event.target.value)} placeholder="e.g. Personal Calendar" /></div>
         <div className="form-field"><label htmlFor="card-owner">Organizer <span className="optional-label">optional</span></label><input id="card-owner" value={input.owner ?? ''} maxLength={160} onChange={(event) => update('owner', event.target.value)} placeholder="e.g. You" /></div>

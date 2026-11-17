@@ -5,7 +5,10 @@ export interface AccountUser {
   /** Firebase Authentication profile image, kept separate from device-only cards. */
   photoURL: string | null
   emailVerified: boolean
+  /** Linked provider IDs, useful for account management but not sufficient for sync access. */
   providers: string[]
+  /** Provider that issued the active Firebase ID token. Cloud sync accepts Google only. */
+  signInProvider: string | null
 }
 
 export type AccountAction = 'sign-in' | 'create' | 'google' | 'sign-out' | 'save-name' | 'reset' | 'verify' | 'refresh'

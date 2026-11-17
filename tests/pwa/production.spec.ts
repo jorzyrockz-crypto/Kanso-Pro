@@ -5,6 +5,7 @@ import { mockFirebase } from '../helpers/firebase'
 import { createInitialState, STORAGE_KEY } from '../../src/data'
 import type { TaskCard } from '../../src/types'
 import { emptyNotifications, NOTIFICATIONS_KEY } from '../../src/lib/notifications'
+import { SEEN_BUILD_KEY } from '../../src/lib/updates'
 
 async function ready(page: Page) {
   await page.goto('/settings#about')
@@ -157,6 +158,20 @@ test('an update waits for consent and never reloads a different tab’s unfinish
   } finally {
     await writeFile('dist/sw.js', original)
   }
+})
+
+test('a freshly updated app returns to the Timeline with the release card over a blurred workspace', async ({ page, context }) => {
+  await mockFirebase(context)
+  await page.goto('/projects/proj-reading')
+  await page.evaluate((key) => localStorage.setItem(key, '0.0.0+previous-build'), SEEN_BUILD_KEY)
+  await page.reload()
+  await expect(page).toHaveURL('/')
+  const release = page.getByRole('dialog', { name: 'Kanso Pro · Planning Space', exact: true })
+  await expect(release).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await expect(page.locator('.about-updates-backdrop')).toHaveCSS('backdrop-filter', /blur/)
+  await release.getByRole('button', { name: 'Close About and what’s new', exact: true }).click()
+  await expect(release).toHaveCount(0)
 })
 
 test.describe('background delivery', () => {

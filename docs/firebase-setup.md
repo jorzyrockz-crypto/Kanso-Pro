@@ -40,12 +40,14 @@ Sign-up creates the account first and then saves its display name. If only that 
 
 The full-page wash, decorative vectors, welcome illustration, scene title, and month/year badge reuse the existing twelve monthly scenes. All login/signup/recovery modes follow the current **device-local month**, independently of the sample journey and Calendar query parameters. An open screen checks after local midnight and on focus, visibility, and page restoration, so year changes and resumed tabs do not require a reload. This uses local date/timers, not a Firebase request, cron job, new storage key, or Analytics event. Form entries are retained during scene updates, and decorative art is static/non-interactive with contrast/print fallbacks.
 
-## Data boundary and shared-device privacy
+## Data boundary, Spaces, and shared-device privacy
 
-**Google-authenticated accounts silently sync personal workspace cards through Firestore.** There is deliberately no cloud-sync setting, badge, setup modal, or manual sync control.
+**Kanso Pro is local-first.** Every browser keeps a fast offline mirror, then Spaces with an active Google-authenticated Firebase session subscribe to Firestore when a connection is available. There is no manual sync step: only that session can show `Saved & synced with Google`; pending/offline work remains usable locally.
 
-- The trigger is a successful Firebase Google sign-in (`google.com` provider). Email/password sessions and guests continue to use only their device workspace.
-- Cards and the Timeline frame preference remain local-first in `kanso-pro:journey:v1`; Firestore mirrors personal cards below `users/{uid}/workspaces/default/cards/{cardId}` once Google sync is active. A blocked/offline Firestore connection leaves planning usable locally and retries when the browser returns online.
+- A browser starts with a **Personal Space** and a separate shared **Curriculum Planning** example Space. Timeline, Calendar, Tasks, Projects, and Team Notes are stored independently per Space in `kanso-pro:spaces:v1`; switching never moves personal cards into a team.
+- The trigger for Firestore is an **active Firebase ID token issued by Google** (`google.com` sign-in provider). A Google provider merely linked to an account is not enough when the current token was issued by email/password. Email/password sessions and guests continue to use only their device mirror, cannot send online invitations, and never load Firestore.
+- Personal cards remain under `users/{uid}/workspaces/default/cards/{cardId}`. Shared cards, lightweight activity, and shared note images use `spaces/{spaceId}` and its `cards`, `activity`, and `journalImages` subcollections. A blocked/offline Firestore connection leaves planning usable locally and retries when the browser returns online.
+- Shared-space card sync, member metadata, and header activity are real-time Firestore subscriptions. The checked-in rules use the invited Google email list as the access boundary; they are the authorization layer, not a client-side role label. The Invite control copies a Space-specific `space` + `join` link; an invited Google email can open that link to add the shared Space to its local switcher.
 - On a first Google sync, an existing cloud workspace wins for matching card IDs while distinct non-starter device cards are retained. An untouched bundled sample workspace is never uploaded as personal cloud content; a new cloud workspace begins empty.
 - Sign-out does not clear the browser workspace. Anyone using that browser profile can still open local cards, including while signed out; use a separate browser profile/device for private plans.
 - DepEd Annex B and Annex D data, recurring rules, imported PDF bytes, illustrations, and calendar-source content are not uploaded. Built-in DepEd content remains versioned with the application. Calendar-source choices remain device-local.
@@ -53,7 +55,7 @@ The full-page wash, decorative vectors, welcome illustration, scene title, and m
 - The supplied Analytics measurement ID is retained as public web configuration, but **Analytics is not initialized**, and no analytics events are sent by the app.
 - Moving from the Arena preview to Vercel changes the browser origin and its local cache. Firestore data follows the signed-in Google account, but export important device content before changing hosts.
 
-Firestore access requires deploying the checked-in `firestore.rules` to the configured Firebase project before enabling this in production. The rules require a Google provider token and permit only that authenticated UID's private workspace path; do not use test-mode or public rules.
+Firestore access requires deploying the checked-in `firestore.rules` to the configured Firebase project before enabling this in production. The rules require a Google provider token, keep Personal Space below the authenticated UID, and limit a shared Space to Google emails recorded in that Space's membership document. Invitees must use the same email address that was invited. Do not use test-mode or public rules.
 
 ## Configuration and deployment
 

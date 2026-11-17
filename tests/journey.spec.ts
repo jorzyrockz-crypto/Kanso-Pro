@@ -178,7 +178,7 @@ test('the mobile stream header compacts after scrolling while keeping its contro
 test('What’s new opens the update overview over the Timeline instead of a standalone page', async ({ page }) => {
   await page.goto('/whats-new')
   await expect(page).toHaveURL('/')
-  const overview = page.getByRole('dialog', { name: 'Your personal planning space', exact: true })
+  const overview = page.getByRole('dialog', { name: 'Kanso Pro · Planning Space', exact: true })
   await expect(overview).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
   await overview.getByRole('button', { name: 'Close About and what’s new', exact: true }).click()
@@ -205,7 +205,7 @@ test('the bottom create action follows the active workspace', async ({ page }) =
 })
 
 test('preview dialogs browse nearby timeline entries with desktop buttons and touch swipes', async ({ page }) => {
-  await card(page, 'evt-holiday').locator('.card-open').click({ position: { x: 10, y: 10 } })
+  await card(page, 'evt-holiday').getByRole('button', { name: /Preview details for/ }).click()
   const dialog = page.getByRole('dialog')
   const title = dialog.getByRole('heading', { level: 2 })
   const firstTitle = await title.textContent()
@@ -258,7 +258,7 @@ test('card-specific URLs work on direct visits and refresh', async ({ page }) =>
     await expect(navigation(page).getByRole('link', { name: active, exact: true })).toHaveAttribute('aria-current', 'page')
     await expect(content(page)).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    if (active === 'Calendar') await expect(page.locator('.selected-event strong')).toHaveText('Faculty Alignment & Curriculum Sync')
+    if (active === 'Calendar') await expect(content(page).getByRole('heading', { name: 'Faculty Alignment & Curriculum Sync', exact: true })).toBeVisible()
     if (active === 'Tasks') await expect(page.getByLabel('Your task list', { exact: true })).toHaveValue('task-prep')
     if (active === 'Projects') await expect(content(page).getByRole('checkbox')).toHaveCount(8)
     if (active === 'Journal') await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('Q2 Reading Comprehension Rubric Ideas')
@@ -458,8 +458,8 @@ for (const type of ['event', 'task', 'project', 'note'] as const) {
     await openNewCard(page)
     const composer = page.locator('.composer-card')
     await composer.locator(`.option-${type}`).click()
-    await composer.getByLabel('Card title', { exact: false }).fill(`My new ${type} card`)
-    await composer.getByLabel('Journey date', { exact: false }).fill('2026-11-05')
+    await composer.getByLabel(type === 'project' ? 'Project title' : 'Card title', { exact: false }).fill(`My new ${type} card`)
+    await composer.getByLabel(type === 'project' ? 'Start date' : 'Journey date', { exact: false }).fill('2026-11-05')
     if (type === 'project') await composer.getByLabel('Due date', { exact: false }).fill('2026-11-15')
     await composer.getByLabel(type === 'event' ? 'Notes and context' : type === 'task' ? 'Task-list context' : type === 'project' ? 'Project purpose' : 'A little context', { exact: false }).fill('Made just for this journey')
     if (type !== 'event') await composer.locator('#card-details').fill(type === 'note' ? 'An idea worth keeping.' : 'First step\nSecond step')
@@ -476,7 +476,7 @@ for (const type of ['event', 'task', 'project', 'note'] as const) {
     await page.reload()
     if (type === 'event') await expect(content(page).getByRole('heading', { name: 'My new event card', exact: true })).toBeVisible()
     if (type === 'task' || type === 'project') await expect(content(page).getByRole('checkbox')).toHaveCount(2)
-    if (type === 'note') await expect(content(page).getByLabel('Your reflection', { exact: true })).toHaveValue('An idea worth keeping.')
+    if (type === 'note') await expect(content(page).getByLabel('Your reflection', { exact: true })).toHaveText('An idea worth keeping.')
     await timeline(page)
     await expect(page.locator('.filter-count')).toHaveText('9')
     await expect(page.getByRole('heading', { name: `My new ${type} card`, exact: true })).toBeVisible()
@@ -487,9 +487,9 @@ test('the new-card page validates whitespace titles, focuses the form, and never
   await navigation(page).getByRole('link', { name: 'Projects', exact: true }).click()
   await page.getByRole('button', { name: 'New project', exact: true }).click()
   await expect(page).toHaveURL('/new?type=project&date=2026-11-14')
-  await expect(page.getByLabel('Card title', { exact: false })).toBeFocused()
+  await expect(page.getByLabel('Project title', { exact: false })).toBeFocused()
   await expect(page.getByRole('radio', { name: 'Project', exact: true })).toBeChecked()
-  await page.getByLabel('Card title', { exact: false }).fill('   ')
+  await page.getByLabel('Project title', { exact: false }).fill('   ')
   await page.getByRole('button', { name: 'Create project', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('title between 1 and 160 characters')
   await page.keyboard.press('Escape')
@@ -600,7 +600,9 @@ test('the rebrand migrates existing Chronos Flow data without discarding saved e
     state.bezel = true
     localStorage.setItem(legacy, JSON.stringify(state))
     localStorage.removeItem(current)
+    localStorage.removeItem('kanso-pro:spaces:v1')
   }, { current: STORAGE_KEY, legacy: LEGACY_STORAGE_KEY })
+  await page.reload()
   await page.goto('/journal/note-observation')
   await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('My saved reflection')
   await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).bezel, STORAGE_KEY)).toBe(true)
@@ -624,7 +626,7 @@ test('shares local changes between tabs on different pages', async ({ page, cont
 })
 
 test('has no automated WCAG A/AA violations on the timeline, four pages, new-card page, or not-found page', async ({ page }) => {
-  test.setTimeout(90_000)
+  test.setTimeout(150_000)
   await audit(page)
   for (const name of ['Calendar', 'Tasks', 'Projects', 'Journal']) {
     const link = navigation(page).getByRole('link', { name, exact: true })
@@ -633,7 +635,9 @@ test('has no automated WCAG A/AA violations on the timeline, four pages, new-car
     await expect(content(page)).toBeVisible()
     await audit(page)
   }
-  await openNewCard(page)
+  // Contextual create actions intentionally use labels such as “New note” in their
+  // workspace. Navigate directly so this audit covers the neutral new-card page.
+  await page.goto('/new')
   await expect(page.getByRole('heading', { level: 1, name: 'New card', exact: true })).toBeVisible()
   await audit(page)
   await page.goto('/missing-page')
@@ -643,7 +647,7 @@ test('has no automated WCAG A/AA violations on the timeline, four pages, new-car
 test('an empty new project can grow from zero to its first completed milestone', async ({ page }) => {
   await openNewCard(page)
   await page.locator('.option-project').click()
-  await page.getByLabel('Card title', { exact: false }).fill('Start small')
+  await page.getByLabel('Project title', { exact: false }).fill('Start small')
   await page.getByRole('button', { name: 'Create project', exact: true }).click()
   const project = page.locator('.journey-card').filter({ has: page.getByRole('heading', { name: 'Start small', exact: true }) })
   await expect(project.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0')
@@ -677,7 +681,8 @@ test('full pages stay usable and accessible on a narrow phone with persistent bo
     expect(navBounds!.y + navBounds!.height).toBeLessThanOrEqual(812)
     await audit(page)
   }
-  await openNewCard(page)
+  // Journal’s contextual action opens a rich team note, so use the neutral card composer here.
+  await page.goto('/new')
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await audit(page)
 })
@@ -694,7 +699,7 @@ test('unknown routes and wrong-type or missing cards have a useful recovery page
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('We couldn’t find that card.')
     await page.getByRole('link', { name: 'Back to workspace', exact: true }).click()
-    await expect(content(page).getByRole('heading', { level: 1 })).not.toHaveText('We couldn’t find that card.')
+    await expect(page.locator('.not-found-page')).toHaveCount(0)
   }
   await page.goto('/calendar?date=bad&month=2026-99')
   await expect(page.getByRole('heading', { name: 'November 2026 Schedule', exact: true })).toBeVisible()

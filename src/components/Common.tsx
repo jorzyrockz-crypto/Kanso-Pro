@@ -80,9 +80,30 @@ export function AddChecklistItem({ onAdd, placeholder = 'Add an item…', label 
   )
 }
 
-export function SaveIndicator({ available }: { available: boolean }) {
+export function TeamScopeToggle({ scope, memberName, onChange, compact = false }: { scope: 'all' | 'assigned'; memberName: string; onChange: (scope: 'all' | 'assigned') => void; compact?: boolean }) {
+  return <div className={`team-scope-toggle ${compact ? 'is-compact' : ''}`} role="group" aria-label="Team workload scope">
+    <button type="button" className={scope === 'all' ? 'is-active' : ''} aria-pressed={scope === 'all'} onClick={() => onChange('all')}>All Team</button>
+    <button type="button" className={scope === 'assigned' ? 'is-active' : ''} aria-pressed={scope === 'assigned'} onClick={() => onChange('assigned')}>Assigned to Me<span className="sr-only">, {memberName}</span></button>
+  </div>
+}
+
+export type CloudSaveState = 'local-only' | 'connecting' | 'synced' | 'offline' | 'unavailable'
+
+/** Keep local persistence and Google cloud sync distinct in every workspace surface. */
+export function SaveIndicator({ available, shared = false, cloud = 'local-only' }: { available: boolean; shared?: boolean; cloud?: CloudSaveState }) {
+  const message = !available
+    ? 'Not saved · device storage unavailable'
+    : !shared || cloud === 'local-only'
+      ? shared ? 'Saved on this device · Google sync required' : 'Saved on this device'
+      : cloud === 'connecting'
+        ? 'Saved locally · connecting to Google sync'
+        : cloud === 'offline'
+          ? 'Saved locally · waits for Google sync'
+          : cloud === 'unavailable'
+            ? 'Saved locally · Google sync unavailable'
+            : 'Saved & synced with Google'
   return <span className={`save-indicator ${available ? '' : 'save-warning'}`}>
     {available ? <Check size="0.75rem" /> : <span className="status-dot" />}
-    {available ? 'Saved on this device' : 'Not saved · device storage unavailable'}
+    {message}
   </span>
 }

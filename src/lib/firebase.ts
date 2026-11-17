@@ -1,8 +1,8 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import {
   browserLocalPersistence, browserPopupRedirectResolver, createUserWithEmailAndPassword,
-  getAuth, GoogleAuthProvider, indexedDBLocalPersistence, initializeAuth, inMemoryPersistence,
-  onAuthStateChanged, reload, sendEmailVerification, sendPasswordResetEmail,
+  getAuth, getIdTokenResult, GoogleAuthProvider, indexedDBLocalPersistence, initializeAuth, inMemoryPersistence,
+  onIdTokenChanged, reload, sendEmailVerification, sendPasswordResetEmail,
   signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile,
 } from 'firebase/auth'
 import type { Auth, User } from 'firebase/auth'
@@ -32,17 +32,55 @@ try {
 }
 auth.languageCode = 'en'
 
-function snapshot(user: User | null): AccountUser | null {
+let observedTokenProvider: { uid: string; provider: string | null } | null = null
+
+function observedProviderFor(user: User | null): string | null {
+  const observed = observedTokenProvider
+  if (!observed || observed.uid !== user?.uid) return null
+  return observed.provider
+}
+
+function snapshot(user: User | null, signInProvider: string | null = observedProviderFor(user)): AccountUser | null {
   return user ? {
     uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL, emailVerified: user.emailVerified,
-    providers: [...new Set(user.providerData.map((entry) => entry.providerId))],
+    providers: [...new Set(user.providerData.map((entry) => entry.providerId))], signInProvider,
   } : null
 }
 
 export function currentAccount(): AccountUser | null { return snapshot(auth.currentUser) }
 
+function tokenSignInProvider(result: Awaited<ReturnType<typeof getIdTokenResult>>): string | null {
+  const firebase = result.claims.firebase
+  return firebase && typeof firebase === 'object' && typeof firebase.sign_in_provider === 'string'
+    ? firebase.sign_in_provider
+    : null
+}
+
+/**
+ * A linked Google provider does not prove that the current Firebase token was issued by
+ * Google: a user can later sign in with a linked password. Firestore rules enforce the
+ * active token provider, so expose that same fact to the client before enabling sync.
+ */
 export function observeAccount(onUser: (user: AccountUser | null) => void, onError: (error: unknown) => void) {
-  return onAuthStateChanged(auth, (user) => onUser(snapshot(user)), onError)
+  return onIdTokenChanged(auth, (user) => {
+    if (!user) {
+      observedTokenProvider = null
+      onUser(null)
+      return
+    }
+    void getIdTokenResult(user).then((result) => {
+      // Ignore a token result for an account that was replaced or signed out while it loaded.
+      if (auth.currentUser?.uid !== user.uid) return
+      observedTokenProvider = { uid: user.uid, provider: tokenSignInProvider(result) }
+      onUser(snapshot(user))
+    }).catch(() => {
+      // Identity remains usable if token introspection is temporarily unavailable, but it
+      // must not unlock cloud sync until a Google-issued token is confirmed.
+      if (auth.currentUser?.uid !== user.uid) return
+      observedTokenProvider = { uid: user.uid, provider: null }
+      onUser(snapshot(user))
+    })
+  }, onError)
 }
 
 export async function signInAccount(email: string, password: string) {
