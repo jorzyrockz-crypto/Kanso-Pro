@@ -88,7 +88,7 @@ export function SignInPage({ account, mode, notices, deviceWorkspace, onAction }
           <p className="account-auth-note"><ShieldCheck size="0.875rem" />Secure sign-in with Firebase. Your password is never saved in your workspace.</p>
         </section>
         <div className="sign-in-guest"><span>Just looking for a little focus?</span><Link to="/">Continue as guest<ArrowRight size="0.875rem" /></Link></div>
-        <p className="sign-in-local-note">Cards stay in this browser. Sign-in does not add cloud sync or hide cards on shared devices.</p>
+        <p className="sign-in-local-note">Cards stay in this browser. Only a Google-authenticated session can enable online sync; signing in never hides local cards on shared devices.</p>
         <details className="sign-in-device"><summary><HardDrive size="0.875rem" /><span>Your device workspace & backup</span><ChevronDown size="0.875rem" /></summary>{deviceWorkspace}</details>
       </div>
     </div>

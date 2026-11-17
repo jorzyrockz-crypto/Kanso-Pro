@@ -2,9 +2,13 @@ import { createInitialState } from '../data'
 import type { AccountUser } from './account'
 import type { JourneyCard, JourneyState } from '../types'
 
-/** Cloud sync is deliberately limited to Google-authenticated identities. */
+/**
+ * Cloud sync is deliberately limited to a Google-issued Firebase session with an email.
+ * `providers` alone is not enough: a linked Google account may currently be signed in
+ * with a password, and Firestore rules correctly reject that token.
+ */
 export function googleSyncUser(user: AccountUser | null): string | null {
-  return user?.providers.includes('google.com') ? user.uid : null
+  return user?.signInProvider === 'google.com' && !!user.email?.trim() ? user.uid : null
 }
 
 function stableValue(value: unknown): string {

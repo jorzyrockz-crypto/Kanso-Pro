@@ -6,6 +6,7 @@ import { FOCUS_DATE } from '../data'
 import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, ProjectCard, Space, SpaceMember, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TeamScopeToggle, TypeIcon } from './Common'
+import type { CloudSaveState } from './Common'
 import { NotFoundPage } from './PageHeader'
 import { destinationPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from '../lib/navigation'
 import { calendarPeriod, monthScene } from '../lib/months'
@@ -443,7 +444,7 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDe
   </div>
 }
 
-export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, onDeleteCard, storageAvailable, journalUserId, space, currentMember, members, scope, onScopeChange, canEdit }: {
+export function WorkspacePage({ page, cards, calendarSources, dispatch, onNavigate, onCompose, onDeleteCard, storageAvailable, cloudSaveState, journalUserId, space, currentMember, members, scope, onScopeChange, canEdit }: {
   page: Workspace
   cards: JourneyCard[]
   calendarSources: CalendarSource[]
@@ -452,6 +453,7 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
   onCompose: (options?: ComposerOptions) => void
   onDeleteCard: (card: JourneyCard) => void
   storageAvailable: boolean
+  cloudSaveState: CloudSaveState
   journalUserId: string | null
   space: Space
   currentMember: SpaceMember
@@ -470,8 +472,8 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
       {page === 'calendar' && <CalendarWorkspace {...props} />}
       {page === 'tasks' && <TaskWorkspace {...props} />}
       {page === 'project' && <ProjectWorkspace {...props} />}
-      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} firestoreUserId={journalUserId} />}
-      <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} shared={space.kind === 'shared'} />
+      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} firestoreUserId={journalUserId} />}
+      <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} shared={space.kind === 'shared'} cloud={cloudSaveState} />
         <Link to="/" state={cardId ? { focusCardId: cardId } : null} className="text-button">View your timeline<ArrowRight size="0.75rem" /></Link>
       </div>
     </div>

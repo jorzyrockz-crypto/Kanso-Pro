@@ -72,6 +72,9 @@
   .account-identity strong { color: var(--theme-text-primary, #34536d); font-size: 1rem; line-height: 1.5; font-weight: 750; }
   .account-identity span:not(.account-large-avatar) { color: var(--theme-text-secondary, #58758a); font-size: 0.6875rem; line-height: 1.7; }
   .account-identity small { color: var(--theme-text-secondary, #5d778b); font-size: 0.5625rem; line-height: 1.7; }
+  .account-sync-status { margin-top: 1rem; padding: .75rem .8125rem; border: 1px solid var(--theme-border, #dce8f1); border-radius: .75rem; background: var(--theme-surface-muted, #f7fbfd); }
+  .account-sync-status strong { color: var(--theme-text-primary, #36536a); font-size: .625rem; }
+  .account-sync-status p { margin-top: .25rem; color: var(--theme-text-secondary, #587286); font-size: .59375rem; line-height: 1.7; }
   .account-verification { margin-top: 1.3125rem; padding: 0.9375rem; border: 1px solid var(--theme-border, #e9dfc6); border-radius: 0.8125rem; background: var(--theme-warm-soft, #fffbf3); }
   .account-verification > div:first-child { display: flex; align-items: flex-start; gap: 0.5rem; color: var(--theme-warm, #8f6d2e); }
   .account-verification > div:first-child > svg { margin-top: 0.125rem; }

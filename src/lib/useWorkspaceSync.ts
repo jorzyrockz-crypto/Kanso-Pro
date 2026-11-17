@@ -7,12 +7,22 @@ import type { JourneyAction, JourneyState, Space, SpaceActivity, SpaceMember } f
 type FirestoreClient = typeof import('./firestore')
 
 /**
- * Google sign-in silently enables a local-first personal workspace mirror. The hook has
- * no UI state by design: local planning remains usable when Firestore is unavailable.
+ * A Google-issued token enables a local-first workspace mirror. The returned status lets
+ * UI copy distinguish device storage from cloud sync; planning stays usable on failure.
  */
-export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void) {
+export interface WorkspaceSyncStatus {
+  /** True only for an active Firebase token issued by Google. */
+  enabled: boolean
+  /** The active Space received its first server-backed snapshot. */
+  ready: boolean
+  /** The latest subscription or write bootstrap failed; local planning remains available. */
+  unavailable: boolean
+}
+
+export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void): WorkspaceSyncStatus {
   const uid = googleSyncUser(account)
   const [ready, setReady] = useState(false)
+  const [unavailable, setUnavailable] = useState(false)
   const stateRef = useRef(state)
   const membersCallbackRef = useRef(onMembers)
   const activityCallbackRef = useRef(onActivity)
@@ -38,6 +48,7 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
 
   useEffect(() => {
     setReady(false)
+    setUnavailable(false)
     clientRef.current = null
     remoteRef.current = null
     initializedRef.current = false
@@ -56,6 +67,7 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
       clientRef.current = client
       unsubscribe = client.subscribeWorkspace(uid, { id: space.id, kind: space.kind }, (remote) => {
         if (!active || remote.fromCache) return
+        setUnavailable(false)
         if (space.kind === 'shared' && remote.members) membersCallbackRef.current?.(space.id, remote.members)
         if (space.kind === 'shared' && remote.activity) activityCallbackRef.current?.(space.id, remote.activity)
         const local = stateRef.current
@@ -68,14 +80,18 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
             remoteRef.current = next
             pendingFingerprintRef.current = workspaceFingerprint(next)
             const create = () => client.createWorkspace(uid, next, { id: space.id, kind: space.kind })
-            void (space.kind === 'shared' ? client.writeSpaceMembers(uid, space).then(create) : create()).catch(() => {})
+            void (space.kind === 'shared' ? client.writeSpaceMembers(uid, space).then(create) : create()).catch(() => {
+              if (active) setUnavailable(true)
+            })
           } else {
             next = mergeInitialWorkspace(remote.state, local, !switchedGoogleUser && !localIsStarter, remote.deletedCardIds)
             remoteRef.current = next
             const additions = workspaceChangesSince(remote.state, next)
             if (additions.cards.length || additions.deletedCardIds.length || additions.bezelChanged) {
               pendingFingerprintRef.current = workspaceFingerprint(next)
-              void client.writeWorkspace(uid, next, additions.cards, additions.deletedCardIds, { id: space.id, kind: space.kind }).catch(() => {})
+              void client.writeWorkspace(uid, next, additions.cards, additions.deletedCardIds, { id: space.id, kind: space.kind }).catch(() => {
+                if (active) setUnavailable(true)
+              })
             }
           }
           applyingRemoteRef.current = workspaceFingerprint(next)
@@ -102,8 +118,12 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
         applyingRemoteRef.current = remoteFingerprint
         awaitingRemoteHydrationRef.current = true
         dispatch({ type: 'hydrate', state: remote.state })
-      }, () => {})
-    }).catch(() => {})
+      }, () => {
+        if (active) setUnavailable(true)
+      })
+    }).catch(() => {
+      if (active) setUnavailable(true)
+    })
 
     return () => { active = false; unsubscribe?.() }
   }, [uid, dispatch, space.id, space.kind])
@@ -129,20 +149,22 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
       const client = clientRef.current
       if (!client) return
       pendingFingerprintRef.current = currentFingerprint
-      void client.writeWorkspace(uid, state, changes.cards, changes.deletedCardIds, { id: space.id, kind: space.kind }).catch(() => {})
+      void client.writeWorkspace(uid, state, changes.cards, changes.deletedCardIds, { id: space.id, kind: space.kind }).catch(() => setUnavailable(true))
     }, 350)
     return () => window.clearTimeout(timer)
   }, [state, ready, uid, retry, space.id, space.kind])
 
   useEffect(() => {
     if (!uid || !clientRef.current || space.kind !== 'shared') return
-    void clientRef.current.writeSpaceMembers(uid, space).catch(() => {})
+    void clientRef.current.writeSpaceMembers(uid, space).catch(() => setUnavailable(true))
   }, [uid, space])
 
   useEffect(() => {
     const newest = activity[0]
     if (!uid || !clientRef.current || space.kind !== 'shared' || !newest || sentActivityRef.current === newest.id) return
     sentActivityRef.current = newest.id
-    void clientRef.current.writeSpaceActivity(uid, { id: space.id, kind: space.kind }, newest).catch(() => { sentActivityRef.current = '' })
+    void clientRef.current.writeSpaceActivity(uid, { id: space.id, kind: space.kind }, newest).catch(() => { sentActivityRef.current = ''; setUnavailable(true) })
   }, [uid, space.id, space.kind, activity])
+
+  return { enabled: !!uid, ready, unavailable }
 }

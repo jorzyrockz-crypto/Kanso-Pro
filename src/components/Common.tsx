@@ -87,9 +87,23 @@ export function TeamScopeToggle({ scope, memberName, onChange, compact = false }
   </div>
 }
 
-export function SaveIndicator({ available, shared = false }: { available: boolean; shared?: boolean }) {
+export type CloudSaveState = 'local-only' | 'connecting' | 'synced' | 'offline' | 'unavailable'
+
+/** Keep local persistence and Google cloud sync distinct in every workspace surface. */
+export function SaveIndicator({ available, shared = false, cloud = 'local-only' }: { available: boolean; shared?: boolean; cloud?: CloudSaveState }) {
+  const message = !available
+    ? 'Not saved · device storage unavailable'
+    : !shared || cloud === 'local-only'
+      ? shared ? 'Saved on this device · Google sync required' : 'Saved on this device'
+      : cloud === 'connecting'
+        ? 'Saved locally · connecting to Google sync'
+        : cloud === 'offline'
+          ? 'Saved locally · waits for Google sync'
+          : cloud === 'unavailable'
+            ? 'Saved locally · Google sync unavailable'
+            : 'Saved & synced with Google'
   return <span className={`save-indicator ${available ? '' : 'save-warning'}`}>
     {available ? <Check size="0.75rem" /> : <span className="status-dot" />}
-    {available ? shared ? 'Saved & synced' : 'Saved on this device' : 'Not saved · device storage unavailable'}
+    {message}
   </span>
 }

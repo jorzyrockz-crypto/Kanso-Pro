@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('Spaces keep shared work separate, expose member roles, and surface live team activity', async ({ page }) => {
+test('Spaces keep local team work separate and require Google before online invitations or sync', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/')
 
@@ -11,15 +11,8 @@ test('Spaces keep shared work separate, expose member roles, and surface live te
   await page.getByRole('option', { name: /Curriculum Planning/ }).click()
   await expect(page.getByRole('button', { name: /Switch workspace, current space: Curriculum Planning/ })).toBeVisible()
   await expect(page.locator('.space-member-stack')).toHaveAttribute('aria-label', /J\. Santos/)
-
-  await page.getByRole('button', { name: 'Invite', exact: true }).click()
-  const invite = page.getByRole('dialog', { name: 'Invite teammates' })
-  await expect(invite).toContainText('Join code')
-  await invite.getByLabel('Name', { exact: true }).fill('Ana Reyes')
-  await invite.getByLabel('Invite role', { exact: true }).selectOption('viewer')
-  await invite.getByRole('button', { name: 'Add teammate', exact: true }).click()
-  await expect(invite).toContainText('Ana Reyes')
-  await expect(invite.getByLabel('Role for Ana Reyes', { exact: true })).toHaveValue('viewer')
+  await expect(page.getByText('Local Space', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Invite', exact: true })).toBeDisabled()
 
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('button', { name: 'All Team', exact: true })).toBeVisible()
@@ -40,6 +33,6 @@ test('Spaces keep shared work separate, expose member roles, and surface live te
   await expect(page.getByText('I can take the first pass this afternoon.', { exact: true })).toBeVisible()
 
   await page.goto('/journal')
-  await expect(page.getByText('Team Notes · shared live', { exact: true })).toBeVisible()
+  await expect(page.getByText('Team Notes · this device', { exact: true })).toBeVisible()
   await expect(page.getByText(/shared team note/i).first()).toBeVisible()
 })

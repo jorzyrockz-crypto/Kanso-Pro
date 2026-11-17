@@ -38,6 +38,7 @@ import { BottomNavigation } from './components/BottomNavigation'
 import { AppFooter, NotFoundPage, PageHeader } from './components/PageHeader'
 import { RouteEffects } from './components/RouteEffects'
 import { TeamScopeToggle } from './components/Common'
+import type { CloudSaveState } from './components/Common'
 
 const filters: { type: Filter; label: string }[] = [
   { type: 'all', label: 'All Stream' }, { type: 'event', label: 'Events' },
@@ -133,13 +134,14 @@ function sourceSummary(source: CalendarSource) {
     : `${source.entries.length} dated ${source.entries.length === 1 ? 'entry' : 'entries'}`
 }
 
-function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, month, onFilter, onScopeChange, onSourceEnabled }: {
+function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, cloudSyncEnabled, month, onFilter, onScopeChange, onSourceEnabled }: {
   calendarSources: CalendarSource[]
   count: number
   filter: Filter
   scope: 'all' | 'assigned'
   memberName: string
   shared: boolean
+  cloudSyncEnabled: boolean
   month: string
   onFilter: (type: Filter) => void
   onScopeChange: (scope: 'all' | 'assigned') => void
@@ -181,7 +183,7 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
           <span>{formatDate(month, { month: 'short' })}</span><strong>{formatDate(month, { year: 'numeric' })}</strong>
         </div>
         <div className="header-copy">
-          <div className="header-title-line"><h1 id="page-title">Journey Stream</h1><span className="live-badge" title={shared ? 'Shared Space changes are saved locally and sync when online' : 'Your four workspaces stay connected on this device'}><span className="live-dot" /><span className="live-text">{shared ? 'Team Sync' : 'Live Flow'}</span></span></div>
+          <div className="header-title-line"><h1 id="page-title">Journey Stream</h1><span className="live-badge" title={shared ? cloudSyncEnabled ? 'This Space can sync through your Google-authenticated session.' : 'This Space is currently local. Continue with Google to enable online sync.' : 'Your four workspaces stay connected on this device'}><span className="live-dot" /><span className="live-text">{shared ? cloudSyncEnabled ? 'Google Sync' : 'Local Space' : 'Live Flow'}</span></span></div>
           <p>Your plans, progress, and reflections. All in one flow.</p>
         </div>
       </div>
@@ -242,9 +244,16 @@ export default function App() {
   const { workspace: state, dispatch, space, member, members, activity: teamActivity, canEdit, storageAvailable } = spaces
   const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const firestoreUserId = googleSyncUser(account.user)
-  useWorkspaceSync(account.user, state, dispatch, space, spaces.hydrateMembers, teamActivity, spaces.hydrateActivity)
+  const workspaceSync = useWorkspaceSync(account.user, state, dispatch, space, spaces.hydrateMembers, teamActivity, spaces.hydrateActivity)
   const appearance = useAppearance()
   const pwa = usePwa()
+  const cloudSaveState: CloudSaveState = !workspaceSync.enabled
+    ? 'local-only'
+    : !pwa.online
+      ? 'offline'
+      : workspaceSync.unavailable
+        ? 'unavailable'
+        : workspaceSync.ready ? 'synced' : 'connecting'
   const notifications = useNotifications(state.cards)
   const location = useLocation()
   const navigate = useNavigate()
@@ -552,17 +561,17 @@ export default function App() {
     <AppSplash />
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
-    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} updateReady={pwa.updateReady} notifications={notifications} activity={teamActivity} space={space} spaces={spaces.state.spaces} members={members} currentMember={member} canEdit={canEdit} onSelectSpace={spaces.selectSpace} onCreateSpace={spaces.createSpace} onInvite={spaces.invite} onChangeRole={spaces.changeRole} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={openComposer} canEdit={canEdit} /></>}
+    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} syncEnabled={workspaceSync.enabled} updateReady={pwa.updateReady} notifications={notifications} activity={teamActivity} space={space} spaces={spaces.state.spaces} members={members} currentMember={member} canEdit={canEdit} onSelectSpace={spaces.selectSpace} onCreateSpace={spaces.createSpace} onInvite={spaces.invite} onChangeRole={spaces.changeRole} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={openComposer} canEdit={canEdit} /></>}
     {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size="0.9375rem" /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} />
+          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} />
           <Timeline cards={scopedWorkCards} entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
-          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} onDeleteCard={deleteJourneyCard} storageAvailable={storageAvailable} journalUserId={firestoreUserId} space={space} currentMember={member} members={members} scope={teamScope} onScopeChange={setTeamScope} canEdit={canEdit} />} />)}
+          element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} onDeleteCard={deleteJourneyCard} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} journalUserId={firestoreUserId} space={space} currentMember={member} members={members} scope={teamScope} onScopeChange={setTeamScope} canEdit={canEdit} />} />)}
         <Route path="/notifications" element={<NotificationsPage notifications={notifications} />} />
         <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
         <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />

@@ -42,10 +42,10 @@ The full-page wash, decorative vectors, welcome illustration, scene title, and m
 
 ## Data boundary, Spaces, and shared-device privacy
 
-**Kanso Pro is local-first.** Every browser keeps a fast offline mirror, then Google-authenticated Spaces subscribe to Firestore when a connection is available. There is no manual sync step: shared views use the calm `Saved & synced` language while pending/offline work remains usable locally.
+**Kanso Pro is local-first.** Every browser keeps a fast offline mirror, then Spaces with an active Google-authenticated Firebase session subscribe to Firestore when a connection is available. There is no manual sync step: only that session can show `Saved & synced with Google`; pending/offline work remains usable locally.
 
 - A browser starts with a **Personal Space** and a separate shared **Curriculum Planning** example Space. Timeline, Calendar, Tasks, Projects, and Team Notes are stored independently per Space in `kanso-pro:spaces:v1`; switching never moves personal cards into a team.
-- The trigger for Firestore is a successful Firebase Google sign-in (`google.com` provider). Email/password sessions and guests continue to use only their device mirror.
+- The trigger for Firestore is an **active Firebase ID token issued by Google** (`google.com` sign-in provider). A Google provider merely linked to an account is not enough when the current token was issued by email/password. Email/password sessions and guests continue to use only their device mirror, cannot send online invitations, and never load Firestore.
 - Personal cards remain under `users/{uid}/workspaces/default/cards/{cardId}`. Shared cards, lightweight activity, and shared note images use `spaces/{spaceId}` and its `cards`, `activity`, and `journalImages` subcollections. A blocked/offline Firestore connection leaves planning usable locally and retries when the browser returns online.
 - Shared-space card sync, member metadata, and header activity are real-time Firestore subscriptions. The checked-in rules use the invited Google email list as the access boundary; they are the authorization layer, not a client-side role label. The Invite control copies a Space-specific `space` + `join` link; an invited Google email can open that link to add the shared Space to its local switcher.
 - On a first Google sync, an existing cloud workspace wins for matching card IDs while distinct non-starter device cards are retained. An untouched bundled sample workspace is never uploaded as personal cloud content; a new cloud workspace begins empty.
