@@ -1,8 +1,7 @@
-import { ArrowLeft, ArrowRight, Bold, Camera, Check, Clock3, Code2, Eraser, FileText, Heading1, Heading2, Highlighter, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Mic, Plus, Quote, Search, Square, Tag, Underline, X } from 'lucide-react'
+import { ArrowRight, Bold, Camera, ChevronDown, Clock3, Code2, Eraser, FileText, Heading1, Heading2, Highlighter, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Mic, Plus, Quote, Search, Square, Tag, Underline } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { ChangeEvent, ClipboardEvent, Dispatch, DragEvent, MouseEvent, ReactNode } from 'react'
-import { FOCUS_DATE } from '../data'
 import { getJournalAttachment, JournalAttachmentError, saveJournalAttachment } from '../lib/journalAttachments'
 import { blobAsDataUrl, JournalImageError, optimizeJournalImage } from '../lib/journalImages'
 import { initialJournalRichText, journalRichTextToPlainText, journalRichTextWordCount, sanitizeJournalRichText } from '../lib/journalRichText'
@@ -102,33 +101,15 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
 
 function JournalHero({ entryCount }: { entryCount: number }) {
   return <section className="workspace-hero hero-note journal-hero" aria-labelledby="journal-hero-title">
-    <div className="hero-copy"><div className="hero-eyebrows"><span className="hero-eyebrow"><FileText size={11} />Journal · private reflections</span><span className="hero-date">Your space to return to</span></div>
-      <h2 id="journal-hero-title">Your Journal</h2><p>Capture reflections, voice memos, and visual references in one calm, private place.</p>
-    </div>
-    <div className="hero-stat"><span>{entryCount === 1 ? 'Journal entry' : 'Journal entries'}</span><strong>{entryCount}</strong></div>
+    <div className="journal-hero-heading"><FileText size=".9375rem" aria-hidden="true" /><h2 id="journal-hero-title">Your Journal</h2><span>Journal Studio</span></div>
+    <span className="journal-entry-count">{entryCount} {entryCount === 1 ? 'entry' : 'entries'}</span>
+    <p className="sr-only">A private place for reflections, voice memos, and visual references.</p>
   </section>
 }
 
-function JournalHub({ notes, onCreate, imageUploadAvailable }: { notes: NoteCard[]; onCreate: (kind: JournalNoteKind) => void; imageUploadAvailable: boolean }) {
-  const [query] = useSearchParams()
-  const navigate = useNavigate()
-  const showPicker = query.get('create') === 'menu'
-  return <div className="journal-hub">
-    {showPicker && <section className="journal-note-picker" aria-labelledby="journal-picker-title">
-      <div className="journal-picker-heading"><div><span className="eyebrow">Choose a format</span><h2 id="journal-picker-title">Start a journal entry</h2></div><button type="button" className="icon-button" aria-label="Close entry type picker" onClick={() => navigate('/journal')}><X size="1rem" /></button></div>
-      <div className="journal-type-grid">
-        <button type="button" className="journal-type-card type-text" onClick={() => onCreate('text')}><FileText size="1.125rem" /><strong>Text entry</strong><span>Write, format, and organize a thought.</span></button>
-        <button type="button" className="journal-type-card type-voice" onClick={() => onCreate('voice')}><Mic size="1.125rem" /><strong>Voice entry</strong><span>Record privately on this device.</span></button>
-        <button type="button" className="journal-type-card type-image" disabled={!imageUploadAvailable} onClick={() => onCreate('image')}><ImagePlus size="1.125rem" /><strong>Photo entry</strong><span>{imageUploadAvailable ? 'Attach an optimized visual reference.' : 'Sign in with Google to store images privately.'}</span></button>
-      </div>
-    </section>}
-
-    <section className="journal-recent" aria-labelledby="journal-recent-heading">
-      <div className="panel-heading"><div><span className="eyebrow">Journal entries</span><h2 id="journal-recent-heading">Recent entries</h2></div><span className="count-label">{notes.length} {notes.length === 1 ? 'entry' : 'entries'}</span></div>
-      <NoteList notes={notes} />
-    </section>
-    <p className="journal-private-note"><Check size=".75rem" />Text stays in your workspace. Voice stays on this device; images are private Firestore journal entries.</p>
-  </div>
+function localDate() {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 function MetadataFields({ note, dispatch }: { note: NoteCard; dispatch: Dispatch<JourneyAction> }) {
@@ -312,6 +293,10 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: {
   </section>
 }
 
+function StudioTool({ label, children, onClick }: { label: string; children: ReactNode; onClick: () => void }) {
+  return <button type="button" className="studio-tool" aria-label={label} title={label} onMouseDown={(event) => event.preventDefault()} onClick={onClick}>{children}</button>
+}
+
 function StudioRichEditor({ note, dispatch, firestoreUserId }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; firestoreUserId: string | null }) {
   const editor = useRef<HTMLDivElement>(null)
   const storedRichText = sanitizeJournalRichText(note.richText ?? initialJournalRichText(note.body))
@@ -319,6 +304,11 @@ function StudioRichEditor({ note, dispatch, firestoreUserId }: { note: NoteCard;
   useEffect(() => {
     if (editor.current && document.activeElement !== editor.current && editor.current.innerHTML !== storedRichText) editor.current.innerHTML = storedRichText
   }, [note.id, storedRichText])
+  useEffect(() => {
+    if (note.title.trim() || journalRichTextToPlainText(storedRichText).trim()) return
+    const frame = requestAnimationFrame(() => editor.current?.focus())
+    return () => cancelAnimationFrame(frame)
+  }, [note.id, note.title, storedRichText])
   const commit = () => {
     if (!editor.current) return
     const richText = sanitizeJournalRichText(editor.current.innerHTML)
@@ -364,11 +354,10 @@ function StudioRichEditor({ note, dispatch, firestoreUserId }: { note: NoteCard;
       commit()
     })
   }
-  const Tool = ({ label, children, onClick }: { label: string; children: ReactNode; onClick: () => void }) => <button type="button" className="studio-tool" aria-label={label} title={label} onMouseDown={(event) => event.preventDefault()} onClick={onClick}>{children}</button>
   return <>
     <div className="studio-toolbar" role="toolbar" aria-label="Rich text formatting">
-      <Tool label="Bold" onClick={() => command('bold')}><Bold size=".8125rem" /></Tool><Tool label="Italic" onClick={() => command('italic')}><Italic size=".8125rem" /></Tool><Tool label="Underline" onClick={() => command('underline')}><Underline size=".8125rem" /></Tool><Tool label="Highlight" onClick={() => command('hiliteColor', '#fff0a8')}><Highlighter size=".8125rem" /></Tool><span className="studio-toolbar-divider" aria-hidden="true" />
-      <Tool label="Heading 1" onClick={() => formatBlock('h1')}><Heading1 size=".8125rem" /></Tool><Tool label="Heading 2" onClick={() => formatBlock('h2')}><Heading2 size=".8125rem" /></Tool><Tool label="Quote" onClick={() => formatBlock('blockquote')}><Quote size=".8125rem" /></Tool><Tool label="Bulleted list" onClick={() => command('insertUnorderedList')}><List size=".8125rem" /></Tool><Tool label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered size=".8125rem" /></Tool><Tool label="Checklist" onClick={addChecklist}><ListChecks size=".8125rem" /></Tool><Tool label="Code block" onClick={() => formatBlock('pre')}><Code2 size=".8125rem" /></Tool><Tool label="Add link" onClick={addLink}><Link2 size=".8125rem" /></Tool><Tool label="Clear formatting" onClick={() => { command('removeFormat'); formatBlock('p') }}><Eraser size=".8125rem" /></Tool>
+      <StudioTool label="Bold" onClick={() => command('bold')}><Bold size=".8125rem" /></StudioTool><StudioTool label="Italic" onClick={() => command('italic')}><Italic size=".8125rem" /></StudioTool><StudioTool label="Underline" onClick={() => command('underline')}><Underline size=".8125rem" /></StudioTool><StudioTool label="Highlight" onClick={() => command('hiliteColor', '#fff0a8')}><Highlighter size=".8125rem" /></StudioTool><span className="studio-toolbar-divider" aria-hidden="true" />
+      <StudioTool label="Heading 1" onClick={() => formatBlock('h1')}><Heading1 size=".8125rem" /></StudioTool><StudioTool label="Heading 2" onClick={() => formatBlock('h2')}><Heading2 size=".8125rem" /></StudioTool><StudioTool label="Quote" onClick={() => formatBlock('blockquote')}><Quote size=".8125rem" /></StudioTool><StudioTool label="Bulleted list" onClick={() => command('insertUnorderedList')}><List size=".8125rem" /></StudioTool><StudioTool label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered size=".8125rem" /></StudioTool><StudioTool label="Checklist" onClick={addChecklist}><ListChecks size=".8125rem" /></StudioTool><StudioTool label="Code block" onClick={() => formatBlock('pre')}><Code2 size=".8125rem" /></StudioTool><StudioTool label="Add link" onClick={addLink}><Link2 size=".8125rem" /></StudioTool><StudioTool label="Clear formatting" onClick={() => { command('removeFormat'); formatBlock('p') }}><Eraser size=".8125rem" /></StudioTool>
     </div>
     <div ref={editor} id="journal-body" className="studio-rich-editor" contentEditable role="textbox" aria-label="Your reflection" aria-multiline="true" data-placeholder="Write your reflection, capture a decision, or build a checklist…" suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: storedRichText }} onInput={commit} onBlur={commit} onPaste={onPaste} onDrop={onEditorDrop} onClick={onEditorClick} />
     <StudioMediaTools note={note} firestoreUserId={firestoreUserId} onAddAttachment={addAttachment} onEmbed={embed} />
@@ -386,8 +375,8 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
     element.style.height = `${Math.min(element.scrollHeight, 144)}px`
   }
   useEffect(() => { resizeTitle(titleInput.current) }, [note.id, note.title])
-  return <main className="journal-detail journal-studio-editor">
-    <div className="journal-detail-topbar"><Link className="text-button studio-back-to-notes" to="/journal"><ArrowLeft size=".75rem" />Journal</Link><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
+  return <section className="journal-detail journal-studio-editor" aria-label="Active journal entry">
+    <div className="journal-detail-topbar"><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
     <section className="journal-editor journal-paper" aria-label="Journal entry studio">
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
       <label htmlFor="journal-title" className="sr-only">Note title</label><textarea ref={titleInput} id="journal-title" className="journal-title-input" rows={1} value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onInput={(event) => resizeTitle(event.currentTarget)} onChange={(event) => update({ title: event.target.value })} />
@@ -395,28 +384,40 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
       <StudioRichEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} />
       <div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · private journal studio</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div>
     </section>
-  </main>
+  </section>
 }
 
 function JournalStudio({ notes, selected, dispatch, storageAvailable, firestoreUserId, onCreate, onDelete }: { notes: NoteCard[]; selected: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void; onDelete: (note: NoteCard) => void }) {
   return <div className="journal-studio">
     <aside className="journal-studio-rail" aria-label="Journal entries"><div className="journal-studio-rail-heading"><div><span className="eyebrow">Journal studio</span><h2>Journal</h2></div><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".875rem" /></button></div><NoteList notes={notes} selectedId={selected.id} compact /><div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo journal entry' : 'Sign in with Google to create a photo journal entry'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div></aside>
+    <div className="journal-mobile-switcher"><details><summary><span><span className="eyebrow">Journal Studio</span><strong>{displayTitle(selected)}</strong></span><ChevronDown size=".9375rem" aria-hidden="true" /></summary><div className="journal-mobile-switcher-drawer"><NoteList notes={notes} selectedId={selected.id} compact /></div></details><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".9375rem" /></button></div>
     <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onDelete={onDelete} />
   </div>
 }
 
 export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDeleteCard, storageAvailable, firestoreUserId }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; onDeleteCard: (card: JourneyCard) => void; storageAvailable: boolean; firestoreUserId: string | null }) {
+  const [query] = useSearchParams()
+  const creationRequested = useRef(false)
   const notes = cards.filter((card): card is NoteCard => card.type === 'note')
-  const selected = cardId ? notes.find((note) => note.id === cardId) : undefined
+  const mostRecent = [...notes].sort((first, second) => updated(second).getTime() - updated(first).getTime())[0]
+  const selected = cardId ? notes.find((note) => note.id === cardId) : mostRecent
   const create = (kind: JournalNoteKind) => {
-    const card: NoteCard = { id: makeId('note'), type: 'note', noteKind: kind, title: '', body: '', richText: '<p><br></p>', tags: [], pinned: false, date: FOCUS_DATE, side: 'right', context: 'A private journal entry', category: 'Personal', updatedAt: new Date().toISOString() }
+    const card: NoteCard = { id: makeId('note'), type: 'note', noteKind: kind, title: '', body: '', richText: '<p><br></p>', tags: [], pinned: false, date: localDate(), side: 'right', context: 'A private journal entry', category: 'Personal', updatedAt: new Date().toISOString() }
     dispatch({ type: 'add-card', card })
     onNavigate({ page: 'journal', cardId: card.id })
   }
+  const wantsNewTextEntry = query.get('new') === 'text' || query.get('create') === 'menu'
+  useEffect(() => {
+    if (creationRequested.current || (!wantsNewTextEntry && notes.length)) return
+    creationRequested.current = true
+    create('text')
+  // A root Journal route is the only place this can run; creation navigates to the new entry.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsNewTextEntry, notes.length])
+
   return <div className="workspace-content journal-workspace-content">
     <JournalHero entryCount={notes.length} />
-    {selected
-      ? <JournalStudio notes={notes} selected={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onCreate={create} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} />
-      : <JournalHub notes={notes} onCreate={create} imageUploadAvailable={!!firestoreUserId} />}
+    {selected ? <JournalStudio notes={notes} selected={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onCreate={create} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} />
+      : <section className="journal-studio-pending" aria-live="polite">Opening a fresh journal entry…</section>}
   </div>
 }

@@ -232,6 +232,11 @@
     :root[data-theme='dark'] .journal-title-input { border-color: #4a6072; }
     :root[data-theme='dark'] .journal-editor-footer, :root[data-theme='dark'] .journal-voice-editor, :root[data-theme='dark'] .journal-image-editor { border-color: #405365; }
     :root[data-theme='dark'] .journal-studio-rail { border-color: #405a70; background: rgb(18 33 49 / 94%); box-shadow: 0 .75rem 1.75rem rgb(0 0 0 / 22%); }
+    :root[data-theme='dark'] .journal-mobile-switcher > details { border-color: #405a70; background: #172a3b; box-shadow: 0 .5rem 1.5rem rgb(0 0 0 / 20%); }
+    :root[data-theme='dark'] .journal-mobile-switcher summary strong { color: #e0ebf3; }
+    :root[data-theme='dark'] .journal-mobile-switcher > .icon-button { border-color: #456278; background: #1c435b; color: #c5ebff; }
+    :root[data-theme='dark'] .journal-mobile-switcher-drawer { border-color: #40596d; }
+    :root[data-theme='dark'] .journal-studio-pending { border-color: #40596d; background: #172a3b; color: #bfd0df; }
     :root[data-theme='dark'] .journal-note-list.is-compact .journal-note-summary:hover, :root[data-theme='dark'] .journal-note-list.is-compact .journal-note-summary.is-selected { border-color: #4d7591; background: #1b3c55; }
     :root[data-theme='dark'] .journal-rail-capture { border-color: #40586c; }
     :root[data-theme='dark'] .journal-rail-capture > button { border-color: #476077; background: #172a3b; color: #c8dced; }

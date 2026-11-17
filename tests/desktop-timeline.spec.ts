@@ -100,6 +100,7 @@ test('desktop workspaces keep active work beside its planning context', async ({
   expect(calendarPanel!.x + calendarPanel!.width).toBeLessThanOrEqual(agendaPanel!.x)
 
   await page.goto('/journal')
-  await expect(page.locator('.journal-recent')).toBeVisible()
+  await expect(page.locator('.journal-studio')).toBeVisible()
+  await expect(page.locator('.journal-hub')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280)
 })

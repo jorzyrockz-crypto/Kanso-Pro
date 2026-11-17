@@ -156,7 +156,10 @@
   .team-members .person-pill { font-size: 0.625rem; }
   .workspace-fineprint { color: var(--theme-text-secondary, #586f84); font-size: 0.625rem; }
   .journal-editor { padding: 1.875rem; }
+  .journal-hero { min-height: 3.75rem; padding: .6875rem 1rem; }
+  .journal-hero-heading h2 { font-size: 1.0625rem; }
   .hero-note h2 { font-family: var(--serif); font-size: 2rem; font-weight: 500; letter-spacing: -0.01875rem; }
+  .journal-hero .journal-hero-heading h2 { font-size: 1.0625rem; }
   .journal-editor-meta { font-size: 0.5625rem; }
   .journal-title-input { font-size: 1.9375rem; }
   .journal-body-input { min-height: 18.75rem; font-size: 1.25rem; line-height: 1.75; }
