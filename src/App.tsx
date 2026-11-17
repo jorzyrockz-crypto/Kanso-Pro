@@ -2,7 +2,7 @@ import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, Chevron
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
-import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, ProjectCard, SpaceNotice, TaskCard, TimelineSourceEntry, Workspace } from './types'
+import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, ProjectCard, Space, SpaceMember, SpaceNotice, TaskCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useSpaces } from './lib/useSpaces'
@@ -282,9 +282,11 @@ function PinnedSpaceNotice({ notice, acknowledgementId, canManage, onAcknowledge
   </section>
 }
 
-function NewCardPage({ cards, members, canEdit, onCancel, onCreate, onUpdate }: {
+function NewCardPage({ cards, members, space, currentMember, canEdit, onCancel, onCreate, onUpdate }: {
   cards: JourneyCard[]
   members: string[]
+  space: Space
+  currentMember: SpaceMember
   canEdit: boolean
   onCancel: () => void
   onCreate: (card: JourneyCard) => void
@@ -300,7 +302,7 @@ function NewCardPage({ cards, members, canEdit, onCancel, onCreate, onUpdate }: 
   return <main id="main-content" tabIndex={-1} className="create-page" aria-labelledby="page-title">
     <PageHeader title={editingCard ? `Edit ${typeLabel}` : 'New card'} description={editingCard ? 'Update the details that keep this card useful across your planning space.' : 'An event, a small step, a bigger idea, or a thought worth keeping.'} />
     <button className="text-button return-to-page" onClick={onCancel}><ArrowLeft size="0.8125rem" />Back to your workspace</button>
-    <Composer key={location.key} options={composerOptions(location.search)} cards={cards} members={members} editingCard={editingCard} onCancel={onCancel} onCreate={onCreate} onUpdate={onUpdate} />
+    <Composer key={location.key} options={composerOptions(location.search)} cards={cards} members={members} eventDefaults={{ owner: currentMember.name, organization: space.kind === 'shared' ? space.name : 'Personal Calendar' }} editingCard={editingCard} onCancel={onCancel} onCreate={onCreate} onUpdate={onUpdate} />
   </main>
 }
 
@@ -677,7 +679,7 @@ export default function App() {
         <Route path="/whats-new" element={<WhatsNewPage onOpenAbout={openAboutUpdates} />} />
         <Route path="/settings" element={<SettingsPage account={account} state={state} storageAvailable={storageAvailable} appearance={appearance} pwa={pwa} calendarSources={calendarSources} onOpenAbout={openAboutUpdates} />} />
         {['/account', '/sign-in'].map((path) => <Route key={path} path={path} element={<AccountPage account={account} state={state} storageAvailable={storageAvailable} />} />)}
-        <Route path="/new" element={<NewCardPage cards={state.cards} members={members.map((candidate) => candidate.name)} canEdit={canEdit} onCancel={cancelComposer} onCreate={createJourneyCard} onUpdate={updateJourneyCard} />} />
+        <Route path="/new" element={<NewCardPage cards={state.cards} members={members.map((candidate) => candidate.name)} space={space} currentMember={member} canEdit={canEdit} onCancel={cancelComposer} onCreate={createJourneyCard} onUpdate={updateJourneyCard} />} />
         <Route path="/timeline" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
