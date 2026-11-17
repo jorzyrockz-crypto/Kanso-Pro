@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import { isNewBuild, OPEN_UPDATE_INTERVAL, RESUME_UPDATE_INTERVAL, shouldCheckOnResume, updateSurface } from './updates'
 
-it('checks on resume only after thirty minutes; the open-app interval is hourly', () => {
+it('checks on resume after one minute and polls a foreground app every five minutes', () => {
   expect(shouldCheckOnResume(100, 100 + RESUME_UPDATE_INTERVAL - 1)).toBe(false)
   expect(shouldCheckOnResume(100, 100 + RESUME_UPDATE_INTERVAL)).toBe(true)
-  expect(OPEN_UPDATE_INTERVAL).toBe(60 * 60_000)
+  expect(RESUME_UPDATE_INTERVAL).toBe(60_000)
+  expect(OPEN_UPDATE_INTERVAL).toBe(5 * 60_000)
 })
 it('never announces an update to first-time users or on an unchanged build', () => {
   expect(isNewBuild(null, '1.1.0+a')).toBe(false)
