@@ -645,6 +645,9 @@ export default function App() {
   }
   const changeFilter = (type: Filter) => {
     setFilter(type)
+    // A filtered Stream can begin in a different month. Clear the prior scroll marker so
+    // both compact menu controls and the backdrop immediately reflect that result set.
+    setVisibleTimelineMonth(null)
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }
   const toggleGap = (key: string) => setOpenGaps((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])

@@ -229,6 +229,35 @@
   .app-footer > span { padding-left: 0.75rem; border-left: 1px solid var(--theme-border, #c5dce9); }
   .toast-region { bottom: calc(var(--bottom-bar-height) + 0.75rem); }
 
+  /* Keep the streamlined Journey controls consistent on tablets: one primary filter
+     menu plus scope, pinned-notice, and Sources doors instead of an overflowing pill rail. */
+  @media (min-width: 681px) and (max-width: 1080px) {
+    .timeline-page .stream-controls { justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
+    .timeline-page .filter-bar { display: none; }
+    .timeline-page .stream-filter-menu { display: block; flex: 1 1 9.5rem; min-width: 8rem; max-width: 14rem; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger { width: 100%; border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
+    .timeline-page .stream-sources-menu .stream-dropdown-trigger { min-width: 0; padding-right: .4375rem; padding-left: .5rem; }
+    .timeline-page .stream-sources-menu .source-summary-label { display: none; }
+    .timeline-page .stream-sources-menu .source-summary-label-compact { display: inline; }
+    .timeline-page .stream-sources-menu .source-summary-shown { display: none; }
+    .timeline-page .stream-reference-controls { margin-left: auto; }
+  }
+
+  /* On phones, preserve full labels and touch targets by giving the two menus their own
+     first row; the scope and optional pinned-notice action remain reachable below. */
+  @media (max-width: 680px) {
+    .timeline-page .stream-controls { flex-wrap: wrap; align-items: center; }
+    .timeline-page .stream-filter-menu { order: 1; flex: 1 1 9rem; }
+    .timeline-page .stream-reference-controls { order: 2; flex: 1 1 9rem; }
+    .timeline-page .team-scope-toggle { order: 3; }
+    .timeline-page .space-update-control { order: 4; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger { border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
+  }
+
   /* Desktop turns the Timeline into a planning desk: the story remains central, while live priorities stay close by. */
   @media (min-width: 1081px) {
     .timeline-page.app-shell { display: grid; grid-template-columns: minmax(0, 1fr) 18.25rem; grid-template-rows: auto minmax(0, 1fr); align-items: start; column-gap: 1.625rem; max-width: 84rem; padding: 0 2rem 1.5rem; }

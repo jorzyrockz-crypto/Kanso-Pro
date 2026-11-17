@@ -92,6 +92,10 @@ test('a shared Space keeps one replaceable Pinned Space Notice outside the Journ
   await expect(page.getByRole('button', { name: 'Show', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Show', exact: true }).click()
   await expect(notice).toContainText('Family-conference plan is confirmed for Friday.')
+  await page.setViewportSize({ width: 375, height: 812 })
+  await expect(page.getByRole('button', { name: 'Edit notice', exact: true })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Team workload scope', exact: true })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
 
   await page.getByRole('button', { name: /Switch workspace, current space: Curriculum Planning/ }).click()
   await page.getByRole('option', { name: /Personal Space/ }).click()

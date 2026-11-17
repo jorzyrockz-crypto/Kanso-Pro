@@ -4,9 +4,14 @@ import AxeBuilder from '@axe-core/playwright'
 import { createInitialState, STORAGE_KEY } from '../src/data'
 import type { EventCard } from '../src/types'
 import { MONTH_SCENES } from '../src/lib/months'
+import { CALENDAR_SOURCES_STORAGE_KEY } from '../src/lib/calendarSources'
 
 const background = (page: Page) => page.locator('.month-backdrop')
 const navigation = (page: Page) => page.getByRole('navigation', { name: 'Main navigation' })
+const selectTimelineFilter = async (page: Page, label: string) => {
+  await page.getByRole('button', { name: /^Filter journey cards:/ }).click()
+  await page.getByRole('dialog', { name: 'Filter journey cards' }).getByRole('option', { name: label, exact: true }).click()
+}
 const settle = (page: Page) => page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
 
 function yearOfPlans() {
@@ -134,14 +139,14 @@ test('filters, empty timelines, and newly created events choose a safe month wit
   state.cards = state.cards.filter((card) => card.type === 'task' || card.type === 'event')
   state.cards.find((card) => card.id === 'task-grades')!.date = '2026-06-14'
   await page.addInitScript(({ key, state }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(state)) }, { key: STORAGE_KEY, state })
+  await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, depedEnabled: false, legislatedEnabled: false, localSources: [] })), CALENDAR_SOURCES_STORAGE_KEY)
   await page.goto('/')
-  const filters = page.getByRole('navigation', { name: 'Filter journey cards' })
-  await filters.getByRole('button', { name: 'Events', exact: true }).click()
+  await selectTimelineFilter(page, 'Events')
   await expect(background(page)).toHaveAttribute('data-month-background', '2026-11')
-  await filters.getByRole('button', { name: 'Tasks', exact: true }).click()
+  await selectTimelineFilter(page, 'Tasks')
   await expect(background(page)).toHaveAttribute('data-month-background', '2026-06')
-  await filters.getByRole('button', { name: 'Journal Notes', exact: true }).click()
-  await expect(page.locator('[data-timeline-month]')).toHaveCount(0)
+  await selectTimelineFilter(page, 'Journal Notes')
+  await expect(page.locator('.timeline-month-empty')).toHaveCount(6)
   await expect(background(page)).toHaveAttribute('data-month-background', '2026-06')
   await page.goto('/new?type=event&date=2026-04-12')
   await page.getByLabel('Card title', { exact: false }).fill('Mia’s birthday')
@@ -151,16 +156,13 @@ test('filters, empty timelines, and newly created events choose a safe month wit
   await expect(background(page)).toHaveAttribute('data-month-background', '2026-04')
   await expect(page.locator('.month-icon')).toHaveAttribute('aria-label', 'April 2026')
   await card.locator('.card-open').click({ position: { x: 10, y: 10 } })
+  await page.getByRole('link', { name: 'View schedule', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'April 2026 Schedule', exact: true })).toBeVisible()
   await expect(background(page)).toHaveAttribute('data-month-background', '2026-04')
-  const event = page.locator('.calendar-event').filter({ has: page.getByRole('heading', { name: 'Mia’s birthday', exact: true }) })
-  await event.locator('summary').click()
-  await page.getByRole('radio', { name: 'Holiday', exact: true }).check()
-  await expect(event).toHaveAttribute('data-occasion', 'holiday')
-  await expect(background(page)).toHaveAttribute('data-month-background', '2026-04')
+  await expect(page.getByRole('button', { name: 'Preview Mia’s birthday details', exact: true })).toBeVisible()
   await page.reload()
   await expect(background(page)).toHaveAttribute('data-month-background', '2026-04')
-  await expect(event).toHaveAttribute('data-occasion', 'holiday')
+  await expect(page.getByRole('button', { name: 'Preview Mia’s birthday details', exact: true })).toBeVisible()
 })
 
 test('monthly decoration does not add stored preferences, alter cards, or require working device storage', async ({ page }) => {

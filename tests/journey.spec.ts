@@ -6,6 +6,11 @@ import { CALENDAR_SOURCES_STORAGE_KEY } from '../src/lib/calendarSources'
 
 const navigation = (page: Page) => page.getByRole('navigation', { name: 'Main navigation' })
 const filters = (page: Page) => page.getByRole('navigation', { name: 'Filter journey cards' })
+const filterTrigger = (page: Page) => page.getByRole('button', { name: /^Filter journey cards:/ })
+const selectTimelineFilter = async (page: Page, label: string) => {
+  await filterTrigger(page).click()
+  await page.getByRole('dialog', { name: 'Filter journey cards' }).getByRole('option', { name: label, exact: true }).click()
+}
 const content = (page: Page) => page.getByRole('main')
 const card = (page: Page, id: string) => page.locator(`[data-card-id="${id}"]`)
 // Click the link surface, not a checklist control layered over its center.
@@ -119,13 +124,18 @@ test('the verified school calendar starts on, while the Timeline keeps only its 
   }
 })
 
-test('responsive Timeline menus provide styled filters and individual Calendar source controls', async ({ page }) => {
+test('responsive Timeline menus provide the streamlined filter, scope, and source controls on tablet and phone', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 900 })
   const sourceTrigger = page.getByRole('button', { name: /^Calendar sources, \d+ shown$/ })
-  await expect(filters(page)).toBeVisible()
+  const filterTrigger = page.getByRole('button', { name: /^Filter journey cards:/ })
+  await expect(filters(page)).toBeHidden()
+  await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: All Stream')
   await expect(sourceTrigger).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Team workload scope', exact: true })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(768)
+
   await page.setViewportSize({ width: 375, height: 812 })
   await expect(filters(page)).toBeHidden()
-  const filterTrigger = page.getByRole('button', { name: /^Filter journey cards:/ })
   await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: All Stream')
   const [filterBox, sourceBox] = await Promise.all([filterTrigger.boundingBox(), sourceTrigger.boundingBox()])
   expect(filterBox).not.toBeNull()
@@ -335,24 +345,24 @@ test('Back restores scroll instead of replaying a stale card-focus request', asy
 })
 
 test('filters individual cards, not entire mixed-type days, and retains the filter across page changes', async ({ page }) => {
-  await filters(page).getByRole('button', { name: 'Journal Notes', exact: true }).click()
+  await selectTimelineFilter(page, 'Journal Notes')
   await expect(page.locator('.journey-card')).toHaveCount(1)
   await expect(page.locator('.journey-card')).toHaveAttribute('data-card-type', 'note')
   await expect(card(page, 'task-grades')).toHaveCount(0)
   await expect(page.locator('.quiet-badge')).toHaveText('Peek 1 card')
-  await filters(page).getByRole('button', { name: 'Tasks', exact: true }).click()
+  await selectTimelineFilter(page, 'Tasks')
   await expect(page.locator('.journey-card')).toHaveCount(1)
   await expect(page.locator('.journey-card')).toHaveAttribute('data-card-type', 'task')
   await expect(card(page, 'evt-oquendo')).toHaveCount(0)
-  await filters(page).getByRole('button', { name: 'Events', exact: true }).click()
+  await selectTimelineFilter(page, 'Events')
   await expect(page.locator('.journey-card')).toHaveCount(2)
   await expect(page.locator('.journey-card:not([data-card-type="event"])')).toHaveCount(0)
-  await filters(page).getByRole('button', { name: 'Projects', exact: true }).click()
+  await selectTimelineFilter(page, 'Projects')
   await expect(page.locator('.journey-card')).toHaveCount(2)
   await expect(page.locator('.journey-card:not([data-card-type="project"])')).toHaveCount(0)
   await navigation(page).getByRole('link', { name: 'Calendar', exact: true }).click()
   await timeline(page)
-  await expect(filters(page).getByRole('button', { name: 'Projects', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(filterTrigger(page)).toHaveAccessibleName('Filter journey cards: Projects')
   await expect(page.locator('.journey-card')).toHaveCount(2)
 })
 
@@ -529,10 +539,10 @@ test('the connected calendar uses real dates and opens same-day pages', async ({
 
 test('Jump to Today finds a due project on the device date', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-11-14T12:00:00Z') })
-  await filters(page).getByRole('button', { name: 'Events', exact: true }).click()
+  await selectTimelineFilter(page, 'Events')
   await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
   await expect(card(page, 'proj-tos')).toHaveClass(/is-highlighted/)
-  await expect(filters(page).getByRole('button', { name: /All Stream/ })).toHaveAttribute('aria-pressed', 'true')
+  await expect(filterTrigger(page)).toHaveAccessibleName('Filter journey cards: All Stream')
 })
 
 test('Jump to Today floats above bottom navigation and moves into the content canvas in landscape side-rail mode', async ({ page }) => {
