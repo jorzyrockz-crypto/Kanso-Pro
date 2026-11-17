@@ -3,8 +3,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { Link } from 'react-router-dom'
 import type { Dispatch, ReactNode, RefObject } from 'react'
 import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
-import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, projectStatus, shortDate, TYPE_CONFIG } from '../lib/journey'
-import { Avatar, AvatarStack, ProgressBar, TypeIcon } from './Common'
+import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, shortDate, TYPE_CONFIG } from '../lib/journey'
+import { Avatar, ProgressBar, TypeIcon } from './Common'
 import { destinationPath } from '../lib/navigation'
 import { occasionLabel, resolveOccasion } from '../lib/occasions'
 import { OccasionArtwork } from './OccasionArtwork'
@@ -140,32 +140,34 @@ function NoteJourneyCard({ card, highlight, onPreview }: { card: NoteCard; highl
   )
 }
 
+function timelineDate() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function projectDueState(card: ProjectCard, percent: number) {
+  if (percent === 100) return { text: 'Complete', tone: 'is-complete' }
+  const days = daysBetween(timelineDate(), card.dueDate)
+  if (days < 0) return { text: `${Math.abs(days)}d overdue`, tone: 'is-overdue' }
+  if (days === 0) return { text: 'Due today', tone: 'is-today' }
+  if (days === 1) return { text: 'Due tomorrow', tone: 'is-upcoming' }
+  return { text: `${days}d left`, tone: 'is-upcoming' }
+}
+
 function ProjectJourneyCard({ card, highlight, onPreview }: { card: ProjectCard; highlight: boolean; onPreview: () => void }) {
   const { done, total, percent } = progress(card.subtasks)
-  if (!card.featured) return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="sprint-card">
-      <div className="card-topline">
-        <span className="badge type-badge"><Zap size="0.6875rem" />Project Sprint</span>
-        <span className="on-track"><span className="status-dot" />{percent === 100 ? 'Completed' : 'On track'}</span>
+  const nextMilestone = card.subtasks.find((item) => !item.done)
+  const due = projectDueState(card, percent)
+  return (
+    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className={`project-stream-card ${card.featured ? 'featured-project-card' : 'sprint-card'}`}>
+      <div className="card-topline project-stream-topline">
+        <span className="badge type-badge"><Zap size="0.6875rem" />Project</span>
+        <span className={`timeline-project-due ${due.tone}`}>{due.text}</span>
       </div>
       <h3>{card.title}</h3>
-      <p className="card-caption">{card.team.length} Collaborators <span className="meta-dot">·</span> {card.context}</p>
+      <p className="project-next-milestone"><Flag size="0.6875rem" aria-hidden="true" />{nextMilestone ? `Next: ${nextMilestone.title}` : 'All milestones completed'}</p>
       <ProgressBar value={percent} label={`${card.title} progress`} />
-      <div className="sprint-footer"><span><strong>{done}</strong> / {total} milestones complete</span><span className="footer-link">Open project <ArrowRight size="0.75rem" /></span></div>
-    </CardFrame>
-  )
-  return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="featured-project-card">
-      <div className="project-heading">
-        <div><h3>{card.title}</h3><p className="card-caption">Due Date: {shortDate(card.dueDate)} <span className="meta-dot">·</span> {card.context || 'Personal Project'}</p></div>
-        <span className="project-orb"><Zap size="1.4375rem" strokeWidth={1.8} /></span>
-      </div>
-      <div className="project-meta">
-        <AvatarStack names={card.team} />
-        <span className={`project-status ${percent === 100 ? 'is-complete' : ''}`}><span className="status-dot" />{projectStatus(percent)}</span>
-      </div>
-      <ProgressBar value={percent} label={`${card.title} progress`} />
-      <div className="project-footer"><span><strong>{done}</strong> / {total} milestones complete</span><strong>{percent}%</strong></div>
+      <div className="card-footer project-stream-footer"><span>{percent}% · {done} of {total} milestones</span><Link className="footer-link interactive" to={destinationPath({ page: 'project', cardId: card.id })}>Open project <ArrowRight size="0.75rem" /></Link></div>
     </CardFrame>
   )
 }
@@ -192,23 +194,27 @@ function sourceEntryDate(entry: TimelineSourceEntry) {
 function TimelineSourceCard({ entry, onPreview }: { entry: TimelineSourceEntry; onPreview: () => void }) {
   const isSchoolCalendar = entry.sourceId === 'deped-sy-2026-2027'
   const isLegislated = entry.sourceId === 'deped-legislated-activities'
+  const isDepEdReference = isSchoolCalendar || isLegislated
   const SourceIcon = isSchoolCalendar ? School : isLegislated ? Landmark : FileText
   const visualClass = isSchoolCalendar ? 'source-school-calendar' : isLegislated ? 'source-legislated-activity' : 'source-local-memo'
   const illustration = isLegislated ? legislatedActivityIllustration(entry.title) : undefined
+  const footer = isDepEdReference ? 'DO 009, s. 2026 · Reference only' : 'Calendar source · Reference only'
   return <article id={`source-${entry.id}`} className={`journey-card calendar-source-event timeline-source-card ${visualClass}${illustration ? ` legislated-illustration-${illustration}` : ''}`} data-source-id={entry.sourceId} data-card-type="calendar-source" data-illustration={illustration}>
     <button type="button" className="timeline-source-open" onClick={onPreview} aria-label={`Preview ${entry.title} details`} />
-    <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge">{entry.sourceLabel}</span></div>
+    <div className="calendar-source-event-meta"><span><CalendarDays size="0.75rem" />{sourceEntryDate(entry)}</span><span className="badge source-reference-badge" title={entry.sourceProvenance} aria-label={`${entry.sourceLabel}. ${entry.sourceProvenance}`}>{entry.sourceLabel}</span></div>
     <h3>{entry.title}</h3>
-    <p>{entry.detail ?? entry.sourceProvenance}</p>
-    <div className="calendar-source-event-note"><SourceIcon size="0.75rem" aria-hidden="true" />{isLegislated ? 'Legislated annual observance · reference only' : isSchoolCalendar ? 'DepEd school calendar · reference only' : 'Calendar source · reference only, not a personal card'}</div>
+    {entry.detail && <p>{entry.detail}</p>}
+    {!isDepEdReference && !entry.detail && <p>{entry.sourceProvenance}</p>}
+    <div className="calendar-source-event-note"><SourceIcon size="0.75rem" aria-hidden="true" />{footer}</div>
   </article>
 }
 
-function DayRow({ entry, dispatch, highlightId, onPreview }: { entry: DayEntry; dispatch: Dispatch<JourneyAction>; highlightId: string | null; onPreview: (item: TimelineItem) => void }) {
+function DayRow({ entry, today, dispatch, highlightId, onPreview }: { entry: DayEntry; today: string; dispatch: Dispatch<JourneyAction>; highlightId: string | null; onPreview: (item: TimelineItem) => void }) {
   const ref = useReveal()
   const first = entry.cards[0]
   const firstIsSource = isTimelineSourceEntry(first)
   const isMonday = formatDate(entry.date, { weekday: 'short' }) === 'Mon'
+  const isToday = entry.date === today
   const itemsForSide = (side: 'left' | 'right') => entry.cards.filter((card) => card.side === side)
   return (
     <section ref={ref} className="journey-row day-row" data-timeline-month={entry.date.slice(0, 7)} aria-label={formatDate(entry.date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}>
@@ -221,11 +227,12 @@ function DayRow({ entry, dispatch, highlightId, onPreview }: { entry: DayEntry; 
         ? <TimelineSourceCard key={card.id} entry={card} onPreview={() => onPreview(card)} />
         : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} onPreview={() => onPreview(card)} />
       )}</div>
-      <div className="date-node-wrapper">
-        <Link className={`date-node ${!firstIsSource && first.type === 'project' ? 'date-project' : isMonday ? 'date-monday' : ''}`}
+      <div className={`date-node-wrapper ${isToday ? 'is-today' : ''}`}>
+        <Link className={`date-node ${isToday ? 'date-today' : ''} ${!firstIsSource && first.type === 'project' ? 'date-project' : isMonday ? 'date-monday' : ''}`} data-date={entry.date}
           to={firstIsSource ? `/calendar?date=${entry.date}` : destinationPath({ page: TYPE_CONFIG[first.type].workspace, cardId: first.id })}
-          aria-label={firstIsSource ? `View ${formatDate(entry.date, { month: 'long', day: 'numeric' })} in Calendar` : `Open ${formatDate(entry.date, { month: 'long', day: 'numeric' })} details`}>
-          <span>{formatDate(entry.date, { weekday: 'short' })}</span><strong>{entry.date.slice(8)}</strong>
+          aria-current={isToday ? 'date' : undefined}
+          aria-label={isToday ? `Today, ${formatDate(entry.date, { weekday: 'long', month: 'long', day: 'numeric' })}` : firstIsSource ? `View ${formatDate(entry.date, { month: 'long', day: 'numeric' })} in Calendar` : `Open ${formatDate(entry.date, { month: 'long', day: 'numeric' })} details`}>
+          {isToday && <em className="date-node-today" aria-hidden="true">Today</em>}<span>{formatDate(entry.date, { weekday: 'short' })}</span><strong>{entry.date.slice(8)}</strong>
         </Link>
       </div>
       <div className="card-column card-col-right">{itemsForSide('right').map((card) => isTimelineSourceEntry(card)
@@ -308,8 +315,9 @@ function DesktopPlanningRail({ cards, today, rolloverCandidates, dispatch, onCom
   const scheduledCards = cards.filter((card) => !card.backlog && !card.quiet)
   const actionableCards = scheduledCards.filter((card): card is Exclude<JourneyCard, NoteCard> => card.type !== 'note')
   const todayCards = actionableCards.filter((card) => card.date === today || (card.type === 'project' && card.dueDate === today))
+  const todayCardIds = new Set(todayCards.map((card) => card.id))
   const upcomingCards = actionableCards.filter((card) => plannedDate(card) > today).sort((first, second) => plannedDate(first).localeCompare(plannedDate(second))).slice(0, 3)
-  const unfinishedTasks = scheduledCards.filter((card): card is TaskCard => card.type === 'task' && card.subtasks.some((item) => !item.done)).sort((first, second) => first.date.localeCompare(second.date)).slice(0, 3)
+  const unfinishedTasks = scheduledCards.filter((card): card is TaskCard => card.type === 'task' && !todayCardIds.has(card.id) && card.subtasks.some((item) => !item.done)).sort((first, second) => first.date.localeCompare(second.date)).slice(0, 3)
   const activeProjects = scheduledCards.filter((card): card is ProjectCard => card.type === 'project' && progress(card.subtasks).percent < 100).sort((first, second) => first.dueDate.localeCompare(second.dueDate)).slice(0, 3)
   const triageCards = rolloverCandidates.slice(0, 3)
   const taskDetail = (card: TaskCard) => {
@@ -401,7 +409,7 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
       const key = `${entry.start}-${entry.end}`
       return <QuietDays key={`${key}-${filter}`} entry={entry} onCompose={onCompose} expanded={openGaps.includes(key)} onToggle={() => onToggleGap(key)} highlightId={highlightId} onPreview={openPreview} />
     }
-    return <DayRow key={entry.date} entry={entry} dispatch={dispatch} highlightId={highlightId} onPreview={openPreview} />
+    return <DayRow key={entry.date} entry={entry} today={rolloverDate} dispatch={dispatch} highlightId={highlightId} onPreview={openPreview} />
   }
   const firstMonth = months[0]
   const lastMonth = months.at(-1)

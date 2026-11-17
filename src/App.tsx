@@ -270,8 +270,8 @@ export default function App() {
   const handledFocusKey = useRef<string | null>(null)
   const timelineRef = useRef<HTMLElement>(null)
   const today = currentLocalDate()
-  const todayTarget = useMemo(() => cardOnDate(state.cards, today), [state.cards, today])
   const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
+  const [showJumpToday, setShowJumpToday] = useState(false)
   const [pendingToday, setPendingToday] = useState<string | null>(null)
   const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
   const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
@@ -346,16 +346,25 @@ export default function App() {
   useEffect(() => {
     if (location.pathname !== '/') return
     let frame = 0
-    const updateDirection = () => {
+    const updateJumpControl = () => {
       frame = 0
-      const target = (todayTarget && document.getElementById(`card-${todayTarget.id}`))
-        ?? document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${today.slice(0, 7)}"]`)
+      const todayNode = document.querySelector<HTMLElement>(`.date-node[data-date="${today}"]`)
+      const fallbackMonth = document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${today.slice(0, 7)}"]`)
+      const target = todayNode ?? fallbackMonth
       const headerBottom = document.querySelector('.stream-header')?.getBoundingClientRect().bottom ?? 0
-      const nextDirection = target && target.getBoundingClientRect().bottom < headerBottom ? 'up' : 'down'
+      const sidebar = getComputedStyle(document.documentElement).getPropertyValue('--navigation-layout').trim() === 'sidebar'
+      const viewportBottom = sidebar ? window.innerHeight : document.querySelector('.bottom-bar')?.getBoundingClientRect().top ?? window.innerHeight
+      const bounds = target?.getBoundingClientRect()
+      // A month marker is only a fallback for jumping when today's row is empty. Keep the
+      // control available in that case; otherwise it appears only once the actual date node
+      // has left the reading viewport.
+      const todayIsVisible = !!todayNode && !!bounds && bounds.top >= headerBottom && bounds.bottom <= viewportBottom
+      setShowJumpToday((current) => current === !todayIsVisible ? current : !todayIsVisible)
+      const nextDirection = bounds && bounds.bottom < headerBottom ? 'up' : 'down'
       setJumpDirection((current) => current === nextDirection ? current : nextDirection)
     }
-    const requestUpdate = () => { if (!frame) frame = requestAnimationFrame(updateDirection) }
-    updateDirection()
+    const requestUpdate = () => { if (!frame) frame = requestAnimationFrame(updateJumpControl) }
+    updateJumpControl()
     window.addEventListener('scroll', requestUpdate, { passive: true })
     window.addEventListener('resize', requestUpdate)
     return () => {
@@ -363,7 +372,7 @@ export default function App() {
       window.removeEventListener('resize', requestUpdate)
       cancelAnimationFrame(frame)
     }
-  }, [filter, todayTarget, location.pathname, entries, today])
+  }, [filter, location.pathname, entries, today])
 
   useEffect(() => {
     const cardId: unknown = location.state?.focusCardId
@@ -393,8 +402,9 @@ export default function App() {
   useEffect(() => {
     if (!pendingToday || location.pathname !== '/') return
     const frame = requestAnimationFrame(() => {
+      const node = document.querySelector<HTMLElement>(`.date-node[data-date="${pendingToday}"]`)
       const month = document.querySelector<HTMLElement>(`.month-marker[data-timeline-month="${pendingToday.slice(0, 7)}"]`)
-      month?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
+      ;(node ?? month)?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: node ? 'center' : 'start' })
       setPendingToday(null)
     })
     return () => cancelAnimationFrame(frame)
@@ -504,7 +514,7 @@ export default function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
-    {location.pathname === '/' && <JumpToToday direction={jumpDirection} onJump={jumpToToday} />}
+    {location.pathname === '/' && showJumpToday && <JumpToToday direction={jumpDirection} onJump={jumpToToday} />}
     <AppFooter />
     <AboutUpdatesDialog open={aboutUpdatesOpen} onClose={closeAboutUpdates} pwa={pwa} />
     <RouteEffects updateReady={pwa.updateReady && !pwa.coarse} />

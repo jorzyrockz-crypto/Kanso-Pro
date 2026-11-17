@@ -177,7 +177,11 @@
   .date-node > strong { margin-top: 0.1875rem; color: var(--theme-text-primary, #172338); font-size: 1.0625rem; line-height: 1.15; font-weight: 800; letter-spacing: -0.025rem; }
   .date-node.date-project > span { color: var(--theme-pink, #bf4069); }
   .date-node.date-monday > span { color: var(--theme-blue, #2f69c7); }
+  .date-node.date-today { border-color: #16a3d9; background: linear-gradient(145deg, #f5fdff, #e1f7ff); box-shadow: 0 0 0 4px #c8f0ff, 0 0 0 7px rgb(29 174 226 / 22%), 0 8px 20px -3px rgb(24 160 217 / 48%); }
+  .date-node.date-today > span, .date-node.date-today > strong { color: #0d6f9e; }
+  .date-node-today { position: absolute; top: calc(100% + .4375rem); left: 50%; padding: .125rem .375rem; border-radius: 999px; background: #0d87bc; color: #fff; font-size: .40625rem; font-style: normal; font-weight: 850; letter-spacing: .075rem; line-height: 1.45; text-transform: uppercase; transform: translateX(-50%); box-shadow: 0 .1875rem .5rem rgb(14 134 186 / 25%); }
   .day-row:hover .date-node { transform: scale(1.065); box-shadow: 0 8px 22px -2px rgb(41 182 246 / 35%), 0 0 0 5px var(--theme-ring, rgb(186 230 253 / 80%)); }
+  .day-row:hover .date-node.date-today { box-shadow: 0 0 0 4px #c8f0ff, 0 0 0 7px rgb(29 174 226 / 28%), 0 10px 23px -3px rgb(24 160 217 / 55%); }
   .tether { position: absolute; top: 50%; z-index: 1; width: 2.125rem; height: 0.125rem; transform: scaleX(0); transition: transform .5s cubic-bezier(.22, 1, .36, 1) .15s; }
   .is-visible .tether { transform: scaleX(1); }
   .tether-left { right: calc(50% + 1.5625rem); }
@@ -332,6 +336,19 @@
   .sprint-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.3125rem; margin-top: 0.5625rem; color: var(--theme-text-secondary, #6a778c); font-size: 0.6125rem; font-weight: 650; }
   .sprint-footer strong { color: var(--theme-text-primary, #46526a); }
   .sprint-footer .footer-link { color: var(--theme-violet, #7065c9); font-size: 0.59375rem; font-weight: 800; }
+  .project-stream-card { border-color: #d9d4f1; background: linear-gradient(145deg, var(--theme-surface, #fff), #f8f8ff); }
+  .project-stream-card .type-badge { border-color: #dad4f7; background: var(--theme-violet-soft, #f0efff); color: var(--theme-violet, #6255ad); font-size: .525rem; }
+  .project-stream-topline { margin-bottom: .625rem; }
+  .timeline-project-due { display: inline-flex; align-items: center; padding: .1875rem .4375rem; border-radius: 999px; background: #eef0ff; color: #6156a8; font-size: .53125rem; font-weight: 800; line-height: 1.4; white-space: nowrap; }
+  .timeline-project-due.is-today { background: var(--theme-warm-soft, #fff8e7); color: var(--theme-warm, #a76c23); }
+  .timeline-project-due.is-overdue { background: var(--theme-danger-soft, #fff0f2); color: var(--theme-danger, #af5362); }
+  .timeline-project-due.is-complete { background: var(--theme-green-soft, #eaf8f0); color: var(--theme-green, #197b61); }
+  .project-next-milestone { display: flex; align-items: flex-start; gap: .3125rem; margin-top: .4375rem; color: var(--theme-text-secondary, #606d84); font-size: .6rem; font-weight: 650; line-height: 1.55; overflow-wrap: anywhere; }
+  .project-next-milestone > svg { flex: 0 0 auto; margin-top: .125rem; color: var(--theme-violet, #7065c9); }
+  .project-stream-card .progress-track { height: .3125rem; margin-top: .8125rem; }
+  .project-stream-card .progress-fill { background: linear-gradient(90deg, #756ee0, #45bde7); }
+  .project-stream-footer { margin-top: .625rem; color: var(--theme-text-secondary, #657189); font-size: .56875rem; }
+  .project-stream-footer .footer-link { color: var(--theme-violet, #655abe); font-size: .58125rem; font-weight: 800; }
 
   /* Quiet days / foldable buffer */
   .quiet-row { z-index: 5; margin: 0.125rem 0 2.0625rem; }
@@ -458,6 +475,8 @@
   .timeline-source-card:has(.timeline-source-open:active) { transform: scale(.985); }
   .timeline-source-open { position: absolute; inset: 0; z-index: 1; border-radius: inherit; outline: none; background: transparent; }
   .timeline-source-card > :not(.timeline-source-open) { position: relative; z-index: 2; pointer-events: none; }
+  .timeline-source-card > .calendar-source-event-meta .source-reference-badge { pointer-events: auto; cursor: help; }
+  .timeline-source-card .calendar-source-event-note { margin-top: .625rem; padding-top: .5625rem; color: #698095; font-size: .5rem; line-height: 1.45; }
   .calendar-source-event.timeline-source-card h3 { margin: 0.5625rem 0 0.3125rem; color: #274662; font-size: 0.875rem; line-height: 1.5; font-weight: 800; letter-spacing: -0.01875rem; }
   .calendar-source-event.timeline-source-card.source-legislated-activity h3 { color: #674414; }
 
