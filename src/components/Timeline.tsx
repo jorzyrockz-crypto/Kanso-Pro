@@ -32,20 +32,19 @@ function useReveal() {
   return ref
 }
 
-function CardFrame({ card, className = '', highlight, children, artwork, onPreview }: {
+function CardFrame({ card, className = '', highlight, children, artwork }: {
   card: JourneyCard
   className?: string
   highlight?: boolean
   children: ReactNode
   artwork?: ReactNode
-  onPreview: () => void
 }) {
+  const destination = destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })
   return (
     <article id={`card-${card.id}`} data-card-id={card.id} data-card-type={card.type} data-occasion={card.type === 'event' ? resolveOccasion(card) : undefined}
       className={`journey-card card-${card.type} ${className} ${highlight ? 'is-highlighted' : ''}`}>
       {artwork}
-      <button type="button" className="card-open" onClick={onPreview}
-        aria-label={`Preview ${card.title || 'Untitled reflection'} details`} />
+      <Link className="card-open" to={destination} aria-label={`Open ${card.title || 'Untitled reflection'} details`} />
       <div className="card-content">{children}</div>
     </article>
   )
@@ -54,7 +53,7 @@ function CardFrame({ card, className = '', highlight, children, artwork, onPrevi
 function EventJourneyCard({ card, highlight, onPreview }: { card: EventCard; highlight: boolean; onPreview: () => void }) {
   const theme = resolveOccasion(card)
   if (theme !== 'none') return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />}>
+    <CardFrame card={card} highlight={highlight} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />}>
       <div className="card-topline">
         <span className="badge occasion-event-badge">{card.holiday ? <Flag size="0.6875rem" /> : <CalendarDays size="0.6875rem" />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
         <button type="button" className="icon-button card-menu interactive" onClick={onPreview} aria-label={`Preview details for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
@@ -65,7 +64,7 @@ function EventJourneyCard({ card, highlight, onPreview }: { card: EventCard; hig
     </CardFrame>
   )
   if (card.holiday) return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="holiday-card">
+    <CardFrame card={card} highlight={highlight} className="holiday-card">
       <div className="card-topline">
         <span className="badge holiday-badge"><Flag size="0.75rem" />PH HOLIDAY</span>
         <div className="person-actions">
@@ -83,7 +82,7 @@ function EventJourneyCard({ card, highlight, onPreview }: { card: EventCard; hig
     </CardFrame>
   )
   return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="standard-event-card">
+    <CardFrame card={card} highlight={highlight} className="standard-event-card">
       <div className="card-topline event-topline">
         <span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span>
         <div className="person-actions">
@@ -100,10 +99,10 @@ function EventJourneyCard({ card, highlight, onPreview }: { card: EventCard; hig
   )
 }
 
-function TaskJourneyCard({ card, dispatch, highlight, onPreview }: { card: TaskCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; onPreview: () => void }) {
+function TaskJourneyCard({ card, dispatch, highlight }: { card: TaskCard; dispatch: Dispatch<JourneyAction>; highlight: boolean }) {
   const { done, total } = progress(card.subtasks)
   return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview}>
+    <CardFrame card={card} highlight={highlight}>
       <div className="card-topline task-topline">
         <span className="badge type-badge"><TypeIcon type="task" size={12} />Task list</span>
         {card.reminder && <span className="reminder-pill"><Bell size="0.6875rem" />{formatTime(card.reminder)}</span>}
@@ -123,9 +122,9 @@ function TaskJourneyCard({ card, dispatch, highlight, onPreview }: { card: TaskC
   )
 }
 
-function NoteJourneyCard({ card, highlight, onPreview }: { card: NoteCard; highlight: boolean; onPreview: () => void }) {
+function NoteJourneyCard({ card, highlight }: { card: NoteCard; highlight: boolean }) {
   return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className="journal-paper">
+    <CardFrame card={card} highlight={highlight} className="journal-paper">
       <div className="card-topline note-topline">
         <span className="badge type-badge"><TypeIcon type="note" size={11} />Journal Note</span>
         <span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size="0.625rem" />Pinned</>}</span>
@@ -154,12 +153,12 @@ function projectDueState(card: ProjectCard, percent: number) {
   return { text: `${days}d left`, tone: 'is-upcoming' }
 }
 
-function ProjectJourneyCard({ card, highlight, onPreview }: { card: ProjectCard; highlight: boolean; onPreview: () => void }) {
+function ProjectJourneyCard({ card, highlight }: { card: ProjectCard; highlight: boolean }) {
   const { done, total, percent } = progress(card.subtasks)
   const nextMilestone = card.subtasks.find((item) => !item.done)
   const due = projectDueState(card, percent)
   return (
-    <CardFrame card={card} highlight={highlight} onPreview={onPreview} className={`project-stream-card ${card.featured ? 'featured-project-card' : 'sprint-card'}`}>
+    <CardFrame card={card} highlight={highlight} className={`project-stream-card ${card.featured ? 'featured-project-card' : 'sprint-card'}`}>
       <div className="card-topline project-stream-topline">
         <span className="badge type-badge"><Zap size="0.6875rem" />Project</span>
         <span className={`timeline-project-due ${due.tone}`}>{due.text}</span>
@@ -167,7 +166,7 @@ function ProjectJourneyCard({ card, highlight, onPreview }: { card: ProjectCard;
       <h3>{card.title}</h3>
       <p className="project-next-milestone"><Flag size="0.6875rem" aria-hidden="true" />{nextMilestone ? `Next: ${nextMilestone.title}` : 'All milestones completed'}</p>
       <ProgressBar value={percent} label={`${card.title} progress`} />
-      <div className="card-footer project-stream-footer"><span>{percent}% · {done} of {total} milestones</span><Link className="footer-link interactive" to={destinationPath({ page: 'project', cardId: card.id })}>Open project <ArrowRight size="0.75rem" /></Link></div>
+      <div className="card-footer project-stream-footer"><span className={`project-status ${percent === 100 ? 'is-complete' : ''}`}>{percent === 100 ? 'Completed' : 'Pending'}</span><span>{percent}% · {done} of {total} milestones</span><Link className="footer-link interactive" to={destinationPath({ page: 'project', cardId: card.id })}>Open project <ArrowRight size="0.75rem" /></Link></div>
     </CardFrame>
   )
 }
@@ -175,9 +174,9 @@ function ProjectJourneyCard({ card, highlight, onPreview }: { card: ProjectCard;
 function JourneyCardView({ card, dispatch, highlight, onPreview }: { card: JourneyCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; onPreview: () => void }) {
   switch (card.type) {
     case 'event': return <EventJourneyCard card={card} highlight={highlight} onPreview={onPreview} />
-    case 'task': return <TaskJourneyCard card={card} dispatch={dispatch} highlight={highlight} onPreview={onPreview} />
-    case 'note': return <NoteJourneyCard card={card} highlight={highlight} onPreview={onPreview} />
-    case 'project': return <ProjectJourneyCard card={card} highlight={highlight} onPreview={onPreview} />
+    case 'task': return <TaskJourneyCard card={card} dispatch={dispatch} highlight={highlight} />
+    case 'note': return <NoteJourneyCard card={card} highlight={highlight} />
+    case 'project': return <ProjectJourneyCard card={card} highlight={highlight} />
   }
 }
 
@@ -243,7 +242,7 @@ function DayRow({ entry, today, dispatch, highlightId, onPreview }: { entry: Day
   )
 }
 
-function QuietDays({ entry, onCompose, expanded, onToggle, highlightId, onPreview }: { entry: GapEntry; onCompose: (options?: ComposerOptions) => void; expanded: boolean; onToggle: () => void; highlightId: string | null; onPreview: (card: JourneyCard) => void }) {
+function QuietDays({ entry, onCompose, expanded, onToggle, highlightId }: { entry: GapEntry; onCompose: (options?: ComposerOptions) => void; expanded: boolean; onToggle: () => void; highlightId: string | null }) {
   const ref = useReveal()
   const drawerId = `quiet-${entry.start}-${entry.end}`
   return (
@@ -260,9 +259,9 @@ function QuietDays({ entry, onCompose, expanded, onToggle, highlightId, onPrevie
             <button className="text-button" onClick={() => onCompose({ date: addDays(entry.start, Math.min(2, Math.floor(daysBetween(entry.start, entry.end) / 2))) })}><Plus size="0.6875rem" />Insert card here</button>
           </div>
           {entry.cards.length ? <div className="quiet-items">{entry.cards.map((card) => (
-            <button key={card.id} id={`card-${card.id}`} type="button" className={`quiet-item quiet-item-${card.type} ${highlightId === card.id ? 'is-highlighted' : ''}`} onClick={() => onPreview(card)}>
+            <Link key={card.id} id={`card-${card.id}`} className={`quiet-item quiet-item-${card.type} ${highlightId === card.id ? 'is-highlighted' : ''}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
               <TypeIcon type={card.type} size={17} /><span><strong>{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })}:</strong> {card.title}</span><ChevronRight size="0.8125rem" />
-            </button>
+            </Link>
           ))}</div> : <p className="quiet-empty">Nothing planned. Keep it open, or plant a new idea.</p>}
         </div>}
       </div>
@@ -407,7 +406,7 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
   const renderEntry = (entry: TimelineEntry) => {
     if (entry.kind === 'gap') {
       const key = `${entry.start}-${entry.end}`
-      return <QuietDays key={`${key}-${filter}`} entry={entry} onCompose={onCompose} expanded={openGaps.includes(key)} onToggle={() => onToggleGap(key)} highlightId={highlightId} onPreview={openPreview} />
+      return <QuietDays key={`${key}-${filter}`} entry={entry} onCompose={onCompose} expanded={openGaps.includes(key)} onToggle={() => onToggleGap(key)} highlightId={highlightId} />
     }
     return <DayRow key={entry.date} entry={entry} today={rolloverDate} dispatch={dispatch} highlightId={highlightId} onPreview={openPreview} />
   }

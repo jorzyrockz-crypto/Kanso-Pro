@@ -4,12 +4,54 @@ export type Workspace = 'calendar' | 'tasks' | 'project' | 'journal'
 export type Side = 'left' | 'right'
 export type OccasionTheme = 'birthday' | 'celebration' | 'holiday' | 'remembrance' | 'school' | 'learning' | 'wellbeing' | 'community' | 'environment' | 'culture' | 'sports'
 export type OccasionChoice = 'auto' | 'none' | OccasionTheme
+export type SpaceKind = 'personal' | 'shared'
+export type SpaceRole = 'owner' | 'editor' | 'viewer'
+export type Presence = 'online' | 'away' | 'offline'
+
+/** A lightweight, local-first identity used in a Space. Firebase auth can enrich it when available. */
+export interface SpaceMember {
+  id: string
+  name: string
+  email?: string
+  role: SpaceRole
+  presence: Presence
+}
+
+export interface Space {
+  id: string
+  name: string
+  kind: SpaceKind
+  ownerId: string
+  members: SpaceMember[]
+  joinCode: string
+  createdAt: string
+}
+
+export interface SpaceActivity {
+  id: string
+  kind: 'invite' | 'assignment' | 'completion' | 'comment' | 'note' | 'member'
+  title: string
+  detail: string
+  href: string
+  createdAt: string
+  actor?: string
+}
+
+export interface ChecklistComment {
+  id: string
+  body: string
+  author: string
+  createdAt: string
+}
 
 export interface ChecklistItem {
   id: string
   title: string
   done: boolean
   assignee?: string
+  completedBy?: string
+  completedAt?: string
+  comments?: ChecklistComment[]
   /** Optional short planning tag, such as Q1, Procurement, or MOOE. */
   label?: string
   /** A milestone can carry a date independent from the overall project due date. */
@@ -33,6 +75,9 @@ interface BaseCard {
   /** Parked cards remain in their workspace but do not appear in the scheduled Timeline. */
   backlog?: boolean
   isCustom?: boolean
+  /** Display attribution for shared-space cards. Personal cards may omit it. */
+  authoredBy?: string
+  lastEditedBy?: string
 }
 
 export interface EventCard extends BaseCard {
@@ -120,15 +165,24 @@ export interface JourneyState {
   bezel: boolean
 }
 
+/** Persisted envelope: each Space owns an entirely separate Journey state. */
+export interface SpacesState {
+  version: 1
+  activeSpaceId: string
+  spaces: Space[]
+  workspaces: Record<string, JourneyState>
+  activity: Record<string, SpaceActivity[]>
+}
+
 export type JourneyAction =
   | { type: 'add-card'; card: JourneyCard }
   | { type: 'update-card'; card: JourneyCard }
   | { type: 'delete-card'; id: string }
-  | { type: 'update-note'; id: string; title?: string; date?: string; context?: string; body?: string; tags?: string[]; category?: string; reminderAt?: string; noteKind?: JournalNoteKind; attachment?: JournalAttachment; attachments?: JournalAttachment[]; richText?: string; updatedAt?: string }
+  | { type: 'update-note'; id: string; title?: string; date?: string; context?: string; body?: string; tags?: string[]; category?: string; reminderAt?: string; noteKind?: JournalNoteKind; attachment?: JournalAttachment; attachments?: JournalAttachment[]; richText?: string; updatedAt?: string; lastEditedBy?: string }
   | { type: 'update-event-background'; id: string; occasion: OccasionChoice }
   | { type: 'rollover-card'; id: string; date: string }
   | { type: 'backlog-card'; id: string }
-  | { type: 'toggle-item'; cardId: string; itemId: string }
+  | { type: 'toggle-item'; cardId: string; itemId: string; actor?: string }
   | { type: 'add-item'; cardId: string; item: ChecklistItem }
   | { type: 'update-item'; cardId: string; item: ChecklistItem }
   | { type: 'delete-item'; cardId: string; itemId: string }

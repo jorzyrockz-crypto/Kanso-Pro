@@ -23,7 +23,7 @@ function savedSidebarState() {
 }
 
 /** The same primary navigation becomes the desktop sidebar through fluid.css. */
-export function BottomNavigation({ onCompose }: { onCompose: (options?: ComposerOptions) => void }) {
+export function BottomNavigation({ onCompose, canEdit = true }: { onCompose: (options?: ComposerOptions) => void; canEdit?: boolean }) {
   const ref = useChromeHeight<HTMLDivElement>('--navigation-height')
   const [collapsed, setCollapsed] = useState(savedSidebarState)
   const location = useLocation()
@@ -55,7 +55,7 @@ export function BottomNavigation({ onCompose }: { onCompose: (options?: Composer
           <Icon size="1.3125rem" strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
         </NavLink>
       })}
-      <button type="button" aria-label={create.label} title={create.label} className={`bottom-nav-link bottom-nav-create${'type' in create ? ` is-${create.type}` : ''}`} onClick={() => page === 'journal' ? navigate('/journal?new=text') : onCompose(options)}>
+      <button type="button" aria-label={canEdit ? create.label : 'View-only space'} title={canEdit ? create.label : 'View-only space'} disabled={!canEdit} className={`bottom-nav-link bottom-nav-create${'type' in create ? ` is-${create.type}` : ''}`} onClick={() => page === 'journal' ? navigate('/journal?new=text') : onCompose(options)}>
         <Plus size="1.3125rem" strokeWidth={2} aria-hidden="true" /><span>{create.label}</span>
       </button>
     </nav>

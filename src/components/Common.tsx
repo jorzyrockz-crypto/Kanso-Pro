@@ -80,9 +80,16 @@ export function AddChecklistItem({ onAdd, placeholder = 'Add an item…', label 
   )
 }
 
-export function SaveIndicator({ available }: { available: boolean }) {
+export function TeamScopeToggle({ scope, memberName, onChange, compact = false }: { scope: 'all' | 'assigned'; memberName: string; onChange: (scope: 'all' | 'assigned') => void; compact?: boolean }) {
+  return <div className={`team-scope-toggle ${compact ? 'is-compact' : ''}`} role="group" aria-label="Team workload scope">
+    <button type="button" className={scope === 'all' ? 'is-active' : ''} aria-pressed={scope === 'all'} onClick={() => onChange('all')}>All Team</button>
+    <button type="button" className={scope === 'assigned' ? 'is-active' : ''} aria-pressed={scope === 'assigned'} onClick={() => onChange('assigned')}>Assigned to Me<span className="sr-only">, {memberName}</span></button>
+  </div>
+}
+
+export function SaveIndicator({ available, shared = false }: { available: boolean; shared?: boolean }) {
   return <span className={`save-indicator ${available ? '' : 'save-warning'}`}>
     {available ? <Check size="0.75rem" /> : <span className="status-dot" />}
-    {available ? 'Saved on this device' : 'Not saved · device storage unavailable'}
+    {available ? shared ? 'Saved & synced' : 'Saved on this device' : 'Not saved · device storage unavailable'}
   </span>
 }

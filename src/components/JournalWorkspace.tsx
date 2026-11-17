@@ -6,7 +6,7 @@ import { getJournalAttachment, JournalAttachmentError, saveJournalAttachment } f
 import { blobAsDataUrl, JournalImageError, optimizeJournalImage } from '../lib/journalImages'
 import { initialJournalRichText, journalRichTextToPlainText, journalRichTextWordCount, sanitizeJournalRichText } from '../lib/journalRichText'
 import { formatDate, makeId, shortDate } from '../lib/journey'
-import type { Destination, JournalAttachment, JournalNoteKind, JourneyAction, JourneyCard, NoteCard } from '../types'
+import type { Destination, JournalAttachment, JournalNoteKind, JourneyAction, JourneyCard, NoteCard, Space, SpaceMember } from '../types'
 import { SaveIndicator } from './Common'
 import { CardDeleteAction } from './CardDeleteAction'
 
@@ -60,7 +60,7 @@ function useAttachmentUrl(attachment?: JournalAttachment) {
   return { url, unavailable }
 }
 
-function useFirestoreImageUrl(firestoreUserId: string | null, attachment?: JournalAttachment) {
+function useFirestoreImageUrl(firestoreUserId: string | null, attachment?: JournalAttachment, space?: Pick<Space, 'id' | 'kind'>) {
   const [url, setUrl] = useState<string | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   useEffect(() => {
@@ -68,13 +68,13 @@ function useFirestoreImageUrl(firestoreUserId: string | null, attachment?: Journ
     setUrl(null)
     setUnavailable(false)
     if (!firestoreUserId || !attachment || attachment.kind !== 'image' || attachment.storage !== 'firestore') return
-    void import('../lib/firestore').then(({ readJournalImage }) => readJournalImage(firestoreUserId, attachment.id)).then((dataUrl) => {
+    void import('../lib/firestore').then(({ readJournalImage }) => readJournalImage(firestoreUserId, attachment.id, space)).then((dataUrl) => {
       if (!active) return
       if (!dataUrl) { setUnavailable(true); return }
       setUrl(dataUrl)
     }).catch(() => active && setUnavailable(true))
     return () => { active = false }
-  }, [attachment?.id, attachment?.storage, firestoreUserId])
+  }, [attachment?.id, attachment?.storage, firestoreUserId, space?.id, space?.kind])
   return { url, unavailable }
 }
 
@@ -90,7 +90,7 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
         const Icon = noteIcon(note)
         return <Link key={note.id} className={`journal-note-summary note-${note.noteKind ?? 'text'} ${note.id === selectedId ? 'is-selected' : ''}`} to={`/journal/${encodeURIComponent(note.id)}`} aria-label={`Open ${noteLabel(note.noteKind ?? 'text')}: ${displayTitle(note)}`}>
           <span className="journal-note-kind"><Icon size="1rem" /></span>
-          <span className="journal-note-copy"><strong>{displayTitle(note)}</strong><small>{note.body.trim() || noteLabel(note.noteKind ?? 'text')}</small><em>{note.category || 'Personal'} · {shortDate(note.date)}</em></span>
+          <span className="journal-note-copy"><strong>{displayTitle(note)}</strong><small>{note.body.trim() || noteLabel(note.noteKind ?? 'text')}</small><em>{note.category || 'Personal'} · {shortDate(note.date)}{note.authoredBy ? ` · ${note.authoredBy}` : ''}</em></span>
           {!compact && <span className="journal-note-tags">{note.tags.slice(0, 2).map((tag) => <i key={tag}>#{tag}</i>)}</span>}<ArrowRight size=".875rem" aria-hidden="true" />
         </Link>
       })}
@@ -99,10 +99,10 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
   </>
 }
 
-function JournalHero({ note, entryCount }: { note: NoteCard; entryCount: number }) {
+function JournalHero({ note, entryCount, shared }: { note: NoteCard; entryCount: number; shared: boolean }) {
   return <section className="workspace-hero hero-note journal-hero" aria-labelledby="journal-hero-title">
-    <div className="hero-copy"><div className="hero-eyebrows"><span className="hero-eyebrow"><FileText size={11} />Journal · private reflections</span><span className="hero-date">{formatDate(note.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
-      <h2 id="journal-hero-title">{displayTitle(note)}</h2><p>{note.context || 'A private place for reflections, voice memos, and visual references.'}</p>
+    <div className="hero-copy"><div className="hero-eyebrows"><span className="hero-eyebrow"><FileText size={11} />{shared ? 'Team Notes · shared live' : 'Journal · private reflections'}</span><span className="hero-date">{formatDate(note.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+      <h2 id="journal-hero-title">{displayTitle(note)}</h2><p>{note.context || (shared ? 'A shared meeting log, decision record, or working note for this Space.' : 'A private place for reflections, voice memos, and visual references.')}</p>
     </div>
     <div className="hero-stat"><span>{entryCount === 1 ? 'Journal entry' : 'Journal entries'}</span><strong>{entryCount}</strong></div>
   </section>
@@ -113,15 +113,15 @@ function localDate() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-function MetadataFields({ note, dispatch }: { note: NoteCard; dispatch: Dispatch<JourneyAction> }) {
+function MetadataFields({ note, dispatch, canEdit }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; canEdit: boolean }) {
   // On a phone the writing surface should appear in the first viewport; supporting fields remain one tap away.
   const [open, setOpen] = useState(() => !window.matchMedia('(max-width: 767px)').matches)
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   return <details className="studio-note-details" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}><summary>Entry details</summary><div className="journal-metadata-fields">
-    <label><Tag size=".75rem" />Tags<input aria-label="Tags, separated by commas" value={note.tags.join(', ')} placeholder="e.g. personal, ideas" onChange={(event) => update({ tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12) })} /></label>
-    <label><span aria-hidden="true">⌂</span>Category<select aria-label="Note category" value={note.category ?? 'Personal'} onChange={(event) => update({ category: event.target.value })}>{categoryOptions.map((category) => <option key={category}>{category}</option>)}</select></label>
-    <label><Clock3 size=".75rem" />Reminder<input aria-label="Note reminder" type="datetime-local" value={note.reminderAt ?? ''} onChange={(event) => update({ reminderAt: event.target.value })} /></label>
-  </div><div className="journal-card-fields"><label>Entry date<input aria-label="Journal entry date" type="date" value={note.date} min="1900-01-01" max="2100-12-31" onChange={(event) => update({ date: event.target.value })} /></label><label>Timeline context<input aria-label="Journal timeline context" value={note.context} maxLength={240} placeholder="A private entry for yourself" onChange={(event) => update({ context: event.target.value })} /></label></div></details>
+    <label><Tag size=".75rem" />Tags<input aria-label="Tags, separated by commas" disabled={!canEdit} value={note.tags.join(', ')} placeholder="e.g. personal, ideas" onChange={(event) => update({ tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12) })} /></label>
+    <label><span aria-hidden="true">⌂</span>Category<select aria-label="Note category" disabled={!canEdit} value={note.category ?? 'Personal'} onChange={(event) => update({ category: event.target.value })}>{categoryOptions.map((category) => <option key={category}>{category}</option>)}</select></label>
+    <label><Clock3 size=".75rem" />Reminder<input aria-label="Note reminder" type="datetime-local" disabled={!canEdit} value={note.reminderAt ?? ''} onChange={(event) => update({ reminderAt: event.target.value })} /></label>
+  </div><div className="journal-card-fields"><label>Entry date<input aria-label="Journal entry date" type="date" disabled={!canEdit} value={note.date} min="1900-01-01" max="2100-12-31" onChange={(event) => update({ date: event.target.value })} /></label><label>Timeline context<input aria-label="Journal timeline context" disabled={!canEdit} value={note.context} maxLength={240} placeholder="A private entry for yourself" onChange={(event) => update({ context: event.target.value })} /></label></div></details>
 }
 
 function formatDuration(seconds?: number) {
@@ -129,9 +129,9 @@ function formatDuration(seconds?: number) {
   return `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`
 }
 
-function AttachmentTile({ attachment, firestoreUserId, onEmbed }: { attachment: JournalAttachment; firestoreUserId: string | null; onEmbed: (attachment: JournalAttachment) => void }) {
+function AttachmentTile({ attachment, firestoreUserId, onEmbed, space }: { attachment: JournalAttachment; firestoreUserId: string | null; onEmbed: (attachment: JournalAttachment) => void; space: Pick<Space, 'id' | 'kind'> }) {
   const audio = useAttachmentUrl(attachment.kind === 'audio' ? attachment : undefined)
-  const image = useFirestoreImageUrl(firestoreUserId, attachment.kind === 'image' ? attachment : undefined)
+  const image = useFirestoreImageUrl(firestoreUserId, attachment.kind === 'image' ? attachment : undefined, space)
   const Icon = attachment.kind === 'audio' ? Mic : ImagePlus
   return <article className={`studio-attachment attachment-${attachment.kind}`}>
     <div className="studio-attachment-heading"><span className="studio-attachment-icon"><Icon size=".8125rem" /></span><div><strong>{attachment.name}</strong><small>{attachment.kind === 'audio' ? formatDuration(attachment.durationSeconds) : `${attachment.width ?? 'Image'} × ${attachment.height ?? ''}`}</small></div><button type="button" className="text-button studio-embed-action" onClick={() => onEmbed(attachment)}>Embed inline</button></div>
@@ -249,7 +249,7 @@ function StudioRecorder({ note, onSaved, onClose }: { note: NoteCard; onSaved: (
   </section>
 }
 
-function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: { note: NoteCard; firestoreUserId: string | null; onAddAttachment: (attachment: JournalAttachment) => void; onEmbed: (attachment: JournalAttachment) => void }) {
+function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, canEdit, space }: { note: NoteCard; firestoreUserId: string | null; onAddAttachment: (attachment: JournalAttachment) => void; onEmbed: (attachment: JournalAttachment) => void; canEdit: boolean; space: Pick<Space, 'id' | 'kind'> }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [recorderOpen, setRecorderOpen] = useState(note.noteKind === 'voice')
   const [message, setMessage] = useState('')
@@ -262,7 +262,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: {
       const attachment: JournalAttachment = { id: makeId('image'), kind: 'image', storage: 'firestore', name: file.name || 'Journal image', mimeType: optimized.blob.type || 'image/webp', size: optimized.blob.size, width: optimized.width, height: optimized.height }
       const dataUrl = await blobAsDataUrl(optimized.blob)
       const { writeJournalImage } = await import('../lib/firestore')
-      await writeJournalImage(firestoreUserId, attachment, dataUrl)
+      await writeJournalImage(firestoreUserId, attachment, dataUrl, space)
       onAddAttachment(attachment)
       setMessage(`Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`)
     } catch (error) { setMessage(error instanceof JournalImageError ? error.message : 'The image could not be saved to private Firestore storage.') }
@@ -282,23 +282,23 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed }: {
   }
   const attachments = allAttachments(note)
   return <section className="studio-media-tools" aria-labelledby="studio-attachments-title">
-    <div className="studio-media-heading"><div><span className="eyebrow">Capture tray</span><h2 id="studio-attachments-title">Voice memos & photos</h2></div><div className="studio-media-actions"><button type="button" className="button button-soft" onClick={() => setRecorderOpen((open) => !open)}><Mic size=".8125rem" />{recorderOpen ? 'Hide recorder' : 'Record voice'}</button><button type="button" className="button button-soft" disabled={!firestoreUserId} title={firestoreUserId ? 'Add a photo' : 'Sign in with Google to add a photo'} onClick={chooseImage}><Camera size=".8125rem" />Add photo</button></div></div>
-    <input ref={fileInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={onFile} />
-    <div className="studio-mobile-capture" aria-label="Quick capture"><button type="button" aria-label="Quick record voice" onClick={() => setRecorderOpen((open) => !open)}><Mic size=".875rem" />Voice</button><button type="button" aria-label="Quick add photo" disabled={!firestoreUserId} onClick={chooseImage}><Camera size=".875rem" />Photo</button></div>
+    <div className="studio-media-heading"><div><span className="eyebrow">Capture tray</span><h2 id="studio-attachments-title">Voice memos & photos</h2></div><div className="studio-media-actions"><button type="button" className="button button-soft" disabled={!canEdit} onClick={() => setRecorderOpen((open) => !open)}><Mic size=".8125rem" />{recorderOpen ? 'Hide recorder' : 'Record voice'}</button><button type="button" className="button button-soft" disabled={!firestoreUserId || !canEdit} title={firestoreUserId ? 'Add a photo' : 'Sign in with Google to add a photo'} onClick={chooseImage}><Camera size=".8125rem" />Add photo</button></div></div>
+    <input ref={fileInput} className="sr-only" aria-label="Choose a photo to attach" type="file" accept="image/*" capture="environment" onChange={onFile} />
+    <div className="studio-mobile-capture" aria-label="Quick capture"><button type="button" aria-label="Quick record voice" disabled={!canEdit} onClick={() => setRecorderOpen((open) => !open)}><Mic size=".875rem" />Voice</button><button type="button" aria-label="Quick add photo" disabled={!firestoreUserId || !canEdit} onClick={chooseImage}><Camera size=".875rem" />Photo</button></div>
     {recorderOpen && <StudioRecorder note={note} onSaved={onAddAttachment} onClose={() => setRecorderOpen(false)} />}
     <div className={`studio-photo-dropzone ${dropActive ? 'is-dragging' : ''} ${firestoreUserId ? '' : 'is-disabled'}`} onDragOver={(event) => { event.preventDefault(); if (firestoreUserId) setDropActive(true) }} onDragLeave={() => setDropActive(false)} onDrop={onDrop}>
       <ImagePlus size="1rem" /><span>{firestoreUserId ? 'Drop a photo here, or use Add photo. Images are optimized before private Firestore storage.' : 'Google sign-in is required for private Firestore photo journal entries.'}</span>
     </div>
-    {attachments.length > 0 && <div className="studio-attachment-list">{attachments.map((attachment) => <AttachmentTile key={attachment.id} attachment={attachment} firestoreUserId={firestoreUserId} onEmbed={onEmbed} />)}</div>}
+    {attachments.length > 0 && <div className="studio-attachment-list">{attachments.map((attachment) => <AttachmentTile key={attachment.id} attachment={attachment} firestoreUserId={firestoreUserId} onEmbed={onEmbed} space={space} />)}</div>}
     {message && <p className="journal-attachment-feedback" role="status">{message}</p>}
   </section>
 }
 
-function StudioTool({ label, children, onClick }: { label: string; children: ReactNode; onClick: () => void }) {
-  return <button type="button" className="studio-tool" aria-label={label} title={label} onMouseDown={(event) => event.preventDefault()} onClick={onClick}>{children}</button>
+function StudioTool({ label, children, onClick, disabled = false }: { label: string; children: ReactNode; onClick: () => void; disabled?: boolean }) {
+  return <button type="button" className="studio-tool" aria-label={label} title={label} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={onClick}>{children}</button>
 }
 
-function StudioRichEditor({ note, dispatch, firestoreUserId }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; firestoreUserId: string | null }) {
+function StudioRichEditor({ note, dispatch, firestoreUserId, canEdit, space }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; firestoreUserId: string | null; canEdit: boolean; space: Pick<Space, 'id' | 'kind'> }) {
   const editor = useRef<HTMLDivElement>(null)
   const storedRichText = sanitizeJournalRichText(note.richText ?? initialJournalRichText(note.body))
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
@@ -356,16 +356,16 @@ function StudioRichEditor({ note, dispatch, firestoreUserId }: { note: NoteCard;
     })
   }
   return <>
-    <div className="studio-toolbar" role="toolbar" aria-label="Rich text formatting">
+    <div className={`studio-toolbar ${canEdit ? '' : 'is-readonly'}`} role="toolbar" aria-label="Rich text formatting" aria-disabled={!canEdit}>
       <StudioTool label="Bold" onClick={() => command('bold')}><Bold size=".8125rem" /></StudioTool><StudioTool label="Italic" onClick={() => command('italic')}><Italic size=".8125rem" /></StudioTool><StudioTool label="Underline" onClick={() => command('underline')}><Underline size=".8125rem" /></StudioTool><StudioTool label="Highlight" onClick={() => command('hiliteColor', '#fff0a8')}><Highlighter size=".8125rem" /></StudioTool><span className="studio-toolbar-divider" aria-hidden="true" />
       <StudioTool label="Heading 1" onClick={() => formatBlock('h1')}><Heading1 size=".8125rem" /></StudioTool><StudioTool label="Heading 2" onClick={() => formatBlock('h2')}><Heading2 size=".8125rem" /></StudioTool><StudioTool label="Quote" onClick={() => formatBlock('blockquote')}><Quote size=".8125rem" /></StudioTool><StudioTool label="Bulleted list" onClick={() => command('insertUnorderedList')}><List size=".8125rem" /></StudioTool><StudioTool label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered size=".8125rem" /></StudioTool><StudioTool label="Checklist" onClick={addChecklist}><ListChecks size=".8125rem" /></StudioTool><StudioTool label="Code block" onClick={() => formatBlock('pre')}><Code2 size=".8125rem" /></StudioTool><StudioTool label="Add link" onClick={addLink}><Link2 size=".8125rem" /></StudioTool><StudioTool label="Clear formatting" onClick={() => { command('removeFormat'); formatBlock('p') }}><Eraser size=".8125rem" /></StudioTool>
     </div>
-    <div ref={editor} id="journal-body" className="studio-rich-editor" contentEditable role="textbox" aria-label="Your reflection" aria-multiline="true" data-placeholder="Write your reflection, capture a decision, or build a checklist…" suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: storedRichText }} onInput={commit} onBlur={commit} onPaste={onPaste} onDrop={onEditorDrop} onClick={onEditorClick} />
-    <StudioMediaTools note={note} firestoreUserId={firestoreUserId} onAddAttachment={addAttachment} onEmbed={embed} />
+    <div ref={editor} id="journal-body" className="studio-rich-editor" contentEditable={canEdit} role="textbox" aria-label="Your reflection" aria-multiline="true" data-placeholder="Write your reflection, capture a decision, or build a checklist…" suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: storedRichText }} onInput={commit} onBlur={commit} onPaste={onPaste} onDrop={onEditorDrop} onClick={onEditorClick} />
+    <StudioMediaTools note={note} firestoreUserId={firestoreUserId} onAddAttachment={addAttachment} onEmbed={embed} canEdit={canEdit} space={space} />
   </>
 }
 
-function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDelete }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onDelete: (note: NoteCard) => void }) {
+function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDelete, canEdit, shared, space }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onDelete: (note: NoteCard) => void; canEdit: boolean; shared: boolean; space: Pick<Space, 'id' | 'kind'> }) {
   const titleInput = useRef<HTMLTextAreaElement>(null)
   const richText = note.richText ?? initialJournalRichText(note.body)
   const words = journalRichTextWordCount(richText)
@@ -377,60 +377,62 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
   }
   useEffect(() => { resizeTitle(titleInput.current) }, [note.id, note.title])
   return <section className="journal-detail journal-editor-detail" aria-label="Active journal entry">
-    <div className="journal-detail-topbar"><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
-    <section className="journal-editor journal-paper" aria-label="Journal entry studio">
-      <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
-      <label htmlFor="journal-title" className="sr-only">Note title</label><textarea ref={titleInput} id="journal-title" className="journal-title-input" rows={1} value={note.title} maxLength={160} placeholder={`Untitled ${noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onInput={(event) => resizeTitle(event.currentTarget)} onChange={(event) => update({ title: event.target.value })} />
-      <MetadataFields note={note} dispatch={dispatch} />
-      <StudioRichEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} />
-      <div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · private journal studio</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div>
+    <div className="journal-detail-topbar"><span>{shared ? 'Shared team note' : noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} shared={shared} />{canEdit && <CardDeleteAction card={note} onDelete={() => onDelete(note)} />}</div>
+    <section className="journal-editor journal-paper" aria-label={shared ? 'Shared team note studio' : 'Journal entry studio'}>
+      <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{shared ? `${note.authoredBy ? `Started by ${note.authoredBy} · ` : ''}${note.lastEditedBy ? `last edited by ${note.lastEditedBy}` : 'shared with this Space'}` : note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
+      <label htmlFor="journal-title" className="sr-only">Note title</label><textarea ref={titleInput} id="journal-title" className="journal-title-input" rows={1} disabled={!canEdit} value={note.title} maxLength={160} placeholder={`Untitled ${shared ? 'team note' : noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onInput={(event) => resizeTitle(event.currentTarget)} onChange={(event) => update({ title: event.target.value })} />
+      <MetadataFields note={note} dispatch={dispatch} canEdit={canEdit} />
+      <StudioRichEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} canEdit={canEdit} space={space} />
+      <div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · {shared ? 'shared team note' : 'private journal studio'}</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div>
     </section>
   </section>
 }
 
-function JournalEntrySwitcher({ notes, selected, onCreate }: { notes: NoteCard[]; selected: NoteCard; onCreate: (kind: JournalNoteKind) => void }) {
-  return <div className="journal-mobile-switcher"><details><summary><span><span className="eyebrow">Journal entries</span><strong>{displayTitle(selected)}</strong></span><ChevronDown size=".9375rem" aria-hidden="true" /></summary><div className="journal-mobile-switcher-drawer"><NoteList notes={notes} selectedId={selected.id} compact /></div></details><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".9375rem" /></button></div>
+function JournalEntrySwitcher({ notes, selected, onCreate, canEdit }: { notes: NoteCard[]; selected: NoteCard; onCreate: (kind: JournalNoteKind) => void; canEdit: boolean }) {
+  return <div className="journal-mobile-switcher"><details><summary><span><span className="eyebrow">Journal entries</span><strong>{displayTitle(selected)}</strong></span><ChevronDown size=".9375rem" aria-hidden="true" /></summary><div className="journal-mobile-switcher-drawer"><NoteList notes={notes} selectedId={selected.id} compact /></div></details><button type="button" className="icon-button" disabled={!canEdit} aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".9375rem" /></button></div>
 }
 
-function JournalEntryBrowser({ notes, selected, firestoreUserId, onCreate }: { notes: NoteCard[]; selected: NoteCard; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void }) {
-  return <section className="journal-entry-browser" aria-label="Journal entries"><div className="journal-entry-browser-heading"><div><span className="eyebrow">Your entries</span><h3>Journal entries</h3><span className="count-label">{notes.length} {notes.length === 1 ? 'entry' : 'entries'}</span></div><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".8125rem" /></button></div>
+function JournalEntryBrowser({ notes, selected, firestoreUserId, onCreate, canEdit, shared }: { notes: NoteCard[]; selected: NoteCard; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void; canEdit: boolean; shared: boolean }) {
+  return <section className="journal-entry-browser" aria-label="Journal entries"><div className="journal-entry-browser-heading"><div><span className="eyebrow">{shared ? 'Shared notes' : 'Your entries'}</span><h3>{shared ? 'Team notes' : 'Journal entries'}</h3><span className="count-label">{notes.length} {notes.length === 1 ? 'entry' : 'entries'}</span></div><button type="button" className="icon-button" disabled={!canEdit} aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".8125rem" /></button></div>
     <NoteList notes={notes} selectedId={selected.id} compact />
-    <div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo journal entry' : 'Sign in with Google to create a photo journal entry'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div>
+    <div className="journal-rail-capture"><button type="button" disabled={!canEdit} onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId || !canEdit} title={firestoreUserId ? 'Create photo journal entry' : 'Sign in with Google to create a photo journal entry'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div>
   </section>
 }
 
-export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDeleteCard, storageAvailable, firestoreUserId }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; onDeleteCard: (card: JourneyCard) => void; storageAvailable: boolean; firestoreUserId: string | null }) {
+export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDeleteCard, storageAvailable, firestoreUserId, space, currentMember, canEdit }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; onDeleteCard: (card: JourneyCard) => void; storageAvailable: boolean; firestoreUserId: string | null; space: Space; currentMember: SpaceMember; canEdit: boolean }) {
   const [query] = useSearchParams()
   const creationRequested = useRef(false)
   const notes = cards.filter((card): card is NoteCard => card.type === 'note')
   const mostRecent = [...notes].sort((first, second) => updated(second).getTime() - updated(first).getTime())[0]
   const selected = cardId ? notes.find((note) => note.id === cardId) : mostRecent
+  const shared = space.kind === 'shared'
   const create = (kind: JournalNoteKind) => {
-    const card: NoteCard = { id: makeId('note'), type: 'note', noteKind: kind, title: '', body: '', richText: '<p><br></p>', tags: [], pinned: false, date: localDate(), side: 'right', context: 'A private journal entry', category: 'Personal', updatedAt: new Date().toISOString() }
+    if (!canEdit) return
+    const card: NoteCard = { id: makeId('note'), type: 'note', noteKind: kind, title: '', body: '', richText: '<p><br></p>', tags: [], pinned: false, date: localDate(), side: 'right', context: shared ? `A shared note in ${space.name}` : 'A private journal entry', category: shared ? 'Work' : 'Personal', authoredBy: currentMember.name, lastEditedBy: currentMember.name, updatedAt: new Date().toISOString() }
     dispatch({ type: 'add-card', card })
     onNavigate({ page: 'journal', cardId: card.id })
   }
   const wantsNewTextEntry = query.get('new') === 'text' || query.get('create') === 'menu'
   useEffect(() => {
-    if (creationRequested.current || (!wantsNewTextEntry && notes.length)) return
+    if (!canEdit || creationRequested.current || (!wantsNewTextEntry && notes.length)) return
     creationRequested.current = true
     create('text')
   // A root Journal route is the only place this can run; creation navigates to the new entry.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantsNewTextEntry, notes.length])
+  }, [wantsNewTextEntry, notes.length, canEdit])
 
   return <div className="workspace-content journal-workspace-content">
     {selected ? <><div className="workspace-selector journal-selector"><label htmlFor="journal-entry-select">Journal entry</label><select id="journal-entry-select" value={selected.id} onChange={(event) => onNavigate({ page: 'journal', cardId: event.target.value })}>
       {[...notes].sort((first, second) => updated(second).getTime() - updated(first).getTime()).map((note) => <option key={note.id} value={note.id}>{displayTitle(note)}</option>)}
     </select></div>
-      <JournalHero note={selected} entryCount={notes.length} />
-      <JournalEntrySwitcher notes={notes} selected={selected} onCreate={create} />
-      <div className="workspace-desktop-split journal-workspace-split"><section className="workspace-panel journal-editor-panel"><JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} /></section>
+      <JournalHero note={selected} entryCount={notes.length} shared={shared} />
+      <JournalEntrySwitcher notes={notes} selected={selected} onCreate={create} canEdit={canEdit} />
+      <div className="workspace-desktop-split journal-workspace-split"><section className="workspace-panel journal-editor-panel"><JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} canEdit={canEdit} shared={shared} space={space} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} /></section>
         <aside className="workspace-desktop-aside journal-workspace-aside" aria-label="Journal context"><section className="workspace-insight-card journal-insight-card"><span className="eyebrow"><FileText size={11} />Journal entry</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Entry date</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Category</dt><dd>{selected.category || 'Personal'}</dd></div><div><dt>Tags</dt><dd>{selected.tags.length ? selected.tags.map((tag) => `#${tag}`).join(', ') : 'No tags yet'}</dd></div><div><dt>Reminder</dt><dd>{selected.reminderAt ? formatDate(selected.reminderAt.slice(0, 10), { month: 'short', day: 'numeric' }) : 'No reminder'}</dd></div></dl></section>
-          <JournalEntryBrowser notes={notes} selected={selected} firestoreUserId={firestoreUserId} onCreate={create} />
-          <p className="workspace-fineprint"><FileText size=".75rem" />Text stays in your workspace. Voice stays on this device; images are private Firestore journal entries.</p>
+          <JournalEntryBrowser notes={notes} selected={selected} firestoreUserId={firestoreUserId} onCreate={create} canEdit={canEdit} shared={shared} />
+          <p className="workspace-fineprint"><FileText size=".75rem" />{shared ? 'Team notes sync with this Space when connected. Keep sensitive reflections in Personal Space.' : 'Text stays in your workspace. Voice stays on this device; images are private Firestore journal entries.'}</p>
         </aside>
       </div></>
-      : <section className="journal-studio-pending" aria-live="polite">Opening a fresh journal entry…</section>}
+      : <section className="journal-studio-pending" aria-live="polite">{canEdit ? 'Opening a fresh journal entry…' : shared ? 'This shared Space has no team notes yet.' : 'Your journal is empty.'}</section>}
   </div>
 }

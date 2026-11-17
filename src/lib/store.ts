@@ -12,8 +12,17 @@ function isChecklist(value: unknown): boolean {
   return Array.isArray(value) && value.length <= 1000 && value.every((item: unknown) => {
     if (!item || typeof item !== 'object') return false
     const entry = item as Record<string, unknown>
+    const comments = entry.comments
+    const validComments = comments === undefined || (Array.isArray(comments) && comments.length <= 100 && comments.every((comment: unknown) => {
+      if (!comment || typeof comment !== 'object') return false
+      const value = comment as Record<string, unknown>
+      return isString(value.id) && isString(value.body) && isString(value.author) && isString(value.createdAt)
+    }))
     return isString(entry.id) && isString(entry.title) && typeof entry.done === 'boolean'
       && (entry.assignee === undefined || isString(entry.assignee))
+      && (entry.completedBy === undefined || isString(entry.completedBy))
+      && (entry.completedAt === undefined || isString(entry.completedAt))
+      && validComments
       && (entry.label === undefined || isString(entry.label))
       && (entry.targetDate === undefined || (isString(entry.targetDate) && isValidDate(entry.targetDate)))
       && (entry.remarks === undefined || isString(entry.remarks))
@@ -43,7 +52,9 @@ function isCard(value: unknown): value is JourneyCard {
     || !['left', 'right'].includes(String(card.side)) || !isString(card.context)
     || (card.quiet !== undefined && typeof card.quiet !== 'boolean')
     || (card.backlog !== undefined && typeof card.backlog !== 'boolean')
-    || (card.isCustom !== undefined && typeof card.isCustom !== 'boolean')) return false
+    || (card.isCustom !== undefined && typeof card.isCustom !== 'boolean')
+    || (card.authoredBy !== undefined && !isString(card.authoredBy))
+    || (card.lastEditedBy !== undefined && !isString(card.lastEditedBy))) return false
   if (card.type === 'event') return typeof card.allDay === 'boolean' && typeof card.holiday === 'boolean'
     && isString(card.owner) && isString(card.organization) && isString(card.location)
     && (card.time === undefined || isString(card.time)) && (card.endTime === undefined || isString(card.endTime))
@@ -115,6 +126,7 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
         ...(action.attachments !== undefined ? { attachments: action.attachments } : {}),
         ...(action.richText !== undefined ? { richText: action.richText } : {}),
         ...(action.updatedAt !== undefined ? { updatedAt: action.updatedAt } : {}),
+        ...(action.lastEditedBy !== undefined ? { lastEditedBy: action.lastEditedBy } : {}),
       } : card),
     }
     case 'update-event-background': return !isOccasionChoice(action.occasion) ? state : {
@@ -138,7 +150,11 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
     case 'toggle-item': return {
       ...state,
       cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.cardId ? {
-        ...card, subtasks: card.subtasks.map((item) => item.id === action.itemId ? { ...item, done: !item.done } : item),
+        ...card, subtasks: card.subtasks.map((item) => {
+          if (item.id !== action.itemId) return item
+          const done = !item.done
+          return { ...item, done, ...(done ? { completedBy: action.actor ?? item.assignee ?? 'You', completedAt: new Date().toISOString() } : { completedBy: undefined, completedAt: undefined }) }
+        }),
       } : card),
     }
     case 'add-item': return {

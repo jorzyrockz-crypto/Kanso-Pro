@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Dispatch } from 'react'
 import type { AccountUser } from './account'
 import { emptyWorkspace, googleSyncUser, isStarterWorkspace, mergeInitialWorkspace, workspaceChangesSince, workspaceFingerprint } from './workspaceSync'
-import type { JourneyAction, JourneyState } from '../types'
+import type { JourneyAction, JourneyState, Space, SpaceActivity, SpaceMember } from '../types'
 
 type FirestoreClient = typeof import('./firestore')
 
@@ -10,10 +10,13 @@ type FirestoreClient = typeof import('./firestore')
  * Google sign-in silently enables a local-first personal workspace mirror. The hook has
  * no UI state by design: local planning remains usable when Firestore is unavailable.
  */
-export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>) {
+export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void) {
   const uid = googleSyncUser(account)
   const [ready, setReady] = useState(false)
   const stateRef = useRef(state)
+  const membersCallbackRef = useRef(onMembers)
+  const activityCallbackRef = useRef(onActivity)
+  const sentActivityRef = useRef('')
   const clientRef = useRef<FirestoreClient | null>(null)
   const remoteRef = useRef<JourneyState | null>(null)
   const initializedRef = useRef(false)
@@ -24,6 +27,8 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
   const [retry, setRetry] = useState(0)
 
   stateRef.current = state
+  membersCallbackRef.current = onMembers
+  activityCallbackRef.current = onActivity
 
   useEffect(() => {
     const retryPending = () => setRetry((value) => value + 1)
@@ -39,6 +44,7 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
     applyingRemoteRef.current = ''
     awaitingRemoteHydrationRef.current = false
     pendingFingerprintRef.current = ''
+    sentActivityRef.current = ''
     if (!uid) return
     const switchedGoogleUser = priorGoogleUserRef.current !== null && priorGoogleUserRef.current !== uid
     priorGoogleUserRef.current = uid
@@ -48,8 +54,10 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
     void import('./firestore').then((client) => {
       if (!active) return
       clientRef.current = client
-      unsubscribe = client.subscribeWorkspace(uid, (remote) => {
+      unsubscribe = client.subscribeWorkspace(uid, { id: space.id, kind: space.kind }, (remote) => {
         if (!active || remote.fromCache) return
+        if (space.kind === 'shared' && remote.members) membersCallbackRef.current?.(space.id, remote.members)
+        if (space.kind === 'shared' && remote.activity) activityCallbackRef.current?.(space.id, remote.activity)
         const local = stateRef.current
         const localIsStarter = isStarterWorkspace(local)
         if (!initializedRef.current) {
@@ -59,14 +67,15 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
             next = localIsStarter || switchedGoogleUser ? emptyWorkspace() : local
             remoteRef.current = next
             pendingFingerprintRef.current = workspaceFingerprint(next)
-            void client.createWorkspace(uid, next).catch(() => {})
+            const create = () => client.createWorkspace(uid, next, { id: space.id, kind: space.kind })
+            void (space.kind === 'shared' ? client.writeSpaceMembers(uid, space).then(create) : create()).catch(() => {})
           } else {
             next = mergeInitialWorkspace(remote.state, local, !switchedGoogleUser && !localIsStarter, remote.deletedCardIds)
             remoteRef.current = next
             const additions = workspaceChangesSince(remote.state, next)
             if (additions.cards.length || additions.deletedCardIds.length || additions.bezelChanged) {
               pendingFingerprintRef.current = workspaceFingerprint(next)
-              void client.writeWorkspace(uid, next, additions.cards, additions.deletedCardIds).catch(() => {})
+              void client.writeWorkspace(uid, next, additions.cards, additions.deletedCardIds, { id: space.id, kind: space.kind }).catch(() => {})
             }
           }
           applyingRemoteRef.current = workspaceFingerprint(next)
@@ -97,7 +106,7 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
     }).catch(() => {})
 
     return () => { active = false; unsubscribe?.() }
-  }, [uid, dispatch])
+  }, [uid, dispatch, space.id, space.kind])
 
   useEffect(() => {
     if (!ready || !uid || !clientRef.current || !remoteRef.current) return
@@ -120,8 +129,20 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
       const client = clientRef.current
       if (!client) return
       pendingFingerprintRef.current = currentFingerprint
-      void client.writeWorkspace(uid, state, changes.cards, changes.deletedCardIds).catch(() => {})
+      void client.writeWorkspace(uid, state, changes.cards, changes.deletedCardIds, { id: space.id, kind: space.kind }).catch(() => {})
     }, 350)
     return () => window.clearTimeout(timer)
-  }, [state, ready, uid, retry])
+  }, [state, ready, uid, retry, space.id, space.kind])
+
+  useEffect(() => {
+    if (!uid || !clientRef.current || space.kind !== 'shared') return
+    void clientRef.current.writeSpaceMembers(uid, space).catch(() => {})
+  }, [uid, space])
+
+  useEffect(() => {
+    const newest = activity[0]
+    if (!uid || !clientRef.current || space.kind !== 'shared' || !newest || sentActivityRef.current === newest.id) return
+    sentActivityRef.current = newest.id
+    void clientRef.current.writeSpaceActivity(uid, { id: space.id, kind: space.kind }, newest).catch(() => { sentActivityRef.current = '' })
+  }, [uid, space.id, space.kind, activity])
 }
