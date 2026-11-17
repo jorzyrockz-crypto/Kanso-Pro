@@ -96,8 +96,10 @@ test('desktop workspaces keep active work beside its planning context', async ({
   expect((await projectPanel.boundingBox())!.x + (await projectPanel.boundingBox())!.width).toBeLessThanOrEqual((await projectContext.boundingBox())!.x)
 
   await page.goto('/calendar')
-  const [calendarPanel, agendaPanel] = await Promise.all([page.locator('.calendar-panel').boundingBox(), page.locator('.agenda-panel').boundingBox()])
+  const [scopeToggle, calendarPanel, agendaPanel] = await Promise.all([page.locator('.calendar-workspace > .team-scope-toggle').boundingBox(), page.locator('.calendar-panel').boundingBox(), page.locator('.agenda-panel').boundingBox()])
+  expect(scopeToggle!.y + scopeToggle!.height).toBeLessThanOrEqual(calendarPanel!.y)
   expect(calendarPanel!.x + calendarPanel!.width).toBeLessThanOrEqual(agendaPanel!.x)
+  expect(Math.abs(calendarPanel!.y - agendaPanel!.y)).toBeLessThanOrEqual(1)
 
   await page.goto('/journal')
   await expect(page.locator('.journal-workspace-split')).toBeVisible()
