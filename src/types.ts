@@ -5,7 +5,7 @@ export type Side = 'left' | 'right'
 export type OccasionTheme = 'birthday' | 'celebration' | 'holiday' | 'remembrance' | 'school' | 'learning' | 'wellbeing' | 'community' | 'environment' | 'culture' | 'sports'
 export type OccasionChoice = 'auto' | 'none' | OccasionTheme
 export type SpaceKind = 'personal' | 'shared'
-export type SpaceRole = 'owner' | 'editor' | 'viewer'
+export type SpaceRole = 'owner' | 'lead' | 'editor' | 'viewer'
 export type Presence = 'online' | 'away' | 'offline'
 export type ReactionEmoji = '👍' | '✅' | '👀'
 export type SpaceColor = 'ocean' | 'violet' | 'rose' | 'amber' | 'forest' | 'slate'
@@ -42,6 +42,15 @@ export interface EventAcknowledgement {
   response: 'going' | 'noted'
 }
 
+/** One replaceable shared-space reminder. It deliberately lives outside the Timeline. */
+export interface SpaceNotice {
+  id: string
+  body: string
+  postedBy: string
+  postedAt: string
+  acknowledgements: string[]
+}
+
 export interface Space {
   id: string
   name: string
@@ -53,6 +62,8 @@ export interface Space {
   /** The saved visual identity is independent from the Space's cards and member roles. */
   color?: SpaceColor
   icon?: SpaceIcon
+  /** Shared Spaces may show one pinned reminder; Personal Space never renders it. */
+  notice?: SpaceNotice
 }
 
 export interface SpaceActivity {

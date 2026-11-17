@@ -1,5 +1,5 @@
 import { createInitialState } from '../data'
-import type { JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember, SpacesState } from '../types'
+import type { JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember, SpaceNotice, SpacesState } from '../types'
 import { defaultSpaceColor, defaultSpaceIcon, isSpaceColor, isSpaceIcon } from './spaceAppearance'
 
 export const SPACES_STORAGE_KEY = 'kanso-pro:spaces:v1'
@@ -54,10 +54,20 @@ function isMember(value: unknown): value is SpaceMember {
   if (!value || typeof value !== 'object') return false
   const member = value as Record<string, unknown>
   return typeof member.id === 'string' && typeof member.name === 'string'
-    && ['owner', 'editor', 'viewer'].includes(String(member.role))
+    && ['owner', 'lead', 'editor', 'viewer'].includes(String(member.role))
     && ['online', 'away', 'offline'].includes(String(member.presence))
     && (member.email === undefined || typeof member.email === 'string')
     && (member.status === undefined || (typeof member.status === 'string' && member.status.length <= 120))
+}
+
+function isSpaceNotice(value: unknown): value is SpaceNotice {
+  if (!value || typeof value !== 'object') return false
+  const notice = value as Record<string, unknown>
+  return typeof notice.id === 'string' && notice.id.length > 0 && notice.id.length <= 180
+    && typeof notice.body === 'string' && notice.body.trim().length > 0 && notice.body.length <= 360
+    && typeof notice.postedBy === 'string' && notice.postedBy.length > 0 && notice.postedBy.length <= 120
+    && typeof notice.postedAt === 'string' && !Number.isNaN(Date.parse(notice.postedAt))
+    && Array.isArray(notice.acknowledgements) && notice.acknowledgements.every((entry) => typeof entry === 'string' && entry.length > 0 && entry.length <= 254)
 }
 
 function isSpace(value: unknown): value is Space {
@@ -67,6 +77,7 @@ function isSpace(value: unknown): value is Space {
     && typeof space.joinCode === 'string' && typeof space.createdAt === 'string'
     && (space.color === undefined || isSpaceColor(space.color)) && (space.icon === undefined || isSpaceIcon(space.icon))
     && ['personal', 'shared'].includes(String(space.kind)) && Array.isArray(space.members) && space.members.length > 0 && space.members.every(isMember)
+    && (space.notice === undefined || (space.kind === 'shared' && isSpaceNotice(space.notice)))
 }
 
 function isJourneyState(value: unknown): value is JourneyState {
@@ -97,7 +108,16 @@ export function parseSpacesState(raw: string | null, legacyState: JourneyState |
       const activity = data.activity as Record<string, unknown>
       if (!data.spaces.every((space) => isJourneyState(workspaces[space.id]) && Array.isArray(activity[space.id]) && (activity[space.id] as unknown[]).every(isActivity))) return null
       if (!data.spaces.some((space) => space.id === data.activeSpaceId)) return null
-      return data as unknown as SpacesState
+      // Versions before pinned notices stored broadcast updates as ordinary dated Notes.
+      // Discard only that retired system-card shape while keeping every real journal note.
+      const parsed = data as unknown as SpacesState
+      return {
+        ...parsed,
+        workspaces: Object.fromEntries(Object.entries(parsed.workspaces).map(([id, workspace]) => [id, {
+          ...workspace,
+          cards: workspace.cards.filter((card) => !(card.type === 'note' && card.title === 'Space update' && card.category === 'Space Update' && card.tags.includes('space-update'))),
+        }])),
+      }
     } catch { return null }
   }
   if (!legacyState) return null
@@ -116,6 +136,11 @@ export function activeMember(space: Space): SpaceMember {
 
 export function canEditSpace(space: Space): boolean {
   return activeMember(space).role !== 'viewer'
+}
+
+/** Owners may delegate the single pinned notice without giving every editor broadcast access. */
+export function canManageSpaceNotice(space: Space): boolean {
+  return space.kind === 'shared' && ['owner', 'lead'].includes(activeMember(space).role)
 }
 
 export function cardAssignedTo(card: JourneyCard, member: SpaceMember): boolean {

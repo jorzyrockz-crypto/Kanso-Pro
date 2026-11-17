@@ -23,6 +23,20 @@
     .calendar-workspace { grid-template-columns: minmax(0, 1fr); }
   }
 
+  /* A spacious mouse/trackpad canvas should not leave application text at phone-scale.
+     Browser zoom continues to scale the page; grow rem-based type only across wider
+     desktop viewports. The cap prevents an ultra-wide monitor from becoming airy. */
+  @media screen and (pointer: fine) and (min-width: 1024px) {
+    html { font-size: clamp(16px, 1.111111vw, 18px); }
+
+    /* Controls, links, labels, and readable supporting copy need a 12px floor.
+       Keep the compact app chrome unchanged until the wide-screen root scale applies,
+       while tiny all-caps badges and other span-based annotations retain their hierarchy. */
+    .application > .page-outlet :is(a, button, [role='tab'], input, textarea, select, label, p, small),
+    .bottom-bar :is(a, button, [role='tab']) { font-size: max(.75rem, 12px); }
+    .application > .page-outlet :is(input, textarea, select) { font-size: max(.8125rem, 13px); }
+  }
+
   @media screen and (pointer: coarse) and (min-width: 640px) and (min-height: 600px) {
     .application :is(button, [role='tab'], select, summary, .button, .text-button) { min-height: max(2.5rem, 44px); }
     .application :is(.icon-button, .frame-toggle) { min-width: max(2.5rem, 44px); width: max(2.5rem, 44px); height: max(2.5rem, 44px); }

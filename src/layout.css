@@ -42,7 +42,7 @@
   .space-sync-note { margin-top: .625rem; padding: .5rem .5625rem; border: 1px solid var(--theme-border, #dce8ef); border-radius: .625rem; color: var(--theme-text-secondary, #627b8e); background: var(--theme-surface-muted, #f8fbfd); font-size: .5625rem; line-height: 1.55; }
   .space-configure-button { display: inline-flex; align-items: center; gap: .3125rem; width: 100%; min-height: 2.25rem; margin-top: .5rem; padding: .5rem .375rem; border-top: 1px solid var(--theme-border, #dce8ef); color: var(--theme-text-secondary, #546f83); background: transparent; font-size: .59375rem; font-weight: 750; text-align: left; }.space-configure-button:hover { color: var(--theme-blue, #277099); background: var(--theme-surface-muted, #f8fbfd); }
   .space-create-form { display: grid; gap: .5rem; margin-top: .625rem; padding-top: .625rem; border-top: 1px solid var(--theme-border, #dce8ef); }.space-create-form label, .invite-form label { display: grid; gap: .1875rem; color: var(--theme-text-secondary, #627b8e); font-size: .53125rem; font-weight: 750; }.space-create-form input, .invite-form input, .invite-form select { width: 100%; min-height: 2.1875rem; padding: .4375rem .5625rem; border: 1px solid var(--theme-border, #d6e4ec); border-radius: .5625rem; background: var(--theme-surface-muted, #fbfdff); font-size: .625rem; }.space-create-form > div { display: flex; justify-content: flex-end; gap: .5rem; }.space-create-form .button, .invite-form .button { min-height: 2rem; padding: .375rem .625rem; }
-  .space-member-stack { display: flex; align-items: center; padding-left: .25rem; }.space-member { position: relative; display: inline-flex; margin-left: -.25rem; }.space-member .avatar, .invite-member-presence .avatar { width: 1.6875rem; height: 1.6875rem; border: 2px solid var(--theme-surface, #fff); font-size: .5rem; }.space-member i, .invite-member-presence i { position: absolute; right: -.03125rem; bottom: .03125rem; width: .4375rem; height: .4375rem; border: 1.5px solid var(--theme-surface, #fff); border-radius: 50%; background: #95a5b1; }.presence-online i { background: #35a875; }.presence-away i { background: #d69b2d; }.space-member-more { display: grid; place-items: center; width: 1.6875rem; height: 1.6875rem; margin-left: -.25rem; border: 2px solid var(--theme-surface, #fff); border-radius: 50%; background: var(--theme-surface-muted, #eaf2f7); color: var(--theme-text-secondary, #547087); font-size: .5rem; font-weight: 800; }
+  .space-member-stack { display: flex; align-items: center; padding: .1875rem .25rem; border: 0; border-radius: .625rem; background: transparent; color: inherit; }.space-member-stack:hover { background: var(--theme-surface-muted, #f4f9fc); }.space-member { position: relative; display: inline-flex; margin-left: -.25rem; }.space-member .avatar, .invite-member-presence .avatar { width: 1.6875rem; height: 1.6875rem; border: 2px solid var(--theme-surface, #fff); font-size: .5rem; }.space-member i, .invite-member-presence i { position: absolute; right: -.03125rem; bottom: .03125rem; width: .4375rem; height: .4375rem; border: 1.5px solid var(--theme-surface, #fff); border-radius: 50%; background: #95a5b1; }.presence-online i { background: #35a875; }.presence-away i { background: #d69b2d; }.space-member-more { display: grid; place-items: center; width: 1.6875rem; height: 1.6875rem; margin-left: -.25rem; border: 2px solid var(--theme-surface, #fff); border-radius: 50%; background: var(--theme-surface-muted, #eaf2f7); color: var(--theme-text-secondary, #547087); font-size: .5rem; font-weight: 800; }
   .invite-menu { position: relative; }.header-invite-button { display: inline-flex; min-height: 2.25rem; align-items: center; gap: .25rem; padding: .4375rem .625rem; border: 1px solid var(--theme-border-strong, #a5d1e5); border-radius: .625rem; background: var(--theme-blue-soft, #e8f5fc); color: var(--theme-blue, #1d6a95); font-size: .59375rem; font-weight: 800; }.header-invite-button:hover { background: var(--theme-blue-soft, #dff1fb); }.header-invite-button:disabled { opacity: .55; }.app-brand > .header-invite-button { position: relative; }.header-hint { position: absolute; z-index: 81; top: calc(100% + .5rem); left: 0; width: 12rem; padding: .5rem; border: 1px solid var(--theme-border, #d5e4ee); border-radius: .625rem; background: var(--theme-surface, #fff); box-shadow: var(--card-shadow); color: var(--theme-text-secondary, #60798c); font-size: .53125rem; line-height: 1.5; }
   .workspace-settings-backdrop { position: fixed; z-index: 140; inset: 0; display: grid; place-items: center; padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); overflow-y: auto; overscroll-behavior: contain; background: rgb(10 20 35 / 52%); backdrop-filter: blur(.5rem) saturate(.84); -webkit-backdrop-filter: blur(.5rem) saturate(.84); }
   .workspace-settings-dialog { width: min(100%, 42rem); max-height: min(46rem, calc(100dvh - 2rem)); overflow: hidden; border: 1px solid rgb(255 255 255 / 78%); border-radius: 1.25rem; background: var(--theme-surface, #fff); color: var(--theme-text-primary, #293f54); box-shadow: 0 1.5rem 5rem rgb(3 13 28 / 42%), 0 .25rem 1rem rgb(3 13 28 / 16%); }
@@ -145,7 +145,9 @@
   .workspace-panel { padding: 1.5rem; box-shadow: 0 5px 18px rgb(35 73 105 / 3%); }
   .panel-heading h3 { font-size: 0.6875rem; }
   .calendar-workspace { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr); align-items: start; gap: 1.25rem; }
-  .calendar-workspace > .workspace-hero { grid-column: 1 / -1; }
+  .calendar-workspace > .workspace-hero, .calendar-workspace > .team-scope-toggle { grid-column: 1 / -1; }
+  /* Keep the team filter above both work surfaces so the agenda and month grid start together. */
+  .calendar-workspace > .team-scope-toggle { justify-self: start; }
   .calendar-toolbar { gap: 0.375rem; }
   .calendar-toolbar h3 { font-size: 0.9375rem; letter-spacing: -0.025rem; white-space: nowrap; }
   .calendar-controls { gap: 0.125rem; }
@@ -227,10 +229,52 @@
   .app-footer > span { padding-left: 0.75rem; border-left: 1px solid var(--theme-border, #c5dce9); }
   .toast-region { bottom: calc(var(--bottom-bar-height) + 0.75rem); }
 
+  /* Keep the streamlined Journey controls consistent on tablets: one primary filter
+     menu plus scope, pinned-notice, and Sources doors instead of an overflowing pill rail. */
+  @media (min-width: 681px) and (max-width: 1080px) {
+    .timeline-page .stream-controls { justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
+    .timeline-page .filter-bar { display: none; }
+    .timeline-page .stream-filter-menu { display: block; flex: 1 1 9.5rem; min-width: 8rem; max-width: 14rem; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger { width: 100%; border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
+    .timeline-page .stream-sources-menu .stream-dropdown-trigger { min-width: 0; padding-right: .4375rem; padding-left: .5rem; }
+    .timeline-page .stream-sources-menu .source-summary-label { display: none; }
+    .timeline-page .stream-sources-menu .source-summary-label-compact { display: inline; }
+    .timeline-page .stream-sources-menu .source-summary-shown { display: none; }
+    .timeline-page .stream-reference-controls { margin-left: auto; }
+  }
+
+  /* On phones, preserve full labels and touch targets by giving the two menus their own
+     first row; the scope and optional pinned-notice action remain reachable below. */
+  @media (max-width: 680px) {
+    .timeline-page .stream-controls { flex-wrap: wrap; align-items: center; }
+    .timeline-page .stream-filter-menu { order: 1; flex: 1 1 9rem; }
+    .timeline-page .stream-reference-controls { order: 2; flex: 1 1 9rem; }
+    .timeline-page .team-scope-toggle { order: 3; }
+    .timeline-page .space-update-control { order: 4; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger { border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
+  }
+
   /* Desktop turns the Timeline into a planning desk: the story remains central, while live priorities stay close by. */
   @media (min-width: 1081px) {
     .timeline-page.app-shell { display: grid; grid-template-columns: minmax(0, 1fr) 18.25rem; grid-template-rows: auto minmax(0, 1fr); align-items: start; column-gap: 1.625rem; max-width: 84rem; padding: 0 2rem 1.5rem; }
     .timeline-page .stream-header { grid-column: 1; grid-row: 1; margin: 1.75rem 0 0; }
+    /* The planning desk narrows the Stream column even on a wide display. Replace the
+       five inline pills with one active-filter menu, then reserve the row for context. */
+    .timeline-page .stream-controls { justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
+    .timeline-page .filter-bar { display: none; }
+    .timeline-page .stream-filter-menu { display: block; flex: 1 1 8.5rem; min-width: 7.5rem; max-width: 12rem; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger { width: 100%; border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
+    .timeline-page .stream-sources-menu .stream-dropdown-trigger { min-width: 0; padding-right: .4375rem; padding-left: .5rem; }
+    .timeline-page .stream-sources-menu .source-summary-label { display: none; }
+    .timeline-page .stream-sources-menu .source-summary-label-compact { display: inline; }
+    .timeline-page .stream-sources-menu .source-summary-shown { display: none; }
+    .timeline-page .stream-reference-controls { margin-left: auto; }
     .timeline-layout { display: contents; }
     .timeline-page .timeline { grid-column: 1; grid-row: 2; min-width: 0; padding: 2rem 0 1.5rem; }
     .timeline-page .desktop-planning-rail { position: sticky; top: calc(var(--hdr-h) + .875rem); grid-column: 2; grid-row: 1 / span 2; align-self: start; display: flex; min-width: 0; flex-direction: column; gap: .75rem; margin-top: 1.75rem; padding: .9375rem; border: 1px solid var(--theme-border, #d6e6f0); border-radius: 1.25rem; background: var(--theme-glass, rgb(255 255 255 / 82%)); box-shadow: 0 .75rem 2rem rgb(31 79 111 / 9%); backdrop-filter: blur(1.125rem) saturate(1.12); -webkit-backdrop-filter: blur(1.125rem) saturate(1.12); }

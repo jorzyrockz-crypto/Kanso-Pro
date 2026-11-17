@@ -14,6 +14,16 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   await expect(rail.getByRole('heading', { name: 'Carry forward', exact: true })).toBeVisible()
   await expect(rail.getByRole('button', { name: 'Task list', exact: true })).toBeVisible()
 
+  const header = page.locator('.stream-header')
+  const filterTrigger = page.getByRole('button', { name: 'Filter journey cards: All Stream', exact: true })
+  const sourceTrigger = page.getByRole('button', { name: /^Calendar sources, \d+ shown$/ })
+  await expect(header.getByRole('navigation', { name: 'Filter journey cards' })).toBeHidden()
+  await expect(filterTrigger).toBeVisible()
+  await expect(sourceTrigger).toBeVisible()
+  const [filterBox, scopeBox, sourceBox] = await Promise.all([filterTrigger.boundingBox(), page.getByRole('group', { name: 'Team workload scope', exact: true }).boundingBox(), sourceTrigger.boundingBox()])
+  expect(Math.abs(filterBox!.y - scopeBox!.y)).toBeLessThanOrEqual(1)
+  expect(Math.abs(scopeBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
+
   const [headerBox, streamBox, railBox, viewport] = await Promise.all([
     page.locator('.stream-header').boundingBox(), stream.boundingBox(), rail.boundingBox(), page.evaluate(() => document.documentElement.scrollWidth),
   ])
@@ -96,8 +106,10 @@ test('desktop workspaces keep active work beside its planning context', async ({
   expect((await projectPanel.boundingBox())!.x + (await projectPanel.boundingBox())!.width).toBeLessThanOrEqual((await projectContext.boundingBox())!.x)
 
   await page.goto('/calendar')
-  const [calendarPanel, agendaPanel] = await Promise.all([page.locator('.calendar-panel').boundingBox(), page.locator('.agenda-panel').boundingBox()])
+  const [scopeToggle, calendarPanel, agendaPanel] = await Promise.all([page.locator('.calendar-workspace > .team-scope-toggle').boundingBox(), page.locator('.calendar-panel').boundingBox(), page.locator('.agenda-panel').boundingBox()])
+  expect(scopeToggle!.y + scopeToggle!.height).toBeLessThanOrEqual(calendarPanel!.y)
   expect(calendarPanel!.x + calendarPanel!.width).toBeLessThanOrEqual(agendaPanel!.x)
+  expect(Math.abs(calendarPanel!.y - agendaPanel!.y)).toBeLessThanOrEqual(1)
 
   await page.goto('/journal')
   await expect(page.locator('.journal-workspace-split')).toBeVisible()

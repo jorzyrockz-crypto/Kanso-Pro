@@ -1,8 +1,8 @@
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, ChevronDown, Clock3, Eye, EyeOff, Landmark, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, ChevronDown, Clock3, Eye, EyeOff, Landmark, Pin, ThumbsUp, X } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
-import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
+import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, ProjectCard, SpaceNotice, TaskCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useSpaces } from './lib/useSpaces'
@@ -145,7 +145,7 @@ function sourceSummary(source: CalendarSource) {
     : `${source.entries.length} dated ${source.entries.length === 1 ? 'entry' : 'entries'}`
 }
 
-function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, cloudSyncEnabled, month, onFilter, onScopeChange, onSourceEnabled, onSpaceUpdate, canEdit }: {
+function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, cloudSyncEnabled, month, onFilter, onScopeChange, onSourceEnabled, onSpaceNotice, canManageNotice, hasNotice }: {
   calendarSources: CalendarSource[]
   count: number
   filter: Filter
@@ -157,8 +157,9 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
   onFilter: (type: Filter) => void
   onScopeChange: (scope: 'all' | 'assigned') => void
   onSourceEnabled: (sourceId: string, enabled: boolean) => void
-  onSpaceUpdate: (body: string) => void
-  canEdit: boolean
+  onSpaceNotice: (body: string) => void
+  canManageNotice: boolean
+  hasNotice: boolean
 }) {
   const [openMenu, setOpenMenu] = useState<'filter' | 'sources' | null>(null)
   const [spaceUpdateOpen, setSpaceUpdateOpen] = useState(false)
@@ -190,10 +191,10 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
     return () => cancelAnimationFrame(frame)
   }, [condensed])
   const shownSources = calendarSources.filter((source) => source.enabled).length
-  const submitSpaceUpdate = (event: FormEvent) => {
+  const submitSpaceNotice = (event: FormEvent) => {
     event.preventDefault()
     if (!spaceUpdate.trim()) return
-    onSpaceUpdate(spaceUpdate.trim())
+    onSpaceNotice(spaceUpdate.trim())
     setSpaceUpdate('')
     setSpaceUpdateOpen(false)
   }
@@ -221,7 +222,7 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
           </div>
         </StreamMenu>
         <TeamScopeToggle scope={scope} memberName={memberName} onChange={onScopeChange} compact />
-        {shared && <div className="space-update-control"><button type="button" className="space-update-trigger" disabled={!canEdit} aria-expanded={spaceUpdateOpen} onClick={() => setSpaceUpdateOpen((open) => !open)}>Space update</button>{spaceUpdateOpen && <form className="space-update-form" onSubmit={submitSpaceUpdate}><label className="sr-only" htmlFor="space-update">Share a Space update</label><input id="space-update" autoFocus maxLength={360} value={spaceUpdate} onChange={(event) => setSpaceUpdate(event.target.value)} placeholder="Share a short update…" /><button type="submit" className="button button-accent">Post</button></form>}</div>}
+        {shared && <div className="space-update-control"><button type="button" className="space-update-trigger" disabled={!canManageNotice} title={canManageNotice ? 'Post or replace the pinned Space notice' : 'Only the Space Owner or a designated Lead can manage the pinned notice'} aria-expanded={spaceUpdateOpen} onClick={() => setSpaceUpdateOpen((open) => !open)}>{hasNotice ? 'Edit notice' : 'Pinned notice'}</button>{spaceUpdateOpen && <form className="space-update-form" onSubmit={submitSpaceNotice}><label className="sr-only" htmlFor="space-update">{hasNotice ? 'Replace the pinned Space notice' : 'Post a pinned Space notice'}</label><input id="space-update" autoFocus maxLength={360} value={spaceUpdate} onChange={(event) => setSpaceUpdate(event.target.value)} placeholder="Share one concise notice…" /><button type="submit" className="button button-accent">{hasNotice ? 'Replace' : 'Post'}</button></form>}</div>}
         <div className="stream-reference-controls">
           <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<><span className="source-summary-label">Calendar sources</span><span className="source-summary-label-compact">Sources</span><span className="stream-dropdown-count">{shownSources} <span className="source-summary-shown">shown</span></span></>}>
             <div className="stream-sources-heading"><strong>Calendar sources</strong><span>Choose what appears as reference-only entries.</span></div>
@@ -237,6 +238,48 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
       </div>
     </div>
   </header>
+}
+
+function noticeTimestamp(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'recently'
+  const today = new Date()
+  const sameDay = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
+  const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(date)
+  return sameDay ? `Today at ${time}` : new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(date)
+}
+
+function PinnedSpaceNotice({ notice, acknowledgementId, canManage, onAcknowledge, onClear }: {
+  notice: SpaceNotice
+  acknowledgementId: string
+  canManage: boolean
+  onAcknowledge: () => void
+  onClear: () => void
+}) {
+  const storageKey = `kanso-pro:space-notice:${notice.id}:${acknowledgementId}:collapsed`
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(storageKey) === 'true' } catch { return false }
+  })
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem(storageKey) === 'true') } catch { setCollapsed(false) }
+  }, [storageKey])
+  const toggle = () => {
+    setCollapsed((value) => {
+      const next = !value
+      try { localStorage.setItem(storageKey, String(next)) } catch { /* Local display preference is optional. */ }
+      return next
+    })
+  }
+  const acknowledged = notice.acknowledgements.includes(acknowledgementId)
+  const count = notice.acknowledgements.length
+  if (collapsed) return <section className="pinned-space-notice is-collapsed" aria-label="Pinned Space Notice">
+    <span className="pinned-space-notice-label"><Pin size=".75rem" aria-hidden="true" />Pinned Space Notice</span><span className="pinned-space-notice-count">{count ? `${count} acknowledged` : 'New'}</span><button type="button" className="text-button pinned-space-notice-toggle" onClick={toggle}>Show</button>
+  </section>
+  return <section className="pinned-space-notice" aria-label="Pinned Space Notice">
+    <div className="pinned-space-notice-icon"><Pin size=".9375rem" aria-hidden="true" /></div>
+    <div className="pinned-space-notice-copy"><div className="pinned-space-notice-heading"><span>Pinned Space Notice</span><small>Pinned by {notice.postedBy} · {noticeTimestamp(notice.postedAt)}</small></div><p>{notice.body}</p><div className="pinned-space-notice-actions"><button type="button" className={`button button-soft pinned-space-notice-ack${acknowledged ? ' is-acknowledged' : ''}`} aria-pressed={acknowledged} disabled={acknowledged} onClick={onAcknowledge}><ThumbsUp size=".75rem" />{acknowledged ? 'Got it' : 'Got it'}</button><span>{count ? `${count} acknowledged` : 'Be the first to acknowledge'}</span>{canManage && <button type="button" className="text-button pinned-space-notice-clear" onClick={onClear}>Clear</button>}</div></div>
+    <button type="button" className="icon-button pinned-space-notice-dismiss" aria-label="Minimize pinned Space notice" title="Minimize" onClick={toggle}><X size=".8125rem" aria-hidden="true" /></button>
+  </section>
 }
 
 function NewCardPage({ cards, members, canEdit, onCancel, onCreate, onUpdate }: {
@@ -264,7 +307,7 @@ function NewCardPage({ cards, members, canEdit, onCancel, onCreate, onUpdate }: 
 export default function App() {
   const account = useAccount()
   const spaces = useSpaces(account.user)
-  const { workspace: state, dispatch, space, member, members, activity: teamActivity, canEdit, storageAvailable } = spaces
+  const { workspace: state, dispatch, space, member, members, activity: teamActivity, canEdit, canManageNotice, storageAvailable } = spaces
   const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const firestoreUserId = googleSyncUser(account.user)
   const workspaceSync = useWorkspaceSync(account.user, state, dispatch, space, spaces.hydrateMembers, spaces.hydrateSpace, teamActivity, spaces.hydrateActivity, spaces.hydratePresence)
@@ -374,8 +417,11 @@ export default function App() {
   const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
   const [showJumpToday, setShowJumpToday] = useState(false)
   const [pendingToday, setPendingToday] = useState<string | null>(null)
-  const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(state.cards))
-  const cardTimelineWindow = useMemo(() => timelineWindowFor(state.cards), [state.cards])
+  // Retired Space-update Notes remain only as inert legacy data; never let them return to
+  // the Journey Stream while older cloud documents finish their natural lifecycle.
+  const journeyCards = useMemo(() => state.cards.filter((card) => !(card.type === 'note' && card.title === 'Space update' && card.category === 'Space Update' && card.tags.includes('space-update'))), [state.cards])
+  const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(journeyCards))
+  const cardTimelineWindow = useMemo(() => timelineWindowFor(journeyCards), [journeyCards])
   const timelineMonths = useMemo(() => monthRange(timelineWindow.start, timelineWindow.end), [timelineWindow])
   const timelineSourceEntries = useMemo<TimelineSourceEntry[]>(() => {
     const sourceById = new Map(calendarSources.sources.map((source) => [source.id, source]))
@@ -391,7 +437,7 @@ export default function App() {
       }]
     })
   }, [calendarSources.sources, timelineMonths])
-  const scopedWorkCards = useMemo(() => teamScope === 'assigned' ? state.cards.filter((card) => cardAssignedTo(card, member)) : state.cards, [state.cards, teamScope, member])
+  const scopedWorkCards = useMemo(() => teamScope === 'assigned' ? journeyCards.filter((card) => cardAssignedTo(card, member)) : journeyCards, [journeyCards, teamScope, member])
   const timelineCards = useMemo(() => scopedWorkCards.filter((card) => card.date.slice(0, 7) >= timelineWindow.start && card.date.slice(0, 7) <= timelineWindow.end), [scopedWorkCards, timelineWindow])
   const entries = useMemo(() => buildTimeline(timelineCards, filter, timelineSourceEntries), [timelineCards, filter, timelineSourceEntries])
   const overdueCards = useMemo(() => rolloverCandidates(scopedWorkCards, today), [scopedWorkCards, today])
@@ -479,13 +525,13 @@ export default function App() {
   useEffect(() => {
     const cardId: unknown = location.state?.focusCardId
     if (navigationType === 'POP' || location.pathname !== '/' || typeof cardId !== 'string' || handledFocusKey.current === location.key) return
-    if (!state.cards.some((card) => card.id === cardId)) return
+    if (!journeyCards.some((card) => card.id === cardId)) return
     handledFocusKey.current = location.key
     setFilter('all')
-    const gap = buildTimeline(state.cards).find((entry) => entry.kind === 'gap' && entry.cards.some((card) => card.id === cardId))
+    const gap = buildTimeline(journeyCards).find((entry) => entry.kind === 'gap' && entry.cards.some((card) => card.id === cardId))
     if (gap?.kind === 'gap') setOpenGaps((current) => [...new Set([...current, `${gap.start}-${gap.end}`])])
     setPendingScroll(cardId)
-  }, [location.key, location.pathname, location.state, navigationType, state.cards])
+  }, [location.key, location.pathname, location.state, navigationType, journeyCards])
 
   useEffect(() => {
     if (!pendingScroll || location.pathname !== '/') return
@@ -557,12 +603,17 @@ export default function App() {
     navigate('/', { replace: true, state: { focusCardId: card.id } })
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
-  const createSpaceUpdate = (body: string) => {
-    if (!canEdit || !body.trim()) return
-    const card: NoteCard = { id: `note-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`, type: 'note', title: 'Space update', body: body.trim().slice(0, 360), tags: ['space-update'], pinned: false, date: currentLocalDate(), side: 'right', context: `Shared update from ${member.name}`, category: 'Space Update', authoredBy: member.name, lastEditedBy: member.name, updatedAt: new Date().toISOString(), isCustom: true }
-    dispatch({ type: 'add-card', card })
-    setFilter('all')
-    setToast({ message: 'Space update shared with the team.', id: Date.now() })
+  const postSpaceNotice = (body: string) => {
+    if (!spaces.postNotice(body)) return
+    setToast({ message: space.notice ? 'Pinned Space Notice replaced for the team.' : 'Pinned Space Notice posted for the team.', id: Date.now() })
+  }
+  const clearSpaceNotice = () => {
+    if (!spaces.clearNotice()) return
+    setToast({ message: 'Pinned Space Notice cleared.', id: Date.now() })
+  }
+  const acknowledgeSpaceNotice = () => {
+    if (!spaces.acknowledgeNotice()) return
+    setToast({ message: 'Acknowledged.', id: Date.now() })
   }
   const updateJourneyCard = (card: EventCard | TaskCard | ProjectCard) => {
     if (!canEdit) return
@@ -594,6 +645,9 @@ export default function App() {
   }
   const changeFilter = (type: Filter) => {
     setFilter(type)
+    // A filtered Stream can begin in a different month. Clear the prior scroll marker so
+    // both compact menu controls and the backdrop immediately reflect that result set.
+    setVisibleTimelineMonth(null)
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }
   const toggleGap = (key: string) => setOpenGaps((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])
@@ -612,7 +666,8 @@ export default function App() {
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} onSpaceUpdate={createSpaceUpdate} canEdit={canEdit} />
+          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} onSpaceNotice={postSpaceNotice} canManageNotice={canManageNotice} hasNotice={!!space.notice} />
+          {space.kind === 'shared' && space.notice && <PinnedSpaceNotice notice={space.notice} acknowledgementId={account.user?.email?.trim().toLocaleLowerCase() || member.id} canManage={canManageNotice} onAcknowledge={acknowledgeSpaceNotice} onClear={clearSpaceNotice} />}
           <Timeline cards={scopedWorkCards} entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} currentMember={member} canEdit={canEdit} />
         </main>} />

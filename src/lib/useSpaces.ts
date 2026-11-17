@@ -3,7 +3,7 @@ import type { Dispatch } from 'react'
 import type { AccountUser } from './account'
 import { makeId } from './journey'
 import { journeyReducer, parseSavedState } from './store'
-import { activeMember, canEditSpace, currentSpace, defaultSpacesState, destinationForCard, newSharedSpace, parseSpacesState, PERSONAL_SPACE_ID, SPACES_STORAGE_KEY } from './spaces'
+import { activeMember, canEditSpace, canManageSpaceNotice, currentSpace, defaultSpacesState, destinationForCard, newSharedSpace, parseSpacesState, PERSONAL_SPACE_ID, SPACES_STORAGE_KEY } from './spaces'
 import { defaultSpaceColor, defaultSpaceIcon } from './spaceAppearance'
 import { mentionedMembers } from './collaboration'
 import type { ChecklistItem, JourneyAction, JourneyState, NoteCard, ProjectCard, Space, SpaceActivity, SpaceColor, SpaceIcon, SpaceMember, SpacePresence, SpaceRole, SpacesState, TaskCard } from '../types'
@@ -86,6 +86,7 @@ export function useSpaces(account: AccountUser | null) {
   const member = activeMember(space)
   const workspace = state.workspaces[space.id] ?? { version: 1, cards: [], bezel: false }
   const editable = canEditSpace(space)
+  const canManageNotice = canManageSpaceNotice(space)
 
   const dispatch = useCallback<Dispatch<JourneyAction>>((rawAction) => {
     setState((current) => {
@@ -200,6 +201,59 @@ export function useSpaces(account: AccountUser | null) {
       ? recentActivity(next, active.id, activity(makeId('activity'), 'member', 'Workspace updated', `${name} updated the workspace details.`, '/', name))
       : next
   }), [name])
+  const postNotice = useCallback((body: string) => {
+    const trimmed = body.trim().slice(0, 360)
+    if (!trimmed) return false
+    let posted = false
+    setState((current) => {
+      const active = currentSpace(current)
+      const actor = activeMember(active)
+      if (!canManageSpaceNotice(active)) return current
+      posted = true
+      const notice = {
+        id: `notice-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`,
+        body: trimmed,
+        postedBy: actor.name,
+        postedAt: new Date().toISOString(),
+        acknowledgements: [],
+      }
+      const spaces = current.spaces.map((candidate) => candidate.id === active.id ? { ...candidate, notice } : candidate)
+      const base = { ...current, spaces }
+      return recentActivity(base, active.id, activity(makeId('activity'), 'note', active.notice ? 'Pinned Space Notice updated' : 'Pinned Space Notice posted', `${actor.name} pinned a notice for the team.`, '/', actor.name))
+    })
+    return posted
+  }, [])
+
+  const clearNotice = useCallback(() => {
+    let cleared = false
+    setState((current) => {
+      const active = currentSpace(current)
+      const actor = activeMember(active)
+      if (!active.notice || !canManageSpaceNotice(active)) return current
+      cleared = true
+      const spaces = current.spaces.map((candidate) => candidate.id === active.id ? { ...candidate, notice: undefined } : candidate)
+      const base = { ...current, spaces }
+      return recentActivity(base, active.id, activity(makeId('activity'), 'note', 'Pinned Space Notice cleared', `${actor.name} cleared the pinned notice.`, '/', actor.name))
+    })
+    return cleared
+  }, [])
+
+  const acknowledgeNotice = useCallback(() => {
+    let acknowledged = false
+    setState((current) => {
+      const active = currentSpace(current)
+      const actor = activeMember(active)
+      const notice = active.kind === 'shared' ? active.notice : undefined
+      // A Google email is stable across devices; device-only collaborators retain a local id.
+      const identity = account?.email?.trim().toLocaleLowerCase() || actor.id
+      if (!notice || notice.acknowledgements.includes(identity)) return current
+      acknowledged = true
+      const updated = { ...notice, acknowledgements: [...notice.acknowledgements, identity] }
+      return { ...current, spaces: current.spaces.map((candidate) => candidate.id === active.id ? { ...candidate, notice: updated } : candidate) }
+    })
+    return acknowledged
+  }, [account?.email])
+
   const invite = useCallback((invitee: { name: string; email: string; role: SpaceRole }) => {
     const trimmed = invitee.name.trim().slice(0, 80)
     const email = invitee.email.trim().toLocaleLowerCase().slice(0, 254)
@@ -259,11 +313,13 @@ export function useSpaces(account: AccountUser | null) {
     return { ...current, spaces: current.spaces.map((candidate) => candidate.id === spaceId ? { ...candidate, members } : candidate) }
   }), [])
 
-  const hydrateSpace = useCallback((spaceId: string, remote: Pick<Space, 'name' | 'color' | 'icon'>) => setState((current) => {
+  const hydrateSpace = useCallback((spaceId: string, remote: Pick<Space, 'name' | 'color' | 'icon'> & { notice: Space['notice'] | null }) => setState((current) => {
     const local = current.spaces.find((candidate) => candidate.id === spaceId)
     if (!local || local.kind !== 'shared') return current
-    const next = { ...local, ...remote }
-    if (local.name === next.name && local.color === next.color && local.icon === next.icon) return current
+    const { notice, ...metadata } = remote
+    const next: Space = { ...local, ...metadata, ...(notice === null ? {} : { notice }) }
+    if (notice === null) delete next.notice
+    if (local.name === next.name && local.color === next.color && local.icon === next.icon && JSON.stringify(local.notice) === JSON.stringify(next.notice)) return current
     return { ...current, spaces: current.spaces.map((candidate) => candidate.id === spaceId ? next : candidate) }
   }), [])
 
@@ -282,7 +338,7 @@ export function useSpaces(account: AccountUser | null) {
   }), [])
 
   const activityFeed = state.activity[space.id] ?? []
-  return useMemo(() => ({ state, workspace, space, member, members: space.members, activity: activityFeed, canEdit: editable, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, invite, changeRole, removeMember, hydrateMembers, hydratePresence, hydrateSpace, hydrateActivity, addActivity }), [state, workspace, space, member, activityFeed, editable, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, invite, changeRole, removeMember, hydrateMembers, hydratePresence, hydrateSpace, hydrateActivity, addActivity])
+  return useMemo(() => ({ state, workspace, space, member, members: space.members, activity: activityFeed, canEdit: editable, canManageNotice, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, postNotice, clearNotice, acknowledgeNotice, invite, changeRole, removeMember, hydrateMembers, hydratePresence, hydrateSpace, hydrateActivity, addActivity }), [state, workspace, space, member, activityFeed, editable, canManageNotice, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, postNotice, clearNotice, acknowledgeNotice, invite, changeRole, removeMember, hydrateMembers, hydratePresence, hydrateSpace, hydrateActivity, addActivity])
 }
 
 export type SpacesController = ReturnType<typeof useSpaces>

@@ -66,6 +66,12 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/spaces/$(spaceId)).data.editorEmails.hasAny([request.auth.token.email.lower()]));
     }
 
+    function isSpaceNoticeLead(spaceId) {
+      return signedInGoogle()
+        && request.auth.token.email != null
+        && get(/databases/$(database)/documents/spaces/$(spaceId)).data.noticeLeadEmails.hasAny([request.auth.token.email.lower()]);
+    }
+
     // Shared-space membership is email-scoped. The parent document carries workspace
     // metadata, while Firestore rules remain the final gate for every child request.
     match /spaces/{spaceId} {
@@ -76,8 +82,26 @@ service cloud.firestore {
         && request.resource.data.memberEmails.hasAny([request.auth.token.email.lower()]);
       allow update: if (isSpaceOwner(spaceId)
           || (isSpaceMember(spaceId)
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'initialized', 'bezel', 'updatedAt'])))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'initialized', 'bezel', 'updatedAt']))
+          || (isSpaceNoticeLead(spaceId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notice', 'updatedAt'])))
         && request.resource.data.schemaVersion == 1;
+      allow delete: if false;
+    }
+
+    // Every acknowledgement is self-authored and tied to the current pinned notice.
+    // It is separate from the parent notice so members cannot edit its message or poster.
+    match /spaces/{spaceId}/noticeAcknowledgements/{uid} {
+      allow read: if isSpaceMember(spaceId);
+      allow create, update: if isSpaceMember(spaceId)
+        && signedInGoogle()
+        && request.auth.uid == uid
+        && request.auth.token.email != null
+        && request.resource.data.keys().hasOnly(['noticeId', 'email', 'acknowledgedAt'])
+        && request.resource.data.keys().hasAll(['noticeId', 'email', 'acknowledgedAt'])
+        && request.resource.data.noticeId is string
+        && request.resource.data.noticeId.size() <= 180
+        && request.resource.data.email == request.auth.token.email.lower();
       allow delete: if false;
     }
 

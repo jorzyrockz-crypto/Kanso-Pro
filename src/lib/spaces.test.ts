@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createInitialState } from '../data'
-import { activeMember, canEditSpace, cardAssignedTo, currentSpace, defaultSpacesState, newSharedSpace, parseSpacesState } from './spaces'
+import { activeMember, canEditSpace, canManageSpaceNotice, cardAssignedTo, currentSpace, defaultSpacesState, newSharedSpace, parseSpacesState } from './spaces'
 
 describe('collaborative Space architecture', () => {
   it('keeps a private Personal Space and a separate ready-to-share team Space', () => {
@@ -44,5 +44,24 @@ describe('collaborative Space architecture', () => {
     const viewerSpace = { ...team, members: team.members.map((member) => member.id === 'local-owner' ? { ...member, role: 'viewer' as const } : member) }
     expect(activeMember(viewerSpace).role).toBe('viewer')
     expect(canEditSpace(viewerSpace)).toBe(false)
+  })
+
+  it('keeps one validated pinned notice on shared Spaces and reserves it for owners or leads', () => {
+    const state = defaultSpacesState()
+    const team = state.spaces.find((space) => space.kind === 'shared')!
+    const withNotice = { ...state, spaces: state.spaces.map((space) => space.id === team.id ? {
+      ...space,
+      notice: { id: 'notice-family', body: 'Family conference plan is confirmed.', postedBy: 'You', postedAt: '2026-11-15T01:15:00.000Z', acknowledgements: ['ada@example.test'] },
+    } : space) }
+    const parsed = parseSpacesState(JSON.stringify(withNotice), null)
+    expect(parsed?.spaces.find((space) => space.id === team.id)?.notice?.acknowledgements).toEqual(['ada@example.test'])
+    expect(canManageSpaceNotice(team)).toBe(true)
+    const leadSpace = { ...team, members: team.members.map((member) => member.id === 'local-owner' ? { ...member, role: 'lead' as const } : member) }
+    const editorSpace = { ...team, members: team.members.map((member) => member.id === 'local-owner' ? { ...member, role: 'editor' as const } : member) }
+    expect(canManageSpaceNotice(leadSpace)).toBe(true)
+    expect(canManageSpaceNotice(editorSpace)).toBe(false)
+    const legacyUpdate = state.workspaces[team.id].cards.find((card) => card.type === 'note')!
+    const migrated = parseSpacesState(JSON.stringify({ ...state, workspaces: { ...state.workspaces, [team.id]: { ...state.workspaces[team.id], cards: [...state.workspaces[team.id].cards, { ...legacyUpdate, id: 'retired-space-update', title: 'Space update', category: 'Space Update', tags: ['space-update'] }] } } }), null)
+    expect(migrated?.workspaces[team.id].cards.some((card) => card.id === 'retired-space-update')).toBe(false)
   })
 })

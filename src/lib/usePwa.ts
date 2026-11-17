@@ -135,6 +135,10 @@ export function usePwa() {
       if (disposed) return
       registered = value; registration.current = value
       value.addEventListener('updatefound', found); found(); void refresh()
+      // Registration alone is allowed to reuse the browser's normal service-worker
+      // freshness window. Ask explicitly once per app launch so a just-deployed shell
+      // can become an Update ready banner without waiting for the next timed poll.
+      void check(false)
       void navigator.serviceWorker.ready.then(() => { if (!disposed) { setOfflineReady(true); void refresh() } })
     }).catch(() => { if (!disposed) setError('Offline setup is unavailable in this browser. Your local planner still works while this page is open.') })
     return () => {
