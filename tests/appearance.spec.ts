@@ -141,7 +141,7 @@ test('same-origin tabs update open composer, journal, and sign-in fields without
   const edited = await saved(page)
   await mode(other, 'Dark').check()
   await expectScheme(page, 'dark', 'dark')
-  await expect(page.locator('#journal-body')).toHaveValue('A saved reflection with its own place.')
+  await expect(page.locator('#journal-body')).toHaveText('A saved reflection with its own place.')
   expect(await saved(page)).toBe(edited)
   await page.goto('/sign-in?mode=create')
   await page.getByLabel('Display name', { exact: true }).fill('Night planner')

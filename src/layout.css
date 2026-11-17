@@ -91,8 +91,7 @@
 
   /* Real page headers and document scrolling, not fixed-height sheets. */
   .workspace-page, .create-page { width: 100%; max-width: 65rem; margin: 0 auto; padding: 2rem 1.75rem 2.75rem; }
-  .workspace-tasks, .workspace-project { max-width: 58.5rem; }
-  .workspace-journal { max-width: 56.5rem; }
+  .workspace-tasks, .workspace-project, .workspace-journal { max-width: 58.5rem; }
   .page-header { margin-bottom: 1.75rem; }
   .page-breadcrumb { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.125rem; color: var(--theme-text-secondary, #657b8f); font-size: 0.625rem; line-height: 1.5; font-weight: 550; }
   .page-breadcrumb > a { border-radius: 0.1875rem; color: var(--theme-text-secondary, #60768c); text-decoration: none; }
@@ -214,17 +213,15 @@
     .desktop-triage-section { border-color: #f0d5a5; background: linear-gradient(135deg, rgb(255 252 244 / 92%), rgb(255 249 235 / 76%)); }.desktop-rail-triage { color: #a66808; background: #fff0c9; }.desktop-triage-count { display: inline-flex; align-items: center; justify-content: center; min-width: 1.125rem; height: 1.125rem; margin-left: auto; border-radius: 50%; color: #84510a; background: #ffe5a7; font-size: .5rem; font-weight: 850; }.desktop-triage-list { display: flex; flex-direction: column; gap: .375rem; }.desktop-triage-item { display: grid; grid-template-columns: 1.375rem minmax(0, 1fr); align-items: center; gap: .375rem; padding: .4375rem; border: 1px solid #f2dfba; border-radius: .625rem; background: rgb(255 255 255 / 70%); }.desktop-triage-icon { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: .4375rem; color: #a26608; background: #fff1d0; }.triage-item-project .desktop-triage-icon { color: var(--theme-violet, #6957b6); background: var(--theme-violet-soft, #f0efff); }.desktop-triage-copy { min-width: 0; }.desktop-triage-copy strong, .desktop-triage-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.desktop-triage-copy strong { color: var(--theme-text-primary, #485064); font-size: .53125rem; line-height: 1.4; font-weight: 800; }.desktop-triage-copy small { color: var(--theme-text-secondary, #8a7658); font-size: .46875rem; line-height: 1.4; }.desktop-triage-actions { display: flex; grid-column: 1 / -1; gap: .3125rem; margin-top: .0625rem; }.desktop-triage-actions > button { flex: 1; min-height: 1.75rem; border-radius: .4375rem; font-size: .46875rem; font-weight: 800; }.desktop-triage-move { color: #6f470c; background: #ffe19a; }.desktop-triage-move:hover { background: #ffd574; }.desktop-triage-backlog { border: 1px solid #eddab4; color: #795d2d; background: #fffaf0; }.desktop-triage-backlog:hover { background: #fff4dd; }
     /* Wider workspaces use the same left-hand work / right-hand context rhythm as the desktop Timeline. */
     .workspace-page { max-width: 78rem; }
-    .workspace-tasks, .workspace-project { max-width: 76rem; }
-    .workspace-journal { max-width: 86rem; }
+    .workspace-tasks, .workspace-project, .workspace-journal { max-width: 76rem; }
     .workspace-desktop-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, .4fr); align-items: start; gap: 1.375rem; }
     .workspace-desktop-aside { position: sticky; top: calc(var(--hdr-h) + 1rem); align-self: start; gap: 1rem; }
+    .project-workspace-aside, .task-workspace-aside { order: 0; }
     .workspace-desktop-aside .workspace-fineprint { justify-content: flex-start; padding: 0 .25rem; text-align: left; }
     .workspace-desktop-aside .other-lists { gap: .5rem; }
     .workspace-desktop-aside .list-summary { padding: .75rem; }
     .calendar-workspace { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 1.5rem; }
-    .workspace-journal .journal-hub, .workspace-journal .journal-detail { max-width: 84rem; }
-    /* Keep the journal library board-like, while the narrow studio rail stays a readable single list. */
-    .workspace-journal .journal-note-list:not(.is-compact) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+    .workspace-journal .journal-detail { max-width: none; }
     .workspace-journal .journal-note-list.is-compact { display: flex; flex-direction: column; gap: .375rem; }
   }
 

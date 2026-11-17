@@ -25,6 +25,8 @@ const audit = async (page: Page) => {
   }))).toEqual([])
 }
 
+const settle = (page: Page) => page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+
 test.beforeEach(async ({ page }) => {
   // Most journey assertions concern personal cards. Keep this explicit local preference
   // off here; the dedicated test below covers the product default for a new browser.
@@ -65,16 +67,32 @@ test('timeline boundaries load one month only after an explicit action, never fr
   await expect(page.locator('.month-marker')).toHaveCount(before + 1)
 })
 
-test('Jump to Today remains available when the stream has no personal cards to target', async ({ browser }) => {
+test('Jump to Today stays out of the way until today’s node leaves view, even with no personal cards', async ({ browser }) => {
   const context = await browser.newContext()
   const page = await context.newPage()
   try {
     await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') })
     await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, cards: [], bezel: false })), STORAGE_KEY)
     await page.goto('/')
+    const todayNode = page.locator('.date-node[data-date="2026-11-15"]')
+    await expect(todayNode).toBeInViewport()
+    await expect(todayNode).toHaveClass(/date-today/)
+    await expect(todayNode.locator('.date-node-today')).toHaveText('Today')
+    await expect(page.getByRole('button', { name: 'Jump to Today', exact: true })).toHaveCount(0)
+    await page.setViewportSize({ width: 375, height: 600 })
+    await todayNode.evaluate((node) => node.scrollIntoView({ behavior: 'instant', block: 'center' }))
+    await expect(todayNode).toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Jump to Today', exact: true })).toHaveCount(0)
+    await page.evaluate(() => window.scrollBy({ top: 480, behavior: 'instant' }))
+    await expect.poll(() => page.evaluate(() => {
+      const node = document.querySelector('.date-node[data-date="2026-11-15"]')?.getBoundingClientRect()
+      const header = document.querySelector('.stream-header')?.getBoundingClientRect().bottom ?? 0
+      return !!node && node.bottom < header
+    })).toBe(true)
     await expect(page.getByRole('button', { name: 'Jump to Today', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Jump to Today', exact: true }).click()
-    await expect(page.locator('.month-marker[data-timeline-month="2026-11"]')).toBeVisible()
+    await expect(todayNode).toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Jump to Today', exact: true })).toHaveCount(0)
   } finally {
     await context.close()
   }
@@ -268,7 +286,7 @@ test('Back and Forward restore the selected task list and calendar state', async
   await page.goForward()
   await expect(page.getByRole('button', { name: 'Tuesday, December 8, no entries', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Dec 8 · Connected agenda', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tuesday, Dec 8', exact: true })).toBeVisible()
 })
 
 test('keyboard users can skip the navigation and open pages without a focus trap', async ({ page }) => {

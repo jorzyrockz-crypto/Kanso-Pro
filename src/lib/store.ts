@@ -15,6 +15,10 @@ function isChecklist(value: unknown): boolean {
     return isString(entry.id) && isString(entry.title) && typeof entry.done === 'boolean'
       && (entry.assignee === undefined || isString(entry.assignee))
       && (entry.label === undefined || isString(entry.label))
+      && (entry.targetDate === undefined || (isString(entry.targetDate) && isValidDate(entry.targetDate)))
+      && (entry.remarks === undefined || isString(entry.remarks))
+      && (entry.note === undefined || isString(entry.note))
+      && (entry.time === undefined || (isString(entry.time) && /^([01]\d|2[0-3]):[0-5]\d$/.test(entry.time)))
   }) && new Set(value.map((item) => item.id)).size === value.length
 }
 
@@ -142,6 +146,30 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
       cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.cardId ? {
         ...card, subtasks: [...card.subtasks, action.item],
       } : card),
+    }
+    case 'update-item': return !isChecklist([action.item]) ? state : {
+      ...state,
+      cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.cardId ? {
+        ...card, subtasks: card.subtasks.map((item) => item.id === action.item.id ? action.item : item),
+      } : card),
+    }
+    case 'delete-item': return {
+      ...state,
+      cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.cardId ? {
+        ...card, subtasks: card.subtasks.filter((item) => item.id !== action.itemId),
+      } : card),
+    }
+    case 'move-item': return {
+      ...state,
+      cards: state.cards.map((card) => {
+        if ((card.type !== 'task' && card.type !== 'project') || card.id !== action.cardId) return card
+        const from = card.subtasks.findIndex((item) => item.id === action.itemId)
+        const to = from + (action.direction === 'up' ? -1 : 1)
+        if (from < 0 || to < 0 || to >= card.subtasks.length) return card
+        const subtasks = [...card.subtasks]
+        ;[subtasks[from], subtasks[to]] = [subtasks[to], subtasks[from]]
+        return { ...card, subtasks }
+      }),
     }
   }
 }

@@ -92,6 +92,9 @@
     :root[data-theme='dark'] .topbar.has-backdrop { background: rgb(14 29 44 / 62%); }
     :root[data-theme='dark'] .button-jump-today { border-color: rgb(156 221 255 / 48%); background: linear-gradient(135deg, rgb(25 128 183 / 72%), rgb(50 93 185 / 68%)); box-shadow: inset 0 1px 0 rgb(222 247 255 / 20%), 0 .375rem 1rem rgb(0 0 0 / 24%); }
     :root[data-theme='dark'] .button-jump-today:hover { border-color: rgb(189 234 255 / 74%); background: linear-gradient(135deg, rgb(32 145 203 / 84%), rgb(63 107 204 / 78%)); }
+    :root[data-theme='dark'] .date-node.date-today { border-color: #58bee8; background: linear-gradient(145deg, #173d52, #1a3044); box-shadow: 0 0 0 4px #1a5069, 0 0 0 7px rgb(76 190 231 / 24%), 0 .5rem 1.25rem rgb(0 0 0 / 30%); }
+    :root[data-theme='dark'] .date-node.date-today > span, :root[data-theme='dark'] .date-node.date-today > strong { color: #b9ecff; }
+    :root[data-theme='dark'] .date-node-today { background: #2384b0; color: #f0fbff; }
     :root[data-theme='dark'] .bottom-bar { background: linear-gradient(180deg, transparent, rgb(12 23 36 / 88%) 80%); }
     :root[data-theme='dark'] .bottom-navigation { background: rgb(20 37 55 / 96%); box-shadow: 0 10px 35px rgb(0 0 0 / 35%); }
     :root[data-theme='dark'] .stream-dropdown-trigger { border-color: #4b667f; color: #d8e8f5; background: #1b3146; }
@@ -127,6 +130,33 @@
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity p, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #ead8af; }
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #796943; }
     :root[data-theme='dark'] .calendar-preview-card:hover { background: rgb(255 255 255 / 7%); }
+    :root[data-theme='dark'] .calendar-legend-pill { border-color: #3d5871; background: #172b3e; color: #aebfd0; }
+    :root[data-theme='dark'] .calendar-legend-pill.is-active { border-color: #527999; background: #203b52; color: #def0fb; box-shadow: none; }
+    :root[data-theme='dark'] .calendar-legend-pill:hover { border-color: #6c9abb; background: #21465f; color: #d5efff; }
+    :root[data-theme='dark'] .calendar-date-empty { border-color: #3d5871; background: #172b3e; color: #b9cbda; }
+    :root[data-theme='dark'] .calendar-add-menu > .text-button { border-color: #3d6682; background: #1b4057; color: #b8e8ff; }
+    :root[data-theme='dark'] .calendar-add-options { border-color: #3d5871; background: #16283a; box-shadow: 0 .625rem 1.5rem rgb(0 0 0 / 32%); }
+    :root[data-theme='dark'] .calendar-add-options > button { color: #c7d8e5; }
+    :root[data-theme='dark'] .calendar-add-options > button:hover, :root[data-theme='dark'] .calendar-add-options > button:focus-visible { background: #1d415a; color: #dbf0ff; }
+    :root[data-theme='dark'] .month-observances { border-color: #3a556b; }
+    :root[data-theme='dark'] .month-observances-toggle .eyebrow { color: #f1c46d; }
+    :root[data-theme='dark'] .month-observances-toggle strong { color: #dbe8f2; }
+    :root[data-theme='dark'] .month-observances-toggle small { color: #aabed0; }
+    :root[data-theme='dark'] .project-stream-card { border-color: #4f4a75; background: linear-gradient(145deg, #242740, #1b2d3b); }
+    :root[data-theme='dark'] .project-stream-card .type-badge { border-color: #605a8f; background: #342f56; color: #d8d0ff; }
+    :root[data-theme='dark'] .timeline-project-due { background: #373454; color: #d3cbff; }
+    :root[data-theme='dark'] .timeline-project-due.is-today { background: #4c4028; color: #ffd98b; }
+    :root[data-theme='dark'] .timeline-project-due.is-overdue { background: #4a303b; color: #ffc0d0; }
+    :root[data-theme='dark'] .timeline-project-due.is-complete { background: #1d4439; color: #a8edcc; }
+    :root[data-theme='dark'] .project-next-milestone, :root[data-theme='dark'] .project-stream-footer { color: #bdcadd; }
+    :root[data-theme='dark'] .project-next-milestone > svg, :root[data-theme='dark'] .project-stream-footer .footer-link { color: #d0c9ff; }
+    :root[data-theme='dark'] .task-rollover-action { border-color: #397462; background: #173a35; color: #a7e8cd; }
+    :root[data-theme='dark'] .reminder-pill.is-passed { border-color: #4a5c68; background: #253441; color: #b5c3ce; }
+    :root[data-theme='dark'] .task-check-item { border-color: #405d56; background: #1b2e2c; }
+    :root[data-theme='dark'] .task-check-item:hover { background: #203b36; }
+    :root[data-theme='dark'] .task-item-editor { border-color: #397462; background: #173a35; }
+    :root[data-theme='dark'] .task-edit-fields > label, :root[data-theme='dark'] .task-item-note { color: #b6e1cd; }
+    :root[data-theme='dark'] .task-edit-fields input, :root[data-theme='dark'] .task-item-note input { border-color: #3b665b; background: #1a2b32; color: #e3f6ed; }
     :root[data-theme='dark'] .project-pulse { border-color: #554b80; background: linear-gradient(120deg, #302d49, #172b3d); }
     :root[data-theme='dark'] .project-pulse strong { color: #e7e0fb; }
     :root[data-theme='dark'] .project-pulse p { color: #bac9dc; }
@@ -187,13 +217,29 @@
     :root[data-theme='dark'] .notification-type.notification-task { color: #9be0bd; background: #1a4038; }
     :root[data-theme='dark'] .notification-type.notification-project { color: #c8c0fb; background: #342e50; }
     :root[data-theme='dark'] .notification-type.notification-update { color: #f0d090; background: #423824; }
+    :root[data-theme='dark'] .project-pulse.is-complete { border-color: #39725e; background: linear-gradient(120deg, #163b33, #1c2d3d); }
+    :root[data-theme='dark'] .project-due-status.is-complete { color: #a7e8cd; background: #173a35; }
+    :root[data-theme='dark'] .project-milestone { border-color: #465468; background: #1d2b39; }
+    :root[data-theme='dark'] .project-milestone:hover { background: #213446; }
+    :root[data-theme='dark'] .milestone-remark { color: #b9c8d4; }
+    :root[data-theme='dark'] .milestone-editor { border-color: #51467e; background: #292640; }
+    :root[data-theme='dark'] .milestone-edit-fields > label, :root[data-theme='dark'] .milestone-remarks { color: #c8c1e9; }
+    :root[data-theme='dark'] .milestone-edit-fields input, :root[data-theme='dark'] .milestone-remarks input { border-color: #554d79; background: #1b2735; color: #e8e4fb; }
     /* The Journal stays calm and readable after dark-mode color-scheme changes native fields. */
     :root[data-theme='dark'] .journal-paper { background-color: #202a36; background-image: linear-gradient(to bottom, transparent 25px, rgb(236 181 113 / 9%) 26px); }
     :root[data-theme='dark'] .journal-editor { border-color: #485c70; box-shadow: 0 .75rem 1.75rem rgb(0 0 0 / 18%); }
     :root[data-theme='dark'] .journal-title-input, :root[data-theme='dark'] .journal-body-input { color: #e5edf5; }
     :root[data-theme='dark'] .journal-title-input { border-color: #4a6072; }
     :root[data-theme='dark'] .journal-editor-footer, :root[data-theme='dark'] .journal-voice-editor, :root[data-theme='dark'] .journal-image-editor { border-color: #405365; }
-    :root[data-theme='dark'] .journal-studio-rail { border-color: #405a70; background: rgb(18 33 49 / 94%); box-shadow: 0 .75rem 1.75rem rgb(0 0 0 / 22%); }
+    :root[data-theme='dark'] .journal-mobile-switcher > details { border-color: #405a70; background: #172a3b; box-shadow: 0 .5rem 1.5rem rgb(0 0 0 / 20%); }
+    :root[data-theme='dark'] .journal-mobile-switcher summary strong { color: #e0ebf3; }
+    :root[data-theme='dark'] .journal-mobile-switcher > .icon-button { border-color: #456278; background: #1c435b; color: #c5ebff; }
+    :root[data-theme='dark'] .journal-mobile-switcher-drawer { border-color: #40596d; }
+    :root[data-theme='dark'] .journal-insight-card { border-color: #6a4960; background: linear-gradient(135deg, #352637, #1c2c3c); }
+    :root[data-theme='dark'] .journal-insight-card > .eyebrow, :root[data-theme='dark'] .journal-entry-browser-heading > .icon-button { color: #f2b4cb; }
+    :root[data-theme='dark'] .journal-entry-browser { border-color: #40596e; background: #172a3c; }
+    :root[data-theme='dark'] .journal-entry-browser-heading h3 { color: #e1edf5; }
+    :root[data-theme='dark'] .journal-studio-pending { border-color: #40596d; background: #172a3b; color: #bfd0df; }
     :root[data-theme='dark'] .journal-note-list.is-compact .journal-note-summary:hover, :root[data-theme='dark'] .journal-note-list.is-compact .journal-note-summary.is-selected { border-color: #4d7591; background: #1b3c55; }
     :root[data-theme='dark'] .journal-rail-capture { border-color: #40586c; }
     :root[data-theme='dark'] .journal-rail-capture > button { border-color: #476077; background: #172a3b; color: #c8dced; }

@@ -34,10 +34,11 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
     allDay: editingCard.type === 'event' ? editingCard.allDay : false,
     dueDate: editingCard.type === 'project' ? editingCard.dueDate : editingCard.date,
     details: '',
+    ...(editingCard.type === 'project' ? { team: editingCard.team.join(', ') } : {}),
     ...(editingCard.type === 'event' ? { owner: editingCard.owner, organization: editingCard.organization, location: editingCard.location, occasion: editingCard.occasion ?? 'auto' } : {}),
   } : {
     type: options.type ?? 'event', title: '', date: options.date ?? FOCUS_DATE,
-    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: 'You', organization: '', location: '', occasion: 'auto',
+    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: 'You', organization: '', location: '', occasion: 'auto', team: 'You',
   })
   const [error, setError] = useState('')
   const update = <K extends keyof NewCardInput>(key: K, value: NewCardInput[K]) => {
@@ -60,10 +61,10 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
         <input type="radio" name="cardType" value={type} checked={input.type === type} onChange={() => update('type', type)} />
         <span><TypeIcon type={type} size={18} /><span>{typeLabels[type]}</span></span>
       </label>)}</div></fieldset><p className={`composer-type-guide type-guide-${input.type}`} aria-live="polite"><TypeIcon type={input.type} size={15} /><span><strong>{typeGuides[input.type].title}</strong><span>{typeGuides[input.type].description}</span></span></p></div>}
-      <div className="form-field"><label htmlFor="card-title">Card title <span>*</span></label><input id="card-title" data-page-focus="true" required maxLength={160} value={input.title}
+      <div className="form-field"><label htmlFor="card-title">{input.type === 'project' ? 'Project title' : 'Card title'} <span>*</span></label><input id="card-title" data-page-focus="true" required maxLength={160} value={input.title}
         onChange={(event) => update('title', event.target.value)} placeholder={{ event: 'e.g. A fresh start with the team', task: 'e.g. Prepare for the week ahead', project: 'e.g. Bring the reading festival to life', note: 'e.g. A thought worth coming back to' }[input.type]} /></div>
       <div className="form-row form-row-date-time">
-        <div className="form-field"><label htmlFor="card-date"><CalendarDays size="0.75rem" />Journey date <span>*</span></label><input id="card-date" type="date" required min="1900-01-01" max="2100-12-31" value={input.date} onChange={(event) => {
+        <div className="form-field"><label htmlFor="card-date"><CalendarDays size="0.75rem" />{input.type === 'project' ? 'Start date' : 'Journey date'} <span>*</span></label><input id="card-date" type="date" required min="1900-01-01" max="2100-12-31" value={input.date} onChange={(event) => {
           const nextDate = event.target.value
           setInput((current) => ({ ...current, date: nextDate, dueDate: current.dueDate < nextDate ? nextDate : current.dueDate }))
           setError('')
@@ -71,6 +72,7 @@ export function Composer({ options, cards, editingCard, onCancel, onCreate, onUp
         {input.type === 'project' ? <div className="form-field"><label htmlFor="card-due">Due date <span>*</span></label><input id="card-due" type="date" required min={input.date} max="2100-12-31" value={input.dueDate} onChange={(event) => update('dueDate', event.target.value)} /></div>
           : input.type !== 'note' && <><div className="form-field"><label htmlFor="card-time">{input.type === 'task' ? 'Reminder time' : 'Start time'}</label><input id="card-time" type="time" disabled={input.type === 'event' && input.allDay} value={input.time} onChange={(event) => update('time', event.target.value)} /></div>{input.type === 'event' && <div className="form-field"><label htmlFor="card-end-time">End time <span className="optional-label">optional</span></label><input id="card-end-time" type="time" disabled={input.allDay} value={input.endTime ?? ''} onChange={(event) => update('endTime', event.target.value)} /></div>}</>}
       </div>
+      {input.type === 'project' && <div className="form-field"><label htmlFor="project-team">Planning team <span className="optional-label">optional</span></label><input id="project-team" value={input.team ?? 'You'} maxLength={480} onChange={(event) => update('team', event.target.value)} placeholder="You, Alex, Sam" /><span className="form-field-help">Separate names with commas. Leave blank to keep a personal project.</span></div>}
       {input.type === 'event' && <><label className="all-day-toggle"><input type="checkbox" checked={input.allDay} onChange={(event) => update('allDay', event.target.checked)} /><span>Make it an all-day event</span></label><div className="form-row">
         <div className="form-field"><label htmlFor="card-organization">Calendar or organization <span className="optional-label">optional</span></label><input id="card-organization" value={input.organization ?? ''} maxLength={160} onChange={(event) => update('organization', event.target.value)} placeholder="e.g. Personal Calendar" /></div>
         <div className="form-field"><label htmlFor="card-owner">Organizer <span className="optional-label">optional</span></label><input id="card-owner" value={input.owner ?? ''} maxLength={160} onChange={(event) => update('owner', event.target.value)} placeholder="e.g. You" /></div>

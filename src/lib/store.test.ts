@@ -27,6 +27,20 @@ describe('the single journey store', () => {
     const other = next.cards.find((card) => card.id === 'proj-tos')
     if (other?.type === 'project') expect(other.subtasks).toHaveLength(4)
   })
+  it('keeps optional task-item details and safely reorders items', () => {
+    const state = createInitialState()
+    const task = state.cards.find((card) => card.id === 'task-grades')
+    if (!task || task.type !== 'task') throw new Error('Expected seeded task list')
+    const edited = journeyReducer(state, { type: 'update-item', cardId: task.id, item: { ...task.subtasks[1], time: '09:15', note: 'Call before lunch.' } })
+    const moved = journeyReducer(edited, { type: 'move-item', cardId: task.id, itemId: 'grades-2', direction: 'up' })
+    const movedTask = moved.cards.find((card) => card.id === task.id)
+    if (movedTask?.type === 'task') {
+      expect(movedTask.subtasks.map((item) => item.id)).toEqual(['grades-2', 'grades-1'])
+      expect(movedTask.subtasks[0]).toMatchObject({ time: '09:15', note: 'Call before lunch.' })
+    }
+    expect(parseSavedState(JSON.stringify(moved))).toEqual(moved)
+    expect(journeyReducer(moved, { type: 'move-item', cardId: task.id, itemId: 'grades-2', direction: 'up' })).toEqual(moved)
+  })
   it('rolls unfinished work forward or parks it in the backlog without touching other cards', () => {
     const state = createInitialState()
     const rolled = journeyReducer(state, { type: 'rollover-card', id: 'task-grades', date: '2026-11-14' })

@@ -71,6 +71,12 @@ export function makeId(prefix = 'card'): string {
   return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
 }
 
+/** Normalize the composer’s compact comma-separated collaborator field for local project storage. */
+export function projectTeam(value?: string): string[] {
+  const members = [...new Set((value ?? '').split(/[\n,]/).map((name) => name.trim()).filter(Boolean))].slice(0, 24)
+  return members.length ? members : ['You']
+}
+
 /**
  * Scheduled, unfinished work from before today deserves one explicit choice rather
  * than silently following the user around the Timeline. Quiet and parked cards are
@@ -161,7 +167,7 @@ export function createCard(input: NewCardInput, existing: JourneyCard[]): Journe
   if (input.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time)) throw new Error('Please choose a valid time.')
   if (input.endTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.endTime)) throw new Error('Please choose a valid end time.')
   if (input.type === 'project' && (!isValidDate(input.dueDate) || input.dueDate < input.date)) {
-    throw new Error('The project due date must be on or after its journey date.')
+    throw new Error('The project due date must be on or after its start date.')
   }
   if (input.type === 'event' && input.occasion !== undefined && !isOccasionChoice(input.occasion)) {
     throw new Error('Please choose a valid occasion background.')
@@ -188,7 +194,7 @@ export function createCard(input: NewCardInput, existing: JourneyCard[]): Journe
     case 'task': return { ...base, type: 'task', reminder: input.time || undefined, subtasks: checklist() }
     case 'project': return {
       ...base, type: 'project', dueDate: input.dueDate,
-      team: ['You'], subtasks: checklist(), featured: true,
+      team: projectTeam(input.team), subtasks: checklist(), featured: true,
     }
     case 'note': return {
       ...base, type: 'note', body: input.details.trim(), tags: [], pinned: false,
@@ -225,6 +231,7 @@ export function updateCardFromInput(card: EventCard | TaskCard | ProjectCard, in
     date: created.date,
     dueDate: created.dueDate,
     context: created.context,
+    team: created.team,
   }
   return card
 }
