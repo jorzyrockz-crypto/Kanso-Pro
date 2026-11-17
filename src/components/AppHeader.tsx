@@ -140,7 +140,6 @@ export function AppHeader({ account, appearance, storageAvailable, onSignOut, no
       </div>
       <div className="topbar-actions">
         <MemberStack members={members} spaceName={space.name} canEdit={canEdit} onOpenSettings={() => setWorkspaceSettingsOpen(true)} />
-        <button type="button" className="header-invite-button workspace-manage-button" title={canEdit ? 'Configure workspace' : 'View workspace settings'} onClick={() => setWorkspaceSettingsOpen(true)}><Settings2 size=".875rem" /><span>Manage</span></button>
         <HeaderAppearance appearance={appearance} open={openMenu === 'appearance'} onOpenChange={setAppearanceOpen} />
         <NotificationMenu notifications={notifications} activity={activity} spaceName={space.name} open={openMenu === 'notifications'} onOpenChange={setNotificationsOpen} />
         <MoreMenu open={openMenu === 'more'} onOpenChange={setMoreOpen} updateReady={updateReady} account={account} storageAvailable={storageAvailable} onSignOut={onSignOut} />

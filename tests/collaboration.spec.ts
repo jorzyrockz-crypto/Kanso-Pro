@@ -12,6 +12,7 @@ test('Spaces keep local team work separate and let owners configure shared works
   await expect(page.getByRole('button', { name: /Switch workspace, current space: Curriculum Planning/ })).toBeVisible()
   const memberProfile = page.getByRole('button', { name: 'Configure Curriculum Planning workspace settings', exact: true })
   await expect(memberProfile).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Manage', exact: true })).toHaveCount(0)
   await expect(page.getByText('Local Space', { exact: true })).toBeVisible()
   await memberProfile.click()
   const settings = page.getByRole('dialog', { name: 'Configure Curriculum Planning' })
