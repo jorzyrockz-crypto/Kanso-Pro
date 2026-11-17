@@ -99,11 +99,12 @@ function NoteList({ notes, selectedId, compact = false }: { notes: NoteCard[]; s
   </>
 }
 
-function JournalHero({ entryCount }: { entryCount: number }) {
+function JournalHero({ note, entryCount }: { note: NoteCard; entryCount: number }) {
   return <section className="workspace-hero hero-note journal-hero" aria-labelledby="journal-hero-title">
-    <div className="journal-hero-heading"><FileText size=".9375rem" aria-hidden="true" /><h2 id="journal-hero-title">Your Journal</h2><span>Journal Studio</span></div>
-    <span className="journal-entry-count">{entryCount} {entryCount === 1 ? 'entry' : 'entries'}</span>
-    <p className="sr-only">A private place for reflections, voice memos, and visual references.</p>
+    <div className="hero-copy"><div className="hero-eyebrows"><span className="hero-eyebrow"><FileText size={11} />Journal · private reflections</span><span className="hero-date">{formatDate(note.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+      <h2 id="journal-hero-title">{displayTitle(note)}</h2><p>{note.context || 'A private place for reflections, voice memos, and visual references.'}</p>
+    </div>
+    <div className="hero-stat"><span>{entryCount === 1 ? 'Journal entry' : 'Journal entries'}</span><strong>{entryCount}</strong></div>
   </section>
 }
 
@@ -375,7 +376,7 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
     element.style.height = `${Math.min(element.scrollHeight, 144)}px`
   }
   useEffect(() => { resizeTitle(titleInput.current) }, [note.id, note.title])
-  return <section className="journal-detail journal-studio-editor" aria-label="Active journal entry">
+  return <section className="journal-detail journal-editor-detail" aria-label="Active journal entry">
     <div className="journal-detail-topbar"><span>{noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} /><CardDeleteAction card={note} onDelete={() => onDelete(note)} /></div>
     <section className="journal-editor journal-paper" aria-label="Journal entry studio">
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
@@ -387,12 +388,15 @@ function JournalEditor({ note, dispatch, storageAvailable, firestoreUserId, onDe
   </section>
 }
 
-function JournalStudio({ notes, selected, dispatch, storageAvailable, firestoreUserId, onCreate, onDelete }: { notes: NoteCard[]; selected: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void; onDelete: (note: NoteCard) => void }) {
-  return <div className="journal-studio">
-    <aside className="journal-studio-rail" aria-label="Journal entries"><div className="journal-studio-rail-heading"><div><span className="eyebrow">Journal studio</span><h2>Journal</h2></div><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".875rem" /></button></div><NoteList notes={notes} selectedId={selected.id} compact /><div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo journal entry' : 'Sign in with Google to create a photo journal entry'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div></aside>
-    <div className="journal-mobile-switcher"><details><summary><span><span className="eyebrow">Journal Studio</span><strong>{displayTitle(selected)}</strong></span><ChevronDown size=".9375rem" aria-hidden="true" /></summary><div className="journal-mobile-switcher-drawer"><NoteList notes={notes} selectedId={selected.id} compact /></div></details><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".9375rem" /></button></div>
-    <JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onDelete={onDelete} />
-  </div>
+function JournalEntrySwitcher({ notes, selected, onCreate }: { notes: NoteCard[]; selected: NoteCard; onCreate: (kind: JournalNoteKind) => void }) {
+  return <div className="journal-mobile-switcher"><details><summary><span><span className="eyebrow">Journal entries</span><strong>{displayTitle(selected)}</strong></span><ChevronDown size=".9375rem" aria-hidden="true" /></summary><div className="journal-mobile-switcher-drawer"><NoteList notes={notes} selectedId={selected.id} compact /></div></details><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".9375rem" /></button></div>
+}
+
+function JournalEntryBrowser({ notes, selected, firestoreUserId, onCreate }: { notes: NoteCard[]; selected: NoteCard; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void }) {
+  return <section className="journal-entry-browser" aria-label="Journal entries"><div className="journal-entry-browser-heading"><div><span className="eyebrow">Your entries</span><h3>Journal entries</h3><span className="count-label">{notes.length} {notes.length === 1 ? 'entry' : 'entries'}</span></div><button type="button" className="icon-button" aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".8125rem" /></button></div>
+    <NoteList notes={notes} selectedId={selected.id} compact />
+    <div className="journal-rail-capture"><button type="button" onClick={() => onCreate('voice')}><Mic size=".75rem" />Voice</button><button type="button" disabled={!firestoreUserId} title={firestoreUserId ? 'Create photo journal entry' : 'Sign in with Google to create a photo journal entry'} onClick={() => onCreate('image')}><Camera size=".75rem" />Photo</button></div>
+  </section>
 }
 
 export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDeleteCard, storageAvailable, firestoreUserId }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; onDeleteCard: (card: JourneyCard) => void; storageAvailable: boolean; firestoreUserId: string | null }) {
@@ -416,8 +420,17 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDelete
   }, [wantsNewTextEntry, notes.length])
 
   return <div className="workspace-content journal-workspace-content">
-    <JournalHero entryCount={notes.length} />
-    {selected ? <JournalStudio notes={notes} selected={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onCreate={create} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} />
+    {selected ? <><div className="workspace-selector journal-selector"><label htmlFor="journal-entry-select">Journal entry</label><select id="journal-entry-select" value={selected.id} onChange={(event) => onNavigate({ page: 'journal', cardId: event.target.value })}>
+      {[...notes].sort((first, second) => updated(second).getTime() - updated(first).getTime()).map((note) => <option key={note.id} value={note.id}>{displayTitle(note)}</option>)}
+    </select></div>
+      <JournalHero note={selected} entryCount={notes.length} />
+      <JournalEntrySwitcher notes={notes} selected={selected} onCreate={create} />
+      <div className="workspace-desktop-split journal-workspace-split"><section className="workspace-panel journal-editor-panel"><JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} firestoreUserId={firestoreUserId} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} /></section>
+        <aside className="workspace-desktop-aside journal-workspace-aside" aria-label="Journal context"><section className="workspace-insight-card journal-insight-card"><span className="eyebrow"><FileText size={11} />Journal entry</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Entry date</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Category</dt><dd>{selected.category || 'Personal'}</dd></div><div><dt>Tags</dt><dd>{selected.tags.length ? selected.tags.map((tag) => `#${tag}`).join(', ') : 'No tags yet'}</dd></div><div><dt>Reminder</dt><dd>{selected.reminderAt ? formatDate(selected.reminderAt.slice(0, 10), { month: 'short', day: 'numeric' }) : 'No reminder'}</dd></div></dl></section>
+          <JournalEntryBrowser notes={notes} selected={selected} firestoreUserId={firestoreUserId} onCreate={create} />
+          <p className="workspace-fineprint"><FileText size=".75rem" />Text stays in your workspace. Voice stays on this device; images are private Firestore journal entries.</p>
+        </aside>
+      </div></>
       : <section className="journal-studio-pending" aria-live="polite">Opening a fresh journal entry…</section>}
   </div>
 }

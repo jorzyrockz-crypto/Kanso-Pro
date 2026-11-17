@@ -3,18 +3,19 @@ import { createInitialState, STORAGE_KEY } from '../src/data'
 
 const navigation = (page: import('@playwright/test').Page) => page.getByRole('navigation', { name: 'Main navigation' })
 
-test('Journal opens directly into the selected desktop studio and creates text and voice entries without a picker', async ({ page }) => {
+test('Journal opens directly into its task/project-style workspace and creates text and voice entries without a picker', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') })
   await page.goto('/journal')
 
-  await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Classroom Observation Reflections & Peer Feedback', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Recent entries', exact: true })).toHaveCount(0)
-  await expect(page.locator('.journal-hub')).toHaveCount(0)
-  await expect(page.locator('.journal-note-picker')).toHaveCount(0)
-  const rail = page.getByRole('complementary', { name: 'Journal entries', exact: true })
-  await expect(rail).toBeVisible()
-  await expect(rail.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
+  await expect(page.locator('.journal-hub, .journal-note-picker, .journal-studio')).toHaveCount(0)
+  await expect(page.getByLabel('Journal entry', { exact: true })).toBeVisible()
+  const context = page.getByRole('complementary', { name: 'Journal context', exact: true })
+  await expect(context).toBeVisible()
+  const entries = context.getByRole('region', { name: 'Journal entries', exact: true })
+  await expect(entries.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
   await expect(page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })).toBeVisible()
   await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('Classroom Observation Reflections & Peer Feedback')
   await expect(page.locator('.studio-back-to-notes')).toHaveCount(0)
@@ -31,16 +32,16 @@ test('Journal opens directly into the selected desktop studio and creates text a
   await expect(reflection.locator('input[type="checkbox"]')).toHaveCount(1)
   await page.getByLabel('Tags, separated by commas', { exact: true }).fill('private, journal')
   await page.getByLabel('Note category', { exact: true }).selectOption('Personal')
-  await expect(rail.getByRole('link', { name: 'Open Text journal entry: A local journal note', exact: true })).toBeVisible()
+  await expect(entries.getByRole('link', { name: 'Open Text journal entry: A local journal note', exact: true })).toBeVisible()
 
-  await rail.getByRole('button', { name: 'Create text journal entry', exact: true }).click()
+  await entries.getByRole('button', { name: 'Create text journal entry', exact: true }).click()
   await expect(page).toHaveURL(/\/journal\/note-/)
   await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-15')
   await expect(page.getByLabel('Your reflection', { exact: true })).toBeFocused()
-  await rail.getByRole('button', { name: 'Voice', exact: true }).click()
+  await entries.getByRole('button', { name: 'Voice', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Start recording', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Checklist', exact: true })).toBeVisible()
-  await expect(rail.getByRole('button', { name: 'Photo', exact: true })).toBeDisabled()
+  await expect(entries.getByRole('button', { name: 'Photo', exact: true })).toBeDisabled()
 })
 
 test('Journal creates and selects today’s blank entry when no entries exist', async ({ page }) => {
@@ -53,21 +54,19 @@ test('Journal creates and selects today’s blank entry when no entries exist', 
   await expect(page).toHaveURL(/\/journal\/note-/)
   await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-15')
   await expect(page.getByLabel('Your reflection', { exact: true })).toBeFocused()
-  await expect(page.locator('.journal-entry-count')).toContainText('1 entry')
+  await expect(page.locator('.journal-hero .hero-stat')).toContainText('1')
 })
 
-test('Journal keeps the active editor first on phones with a compact entry switcher and new-entry control', async ({ page }) => {
+test('Journal keeps the active editor first on phones with a compact entry switcher and contextual details', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') })
   await page.goto('/journal')
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  expect((await page.locator('.journal-hero').boundingBox())!.height).toBeLessThan(80)
-  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeHidden()
-  const switcher = page.locator('.journal-mobile-switcher')
-  await expect(switcher).toBeVisible()
+  await expect(page.locator('.journal-mobile-switcher')).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Your reflection', exact: true })).toBeVisible()
+  const switcher = page.locator('.journal-mobile-switcher')
   await switcher.locator('summary').click()
   await expect(switcher.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
   await expect(switcher.getByRole('link', { name: /Open Text journal entry:/ }).first()).toBeVisible()
@@ -79,19 +78,27 @@ test('Journal keeps the active editor first on phones with a compact entry switc
   await expect(page.getByLabel('Your reflection', { exact: true })).toBeFocused()
 })
 
-test('Journal uses a compact studio header while retaining readable tablet writing space', async ({ page }) => {
+test('Journal aligns its hero and desktop work/context split with Tasks and Projects', async ({ page }) => {
   await page.setViewportSize({ width: 1564, height: 856 })
   await page.goto('/journal')
   const journalHero = page.locator('.journal-hero')
   await expect(journalHero).toBeVisible()
-  expect((await journalHero.boundingBox())!.height).toBeLessThan(80)
-  await expect(journalHero.locator('.journal-entry-count')).toBeVisible()
+  const journalBox = await journalHero.boundingBox()
+  const journalEditor = page.locator('.journal-editor-panel')
+  const journalContext = page.getByRole('complementary', { name: 'Journal context', exact: true })
+  await expect(journalContext.getByRole('heading', { name: 'At a glance', exact: true })).toBeVisible()
+  expect((await journalEditor.boundingBox())!.x + (await journalEditor.boundingBox())!.width).toBeLessThanOrEqual((await journalContext.boundingBox())!.x)
+
+  await page.goto('/tasks')
+  const taskHero = page.locator('.workspace-hero')
+  const taskBox = await taskHero.boundingBox()
+  expect(journalBox!.width).toBeCloseTo(taskBox!.width, 0)
+  expect(journalBox!.x).toBeCloseTo(taskBox!.x, 0)
 
   await page.setViewportSize({ width: 768, height: 1024 })
   await page.goto('/journal/note-lesson')
   await expect(page.locator('.studio-note-details')).toHaveAttribute('open', '')
-  await expect(page.getByRole('complementary', { name: 'Journal entries', exact: true })).toBeHidden()
   await expect(page.locator('.journal-mobile-switcher')).toBeVisible()
-  expect(await page.locator('.journal-studio-editor').evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(650)
+  expect(await page.locator('.journal-editor-detail').evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(650)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })

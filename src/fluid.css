@@ -64,7 +64,7 @@
     .bottom-bar.is-collapsed .bottom-nav-link.is-active::before { left: -.625rem; }
     .bottom-bar.is-collapsed .navigation-note { display: none; }
     .workspace-calendar { max-width: 76rem; }
-    .workspace-tasks, .workspace-project { max-width: 66rem; }
+    .workspace-tasks, .workspace-project, .workspace-journal { max-width: 66rem; }
     /* In side-rail landscape layouts, keep the floating return control in the content canvas. */
     .timeline-jump-today { bottom: max(1.25rem, var(--safe-area-bottom)); }
     .toast-region { bottom: max(1rem, var(--safe-area-bottom)); }
