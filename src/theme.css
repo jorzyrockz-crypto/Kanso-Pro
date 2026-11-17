@@ -187,6 +187,14 @@
     :root[data-theme='dark'] .notification-type.notification-task { color: #9be0bd; background: #1a4038; }
     :root[data-theme='dark'] .notification-type.notification-project { color: #c8c0fb; background: #342e50; }
     :root[data-theme='dark'] .notification-type.notification-update { color: #f0d090; background: #423824; }
+    :root[data-theme='dark'] .project-pulse.is-complete { border-color: #39725e; background: linear-gradient(120deg, #163b33, #1c2d3d); }
+    :root[data-theme='dark'] .project-due-status.is-complete { color: #a7e8cd; background: #173a35; }
+    :root[data-theme='dark'] .project-milestone { border-color: #465468; background: #1d2b39; }
+    :root[data-theme='dark'] .project-milestone:hover { background: #213446; }
+    :root[data-theme='dark'] .milestone-remark { color: #b9c8d4; }
+    :root[data-theme='dark'] .milestone-editor { border-color: #51467e; background: #292640; }
+    :root[data-theme='dark'] .milestone-edit-fields > label, :root[data-theme='dark'] .milestone-remarks { color: #c8c1e9; }
+    :root[data-theme='dark'] .milestone-edit-fields input, :root[data-theme='dark'] .milestone-remarks input { border-color: #554d79; background: #1b2735; color: #e8e4fb; }
     /* The Journal stays calm and readable after dark-mode color-scheme changes native fields. */
     :root[data-theme='dark'] .journal-paper { background-color: #202a36; background-image: linear-gradient(to bottom, transparent 25px, rgb(236 181 113 / 9%) 26px); }
     :root[data-theme='dark'] .journal-editor { border-color: #485c70; box-shadow: 0 .75rem 1.75rem rgb(0 0 0 / 18%); }

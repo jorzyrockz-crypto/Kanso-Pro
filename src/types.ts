@@ -10,7 +10,12 @@ export interface ChecklistItem {
   title: string
   done: boolean
   assignee?: string
+  /** Optional short planning tag, such as Q1, Procurement, or MOOE. */
   label?: string
+  /** A milestone can carry a date independent from the overall project due date. */
+  targetDate?: string
+  /** One concise planning note, blocker, or status update. */
+  remarks?: string
 }
 
 interface BaseCard {
@@ -121,6 +126,8 @@ export type JourneyAction =
   | { type: 'backlog-card'; id: string }
   | { type: 'toggle-item'; cardId: string; itemId: string }
   | { type: 'add-item'; cardId: string; item: ChecklistItem }
+  | { type: 'update-item'; cardId: string; item: ChecklistItem }
+  | { type: 'delete-item'; cardId: string; itemId: string }
   | { type: 'toggle-bezel' }
   | { type: 'hydrate'; state: JourneyState }
 
@@ -148,6 +155,8 @@ export interface NewCardInput {
   organization?: string
   location?: string
   occasion?: OccasionChoice
+  /** Comma-separated collaborators collected by the project composer. */
+  team?: string
 }
 
 export interface DayEntry {

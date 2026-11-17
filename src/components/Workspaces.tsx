@@ -1,7 +1,7 @@
-import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, Plus, School, Users, Zap } from 'lucide-react'
+import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, MessageSquareText, Pencil, Plus, Printer, School, Users, Zap } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import type { Dispatch, ReactNode } from 'react'
+import type { Dispatch, FormEvent, ReactNode } from 'react'
 import { FOCUS_DATE } from '../data'
 import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, ProjectCard, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
@@ -30,13 +30,14 @@ type WorkspaceProps = {
   onDeleteCard: (card: JourneyCard) => void
 }
 
-function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month }: {
+function WorkspaceHero({ type, eyebrow, title, children, stat, extra, actions, month }: {
   type: 'event' | 'task' | 'project' | 'note'
   eyebrow: string
   title: string
   children: ReactNode
   stat?: { label: string; value: string | number }
   extra?: ReactNode
+  actions?: ReactNode
   month?: string
 }) {
   return <div className={`workspace-hero hero-${type} ${month ? 'month-calendar-hero' : ''}`} style={month ? monthPalette(monthScene(month)) : undefined}>
@@ -45,6 +46,7 @@ function WorkspaceHero({ type, eyebrow, title, children, stat, extra, month }: {
       <h2>{title}</h2><p>{children}</p>
     </div>
     {stat && <div className="hero-stat"><span>{stat.label}</span><strong>{stat.value}</strong></div>}
+    {actions && <div className="hero-actions">{actions}</div>}
   </div>
 }
 
@@ -210,34 +212,82 @@ function projectDueStatus(dueDate: string) {
   return { text: `${days} days remaining`, tone: 'is-upcoming' }
 }
 
+function escapePrint(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;')
+}
+
+function printProjectSummary(project: ProjectCard) {
+  const { done, total, percent } = progress(project.subtasks)
+  const rows = project.subtasks.map((item, index) => `<tr><td>${index + 1}</td><td>${escapePrint(item.title)}</td><td>${escapePrint(item.assignee || '—')}</td><td>${item.targetDate ? escapePrint(formatDate(item.targetDate, { month: 'short', day: 'numeric', year: 'numeric' })) : '—'}</td><td>${item.done ? 'Completed' : 'Open'}</td><td>${escapePrint(item.remarks || '—')}</td></tr>`).join('') || '<tr><td colspan="6">No milestones yet.</td></tr>'
+  const summary = window.open('', '_blank')
+  if (!summary) return
+  summary.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapePrint(project.title)} · Project summary</title><style>body{max-width:58rem;margin:0 auto;padding:2rem;font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#26384d}h1{margin:0;color:#223d58;font:700 32px/1.2 Georgia,serif}h2{margin:2rem 0 .6rem;font-size:16px}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.5rem 0;padding:1rem;border:1px solid #cbddeb;border-radius:12px;background:#f6fbff}.meta span{display:block;color:#60758a;font-size:12px;font-weight:700;text-transform:uppercase}.meta strong{display:block;margin-top:.2rem}.team{margin:0;padding:0;list-style:none}.team li{display:inline-block;margin:0 .4rem .4rem 0;padding:.25rem .5rem;border-radius:99px;background:#f0edff;color:#51498c}table{width:100%;border-collapse:collapse}th,td{padding:.65rem;border:1px solid #cbddeb;text-align:left;vertical-align:top}th{background:#eef7fd;color:#385a73;font-size:12px;text-transform:uppercase}@media print{body{padding:0}.print{display:none}}</style></head><body><button class="print" type="button" onclick="window.print()">Print / Save as PDF</button><h1>${escapePrint(project.title)}</h1><p>${escapePrint(project.context || 'No project purpose added.')}</p><section class="meta"><div><span>Start date</span><strong>${escapePrint(formatDate(project.date, { month: 'short', day: 'numeric', year: 'numeric' }))}</strong></div><div><span>Due date</span><strong>${escapePrint(formatDate(project.dueDate, { month: 'short', day: 'numeric', year: 'numeric' }))}</strong></div><div><span>Overall progress</span><strong>${percent}% · ${done} of ${total}</strong></div></section><h2>Planning team</h2><ul class="team">${project.team.map((member) => `<li>${escapePrint(member)}</li>`).join('')}</ul><h2>Milestones</h2><table><thead><tr><th>#</th><th>Milestone</th><th>Assignee</th><th>Target date</th><th>Status</th><th>Remarks</th></tr></thead><tbody>${rows}</tbody></table></body></html>`)
+  summary.document.close()
+  summary.focus()
+}
+
+function ProjectMilestoneRow({ item, index, project, dispatch }: { item: ProjectCard['subtasks'][number]; index: number; project: ProjectCard; dispatch: Dispatch<JourneyAction> }) {
+  const [editing, setEditing] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [draft, setDraft] = useState(() => ({ title: item.title, assignee: item.assignee ?? '', targetDate: item.targetDate ?? '', label: item.label ?? '', remarks: item.remarks ?? '' }))
+  const datalistId = `project-team-${project.id}-${item.id}`
+  const reset = () => setDraft({ title: item.title, assignee: item.assignee ?? '', targetDate: item.targetDate ?? '', label: item.label ?? '', remarks: item.remarks ?? '' })
+  const save = (event: FormEvent) => {
+    event.preventDefault()
+    const title = draft.title.trim()
+    if (!title) return
+    dispatch({ type: 'update-item', cardId: project.id, item: {
+      ...item,
+      title: title.slice(0, 240),
+      assignee: draft.assignee.trim().slice(0, 120) || undefined,
+      targetDate: draft.targetDate || undefined,
+      label: draft.label.trim().slice(0, 80) || undefined,
+      remarks: draft.remarks.trim().slice(0, 240) || undefined,
+    } })
+    setEditing(false)
+  }
+  const meta = [item.targetDate ? `Target ${shortDate(item.targetDate)}` : '', item.label ? item.label : ''].filter(Boolean)
+  return <article className={`workspace-check project-check project-milestone ${item.done ? 'is-done' : ''}`}>
+    <div className="project-milestone-row">
+      <label className="project-milestone-toggle"><input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: project.id, itemId: item.id })} />
+        <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee}` : 'No assignee yet'}{meta.length ? ` · ${meta.join(' · ')}` : ''}</small>{item.remarks && <em className="milestone-remark"><MessageSquareText size=".6875rem" />{item.remarks}</em>}</span>
+      </label>
+      <div className="project-milestone-actions">{removing ? <span className="milestone-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button milestone-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: project.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit milestone ${index + 1}`} title="Edit milestone" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button milestone-delete-button" aria-label={`Delete milestone ${index + 1}`} title="Delete milestone" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>
+    </div>
+    {editing && <form className="milestone-editor" onSubmit={save}>
+      <div className="milestone-edit-fields"><label>Milestone<input aria-label={`Milestone ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Assignee<input aria-label={`Milestone ${index + 1} assignee`} list={datalistId} maxLength={120} value={draft.assignee} onChange={(event) => setDraft((current) => ({ ...current, assignee: event.target.value }))} placeholder="You" /><datalist id={datalistId}>{project.team.map((member) => <option key={member} value={member} />)}</datalist></label><label>Target date<input aria-label={`Milestone ${index + 1} target date`} type="date" min={project.date} value={draft.targetDate} onChange={(event) => setDraft((current) => ({ ...current, targetDate: event.target.value }))} /></label><label>Tag / label<input aria-label={`Milestone ${index + 1} tag`} maxLength={80} value={draft.label} onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))} placeholder="Q1, MOOE…" /></label></div>
+      <label className="milestone-remarks">Remarks<input aria-label={`Milestone ${index + 1} remarks`} maxLength={240} value={draft.remarks} onChange={(event) => setDraft((current) => ({ ...current, remarks: event.target.value }))} placeholder="Optional blocker or status update" /></label>
+      <div className="milestone-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save milestone</button></div>
+    </form>}
+  </article>
+}
+
 function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
   const projects = cards.filter((card): card is ProjectCard => card.type === 'project')
   const activeId = cardId ?? 'proj-tos'
   const selected = projects.find((card) => card.id === activeId) ?? projects[0]
-  if (!selected) return <EmptyState icon={<Zap size="1.5rem" />} title="Turn a bigger outcome into milestones" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />Start a project</button>}>Set a start and due date, then build the milestones and collaborators around it.</EmptyState>
+  if (!selected) return <EmptyState icon={<Zap size="1.5rem" />} title="Turn a bigger outcome into milestones" action={<button className="button button-dark" onClick={() => onCompose({ type: 'project' })}><Plus size="0.875rem" />New project</button>}>Set a start and due date, then build the milestones and collaborators around it.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
   const nextMilestone = selected.subtasks.find((item) => !item.done)
-  const dueStatus = projectDueStatus(selected.dueDate)
+  const allMilestonesComplete = total > 0 && done === total
+  const dueStatus = projectDueStatus(nextMilestone?.targetDate ?? selected.dueDate)
   return <div className="workspace-content project-workspace">
-    <WorkspaceHero type="project" eyebrow="Projects · outcomes over time" title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
-      extra={<span className="hero-date">Due {shortDate(selected.dueDate)}</span>}>
-      {selected.context || 'Guide a larger outcome from its start date to its due date with milestones and collaborators.'}
-    </WorkspaceHero>
-    {projects.length > 1 && <div className="workspace-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
+    {projects.length > 1 && <div className="workspace-selector project-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
       {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>}
-    <section className="project-pulse" aria-label="Project pulse"><div><span className="eyebrow"><Zap size={11} />Next milestone</span><strong>{nextMilestone?.title ?? (total ? 'All milestones are complete' : 'Add your first milestone')}</strong><p>{nextMilestone?.assignee ? `Owned by ${nextMilestone.assignee}` : nextMilestone ? 'Keep the next meaningful step visible.' : 'A clear next step makes the project easier to move forward.'}</p></div><span className={`project-due-status ${dueStatus.tone}`}><Clock3 size=".8125rem" />{dueStatus.text}</span></section>
+    <WorkspaceHero type="project" eyebrow="Projects · outcomes over time" title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
+      extra={<><span className="hero-date">Start {shortDate(selected.date)}</span><span className="hero-date">Due {shortDate(selected.dueDate)}</span></>}
+      actions={<div className="project-hero-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'project', cardId: selected.id }) }}>Edit project</Link><button type="button" className="button hero-print-summary" onClick={() => printProjectSummary(selected)}><Printer size=".8125rem" />Export / Print summary</button><CardDeleteAction card={selected} onDelete={() => { onDeleteCard(selected); onNavigate({ page: 'project' }) }} /></div>}>
+      {selected.context || 'Guide a larger outcome from its start date to its due date with milestones and collaborators.'}
+    </WorkspaceHero>
+    <section className={`project-pulse ${allMilestonesComplete ? 'is-complete' : ''}`} aria-label="Project pulse"><div><span className="eyebrow"><Zap size={11} />{allMilestonesComplete ? 'Project complete' : 'Next milestone'}</span><strong>{allMilestonesComplete ? 'All milestones completed' : nextMilestone?.title ?? 'Add your first milestone'}</strong><p>{allMilestonesComplete ? 'Every listed deliverable is complete. Keep this plan as a finished reference.' : nextMilestone?.assignee ? `Owned by ${nextMilestone.assignee}` : nextMilestone ? 'Keep the next meaningful step visible.' : 'A clear next step makes the project easier to move forward.'}</p></div><span className={`project-due-status ${allMilestonesComplete ? 'is-complete' : dueStatus.tone}`}>{allMilestonesComplete ? <Check size=".8125rem" /> : <Clock3 size=".8125rem" />}{allMilestonesComplete ? 'Complete' : dueStatus.text}</span></section>
     <div className="workspace-desktop-split">
       <section className="workspace-panel checklist-panel">
-        <div className="panel-heading project-milestone-heading"><div><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div><div className="project-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'project', cardId: selected.id }) }}>Edit project</Link><CardDeleteAction card={selected} onDelete={() => { onDeleteCard(selected); onNavigate({ page: 'project' }) }} /></div></div>
+        <div className="panel-heading project-milestone-heading"><div><h3>Milestones & deliverables</h3><span className="count-label">{done} / {total} complete</span></div></div>
         <ProgressBar value={percent} label="Project completion" />
-        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <label key={item.id} className={`workspace-check project-check ${item.done ? 'is-done' : ''}`}>
-          <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
-          <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee} · ` : ''}{item.done ? 'Completed' : 'To do'}</small></span>
-          {item.label && <span className="check-label">{item.label}</span>}
-        </label>)}</div>
+        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <ProjectMilestoneRow key={item.id} item={item} index={index} project={selected} dispatch={dispatch} />)}</div>
         {!total && <p className="inline-empty">Every project starts with one small step. Add a milestone below.</p>}
-        <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: 'You' } })} />
+        <AddChecklistItem key={selected.id} placeholder="Add a project milestone…" label="Add milestone" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('milestone'), title, done: false, assignee: selected.team[0] ?? 'You' } })} />
       </section>
       <aside className="workspace-desktop-aside project-workspace-aside" aria-label="Project context">
         <section className="workspace-insight-card project-insight-card"><span className="eyebrow"><Zap size={11} />Project plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Started</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Due</dt><dd>{shortDate(selected.dueDate)}</dd></div><div><dt>Progress</dt><dd>{percent}% · {done} of {total}</dd></div><div><dt>Next up</dt><dd>{nextMilestone?.title ?? 'Complete'}</dd></div></dl></section>

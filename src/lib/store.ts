@@ -15,6 +15,8 @@ function isChecklist(value: unknown): boolean {
     return isString(entry.id) && isString(entry.title) && typeof entry.done === 'boolean'
       && (entry.assignee === undefined || isString(entry.assignee))
       && (entry.label === undefined || isString(entry.label))
+      && (entry.targetDate === undefined || (isString(entry.targetDate) && isValidDate(entry.targetDate)))
+      && (entry.remarks === undefined || isString(entry.remarks))
   }) && new Set(value.map((item) => item.id)).size === value.length
 }
 
@@ -141,6 +143,18 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
       ...state,
       cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.cardId ? {
         ...card, subtasks: [...card.subtasks, action.item],
+      } : card),
+    }
+    case 'update-item': return !isChecklist([action.item]) ? state : {
+      ...state,
+      cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.cardId ? {
+        ...card, subtasks: card.subtasks.map((item) => item.id === action.item.id ? action.item : item),
+      } : card),
+    }
+    case 'delete-item': return {
+      ...state,
+      cards: state.cards.map((card) => (card.type === 'task' || card.type === 'project') && card.id === action.cardId ? {
+        ...card, subtasks: card.subtasks.filter((item) => item.id !== action.itemId),
       } : card),
     }
   }
