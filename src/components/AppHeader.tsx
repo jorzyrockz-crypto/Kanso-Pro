@@ -113,12 +113,13 @@ function SpaceSwitcher({ space, spaces, syncEnabled, onSelectSpace, onCreateSpac
   </div>
 }
 
-function MemberStack({ members }: { members: SpaceMember[] }) {
+function MemberStack({ members, spaceName, canEdit, onOpenSettings }: { members: SpaceMember[]; spaceName: string; canEdit: boolean; onOpenSettings: () => void }) {
   const visible = members.filter((member) => member.presence !== 'offline').concat(members.filter((member) => member.presence === 'offline')).slice(0, 4)
-  return <div className="space-member-stack" aria-label={`Space members: ${members.map((member) => member.name).join(', ')}`}>
+  const settingsLabel = `${canEdit ? 'Configure' : 'View'} ${spaceName} workspace settings`
+  return <button type="button" className="space-member-stack" aria-label={settingsLabel} aria-haspopup="dialog" title={settingsLabel} onClick={onOpenSettings}>
     {visible.map((member) => <span key={member.id} className={`space-member presence-${member.presence}`} title={`${member.name} · ${member.status || member.role} · ${member.presence === 'online' ? 'Active now' : member.presence}`}><Avatar name={member.name} /><i aria-hidden="true" /><span className="space-member-status" role="tooltip"><strong>{member.name}</strong>{member.status || (member.presence === 'online' ? 'Active in this Space' : member.presence === 'away' ? 'Away for now' : 'Offline')}</span></span>)}
     {members.length > visible.length && <span className="space-member-more">+{members.length - visible.length}</span>}
-  </div>
+  </button>
 }
 
 export function AppHeader({ account, appearance, storageAvailable, onSignOut, notifications, activity, space, spaces, members, currentMember, canEdit, onSelectSpace, onCreateSpace, onUpdateSpace, onInvite, onChangeRole, onRemoveMember, updateReady, online, syncEnabled, artworkVisible = false, titlebar }: { account: AccountController; appearance: AppearanceController; storageAvailable: boolean; onSignOut: () => Promise<void>; notifications: NotificationsController; activity: SpaceActivity[]; space: Space; spaces: Space[]; members: SpaceMember[]; currentMember: SpaceMember; canEdit: boolean; onSelectSpace: (id: string) => void; onCreateSpace: (name: string) => Space; onUpdateSpace: (updates: { name: string; color: SpaceColor; icon: SpaceIcon }) => void; onInvite: (invitee: { name: string; email: string; role: SpaceRole }) => SpaceMember | null; onChangeRole: (memberId: string, role: SpaceRole) => void; onRemoveMember: (memberId: string) => void; updateReady: boolean; online: boolean; syncEnabled: boolean; artworkVisible?: boolean; titlebar?: ReactNode }) {
@@ -138,7 +139,7 @@ export function AppHeader({ account, appearance, storageAvailable, onSignOut, no
         {!online && <span className="offline-badge" title="Your plans are still saved on this device"><WifiOff size="0.75rem" aria-hidden="true" /><span className="sr-only">Offline. </span>Offline</span>}
       </div>
       <div className="topbar-actions">
-        <MemberStack members={members} />
+        <MemberStack members={members} spaceName={space.name} canEdit={canEdit} onOpenSettings={() => setWorkspaceSettingsOpen(true)} />
         <button type="button" className="header-invite-button workspace-manage-button" title={canEdit ? 'Configure workspace' : 'View workspace settings'} onClick={() => setWorkspaceSettingsOpen(true)}><Settings2 size=".875rem" /><span>Manage</span></button>
         <HeaderAppearance appearance={appearance} open={openMenu === 'appearance'} onOpenChange={setAppearanceOpen} />
         <NotificationMenu notifications={notifications} activity={activity} spaceName={space.name} open={openMenu === 'notifications'} onOpenChange={setNotificationsOpen} />
