@@ -3,6 +3,7 @@ import type { Firestore, QueryDocumentSnapshot, Unsubscribe } from 'firebase/fir
 import { firebaseApp } from './firebase'
 import { parseSavedState } from './store'
 import type { JournalAttachment, JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember } from '../types'
+import { isSpaceColor, isSpaceIcon } from './spaceAppearance'
 
 const WORKSPACE_ID = 'default'
 export type FirestoreSpace = Pick<Space, 'id' | 'kind'>
@@ -28,8 +29,9 @@ export interface RemoteWorkspaceSnapshot {
   deletedCardIds: string[]
   fromCache: boolean
   pendingWrites: boolean
-  /** Shared-space membership metadata; authorization remains a Firestore rules concern. */
+  /** Shared-space metadata; authorization remains a Firestore rules concern. */
   members?: SpaceMember[]
+  space?: Pick<Space, 'name' | 'color' | 'icon'>
   activity?: SpaceActivity[]
 }
 
@@ -90,6 +92,15 @@ function remoteMembers(value: unknown): SpaceMember[] | undefined {
   return members.length ? members : undefined
 }
 
+function remoteSpace(value: Record<string, unknown>): Pick<Space, 'name' | 'color' | 'icon'> | undefined {
+  if (typeof value.name !== 'string' || !value.name.trim()) return undefined
+  return {
+    name: value.name.slice(0, 80),
+    ...(isSpaceColor(value.color) ? { color: value.color } : {}),
+    ...(isSpaceIcon(value.icon) ? { icon: value.icon } : {}),
+  }
+}
+
 function remoteActivity(entries: QueryDocumentSnapshot[]): SpaceActivity[] {
   return entries.flatMap((entry): SpaceActivity[] => {
     const data = entry.data()
@@ -128,6 +139,7 @@ export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefine
       fromCache: workspaceFromCache || cardsFromCache,
       pendingWrites: workspacePendingWrites || cardsPendingWrites,
       members: remoteMembers(workspaceData.members),
+      space: remoteSpace(workspaceData),
       activity: remoteActivity(activityData),
     })
   }
@@ -207,6 +219,8 @@ export async function writeSpaceMembers(uid: string, space: Space) {
     schemaVersion: 1,
     name: space.name,
     joinCode: space.joinCode,
+    color: space.color ?? null,
+    icon: space.icon ?? null,
     members: space.members.map(({ id, name, email, role }) => ({ id, name, ...(email ? { email } : {}), role })),
     memberEmails: space.members.flatMap((member) => member.email ? [member.email.toLocaleLowerCase()] : []),
     ownerEmails: space.members.flatMap((member) => member.id === space.ownerId && member.email ? [member.email.toLocaleLowerCase()] : []),

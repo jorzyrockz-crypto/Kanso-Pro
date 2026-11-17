@@ -1,5 +1,6 @@
 import { createInitialState } from '../data'
 import type { JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember, SpacesState } from '../types'
+import { defaultSpaceColor, defaultSpaceIcon, isSpaceColor, isSpaceIcon } from './spaceAppearance'
 
 export const SPACES_STORAGE_KEY = 'kanso-pro:spaces:v1'
 export const PERSONAL_SPACE_ID = 'personal'
@@ -25,6 +26,8 @@ export function defaultSpacesState(): SpacesState {
     members: [{ id: LOCAL_MEMBER_ID, name: 'You', role: 'owner', presence: 'online' }],
     joinCode: '',
     createdAt: new Date().toISOString(),
+    color: defaultSpaceColor('personal'),
+    icon: defaultSpaceIcon('personal'),
   }
   // A ready-to-use shared space shows the collaboration model without moving any personal data.
   const shared: Space = {
@@ -35,6 +38,8 @@ export function defaultSpacesState(): SpacesState {
     members: structuredClone(sharedMembers),
     joinCode: 'PLAN26',
     createdAt: new Date().toISOString(),
+    color: defaultSpaceColor('shared'),
+    icon: defaultSpaceIcon('shared'),
   }
   return {
     version: 1,
@@ -59,6 +64,7 @@ function isSpace(value: unknown): value is Space {
   const space = value as Record<string, unknown>
   return typeof space.id === 'string' && typeof space.name === 'string' && typeof space.ownerId === 'string'
     && typeof space.joinCode === 'string' && typeof space.createdAt === 'string'
+    && (space.color === undefined || isSpaceColor(space.color)) && (space.icon === undefined || isSpaceIcon(space.icon))
     && ['personal', 'shared'].includes(String(space.kind)) && Array.isArray(space.members) && space.members.length > 0 && space.members.every(isMember)
 }
 
@@ -127,7 +133,7 @@ export function destinationForCard(card: JourneyCard): string {
 export function newSharedSpace(name: string, ownerName: string): { space: Space; workspace: JourneyState } {
   const id = `space-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
   return {
-    space: { id, name: name.trim().slice(0, 80) || 'Untitled Space', kind: 'shared', ownerId: LOCAL_MEMBER_ID, members: [{ id: LOCAL_MEMBER_ID, name: ownerName, role: 'owner', presence: 'online' }], joinCode: joinCode(), createdAt: new Date().toISOString() },
+    space: { id, name: name.trim().slice(0, 80) || 'Untitled Space', kind: 'shared', ownerId: LOCAL_MEMBER_ID, members: [{ id: LOCAL_MEMBER_ID, name: ownerName, role: 'owner', presence: 'online' }], joinCode: joinCode(), createdAt: new Date().toISOString(), color: defaultSpaceColor('shared'), icon: defaultSpaceIcon('shared') },
     workspace: { version: 1, cards: [], bezel: false },
   }
 }

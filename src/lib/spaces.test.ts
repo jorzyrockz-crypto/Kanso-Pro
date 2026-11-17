@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createInitialState } from '../data'
-import { activeMember, canEditSpace, cardAssignedTo, currentSpace, defaultSpacesState, parseSpacesState } from './spaces'
+import { activeMember, canEditSpace, cardAssignedTo, currentSpace, defaultSpacesState, newSharedSpace, parseSpacesState } from './spaces'
 
 describe('collaborative Space architecture', () => {
   it('keeps a private Personal Space and a separate ready-to-share team Space', () => {
@@ -21,6 +21,17 @@ describe('collaborative Space architecture', () => {
     expect(state).not.toBeNull()
     expect(state!.workspaces.personal.cards).toEqual(legacy.cards)
     expect(state!.spaces.find((space) => space.id === 'personal')?.kind).toBe('personal')
+  })
+
+  it('persists a workspace visual identity and gives every new shared workspace a safe default', () => {
+    const state = defaultSpacesState()
+    const team = state.spaces.find((space) => space.kind === 'shared')!
+    expect(team).toMatchObject({ color: 'violet', icon: 'people' })
+    const customised = { ...state, spaces: state.spaces.map((space) => space.id === team.id ? { ...space, name: 'Curriculum Studio', color: 'forest' as const, icon: 'book' as const } : space) }
+    const parsed = parseSpacesState(JSON.stringify(customised), null)
+    expect(parsed?.spaces.find((space) => space.id === team.id)).toMatchObject({ name: 'Curriculum Studio', color: 'forest', icon: 'book' })
+    const created = newSharedSpace('Science Team', 'Ada')
+    expect(created.space).toMatchObject({ color: 'violet', icon: 'people' })
   })
 
   it('uses actual Space membership for assigned-work filtering and viewer permissions', () => {

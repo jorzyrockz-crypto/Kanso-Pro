@@ -244,7 +244,7 @@ export default function App() {
   const { workspace: state, dispatch, space, member, members, activity: teamActivity, canEdit, storageAvailable } = spaces
   const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const firestoreUserId = googleSyncUser(account.user)
-  const workspaceSync = useWorkspaceSync(account.user, state, dispatch, space, spaces.hydrateMembers, teamActivity, spaces.hydrateActivity)
+  const workspaceSync = useWorkspaceSync(account.user, state, dispatch, space, spaces.hydrateMembers, spaces.hydrateSpace, teamActivity, spaces.hydrateActivity)
   const appearance = useAppearance()
   const pwa = usePwa()
   const cloudSaveState: CloudSaveState = !workspaceSync.enabled
@@ -561,7 +561,7 @@ export default function App() {
     <AppSplash />
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
-    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} syncEnabled={workspaceSync.enabled} updateReady={pwa.updateReady} notifications={notifications} activity={teamActivity} space={space} spaces={spaces.state.spaces} members={members} currentMember={member} canEdit={canEdit} onSelectSpace={spaces.selectSpace} onCreateSpace={spaces.createSpace} onInvite={spaces.invite} onChangeRole={spaces.changeRole} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={openComposer} canEdit={canEdit} /></>}
+    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} syncEnabled={workspaceSync.enabled} updateReady={pwa.updateReady} notifications={notifications} activity={teamActivity} space={space} spaces={spaces.state.spaces} members={members} currentMember={member} canEdit={canEdit} onSelectSpace={spaces.selectSpace} onCreateSpace={spaces.createSpace} onUpdateSpace={spaces.updateSpace} onInvite={spaces.invite} onChangeRole={spaces.changeRole} onRemoveMember={spaces.removeMember} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={openComposer} canEdit={canEdit} /></>}
     {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size="0.9375rem" /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
     <div className="page-outlet">
       <Routes>

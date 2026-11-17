@@ -7,6 +7,8 @@ export type OccasionChoice = 'auto' | 'none' | OccasionTheme
 export type SpaceKind = 'personal' | 'shared'
 export type SpaceRole = 'owner' | 'editor' | 'viewer'
 export type Presence = 'online' | 'away' | 'offline'
+export type SpaceColor = 'ocean' | 'violet' | 'rose' | 'amber' | 'forest' | 'slate'
+export type SpaceIcon = 'people' | 'book' | 'calendar' | 'briefcase' | 'sparkles' | 'landmark'
 
 /** A lightweight, local-first identity used in a Space. Firebase auth can enrich it when available. */
 export interface SpaceMember {
@@ -25,6 +27,9 @@ export interface Space {
   members: SpaceMember[]
   joinCode: string
   createdAt: string
+  /** The saved visual identity is independent from the Space's cards and member roles. */
+  color?: SpaceColor
+  icon?: SpaceIcon
 }
 
 export interface SpaceActivity {

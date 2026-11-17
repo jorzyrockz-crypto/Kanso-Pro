@@ -19,12 +19,13 @@ export interface WorkspaceSyncStatus {
   unavailable: boolean
 }
 
-export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void): WorkspaceSyncStatus {
+export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, onSpace?: (spaceId: string, updates: Pick<Space, 'name' | 'color' | 'icon'>) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void): WorkspaceSyncStatus {
   const uid = googleSyncUser(account)
   const [ready, setReady] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
   const stateRef = useRef(state)
   const membersCallbackRef = useRef(onMembers)
+  const spaceCallbackRef = useRef(onSpace)
   const activityCallbackRef = useRef(onActivity)
   const sentActivityRef = useRef('')
   const clientRef = useRef<FirestoreClient | null>(null)
@@ -38,6 +39,7 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
 
   stateRef.current = state
   membersCallbackRef.current = onMembers
+  spaceCallbackRef.current = onSpace
   activityCallbackRef.current = onActivity
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
         if (!active || remote.fromCache) return
         setUnavailable(false)
         if (space.kind === 'shared' && remote.members) membersCallbackRef.current?.(space.id, remote.members)
+        if (space.kind === 'shared' && remote.space) spaceCallbackRef.current?.(space.id, remote.space)
         if (space.kind === 'shared' && remote.activity) activityCallbackRef.current?.(space.id, remote.activity)
         const local = stateRef.current
         const localIsStarter = isStarterWorkspace(local)
