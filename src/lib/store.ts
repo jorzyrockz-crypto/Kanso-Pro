@@ -1,11 +1,28 @@
 import { useEffect, useReducer, useState } from 'react'
 import { createInitialState, LEGACY_STORAGE_KEY, STORAGE_KEY } from '../data'
-import type { JourneyAction, JourneyCard, JourneyState } from '../types'
+import type { JourneyAction, JourneyCard, JourneyState, QuickReaction, ReactionEmoji, EventAcknowledgement } from '../types'
 import { isValidDate } from './journey'
 import { isOccasionChoice } from './occasions'
 
 function isString(value: unknown): value is string {
   return typeof value === 'string'
+}
+
+function isReactions(value: unknown): value is QuickReaction[] {
+  return Array.isArray(value) && value.length <= 100 && value.every((reaction: unknown) => {
+    if (!reaction || typeof reaction !== 'object') return false
+    const entry = reaction as Record<string, unknown>
+    return (['👍', '✅', '👀'] as ReactionEmoji[]).includes(String(entry.emoji) as ReactionEmoji)
+      && isString(entry.member) && entry.member.length <= 120
+  })
+}
+
+function isAcknowledgements(value: unknown): value is EventAcknowledgement[] {
+  return Array.isArray(value) && value.length <= 100 && value.every((acknowledgement: unknown) => {
+    if (!acknowledgement || typeof acknowledgement !== 'object') return false
+    const entry = acknowledgement as Record<string, unknown>
+    return isString(entry.member) && entry.member.length <= 120 && ['going', 'noted'].includes(String(entry.response))
+  })
 }
 
 function isChecklist(value: unknown): boolean {
@@ -28,6 +45,7 @@ function isChecklist(value: unknown): boolean {
       && (entry.remarks === undefined || isString(entry.remarks))
       && (entry.note === undefined || isString(entry.note))
       && (entry.time === undefined || (isString(entry.time) && /^([01]\d|2[0-3]):[0-5]\d$/.test(entry.time)))
+      && (entry.reactions === undefined || isReactions(entry.reactions))
   }) && new Set(value.map((item) => item.id)).size === value.length
 }
 
@@ -54,11 +72,13 @@ function isCard(value: unknown): value is JourneyCard {
     || (card.backlog !== undefined && typeof card.backlog !== 'boolean')
     || (card.isCustom !== undefined && typeof card.isCustom !== 'boolean')
     || (card.authoredBy !== undefined && !isString(card.authoredBy))
-    || (card.lastEditedBy !== undefined && !isString(card.lastEditedBy))) return false
+    || (card.lastEditedBy !== undefined && !isString(card.lastEditedBy))
+    || (card.reactions !== undefined && !isReactions(card.reactions))) return false
   if (card.type === 'event') return typeof card.allDay === 'boolean' && typeof card.holiday === 'boolean'
     && isString(card.owner) && isString(card.organization) && isString(card.location)
     && (card.time === undefined || isString(card.time)) && (card.endTime === undefined || isString(card.endTime))
     && (card.occasion === undefined || isOccasionChoice(card.occasion))
+    && (card.acknowledgements === undefined || isAcknowledgements(card.acknowledgements))
   if (card.type === 'task') return isChecklist(card.subtasks) && (card.reminder === undefined || isString(card.reminder))
   if (card.type === 'project') return isValidDate(card.dueDate) && isChecklist(card.subtasks)
     && Array.isArray(card.team) && card.team.every(isString)

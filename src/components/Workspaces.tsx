@@ -6,6 +6,8 @@ import { FOCUS_DATE } from '../data'
 import type { ComposerOptions, Destination, EventCard, JourneyAction, JourneyCard, ProjectCard, Space, SpaceMember, TaskCard, TimelineItem, TimelineSourceEntry, Workspace } from '../types'
 import { calendarDays, formatDate, formatTime, makeId, progress, shiftMonth, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { AddChecklistItem, Avatar, EmptyState, ProgressBar, SaveIndicator, TeamScopeToggle, TypeIcon } from './Common'
+import { QuickReactions } from './QuickReactions'
+import { toggleAcknowledgement, toggleReaction } from '../lib/collaboration'
 import type { CloudSaveState } from './Common'
 import { NotFoundPage } from './PageHeader'
 import { destinationPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from '../lib/navigation'
@@ -58,13 +60,24 @@ function WorkspaceHero({ type, eyebrow, title, children, stat, extra, actions, m
   </div>
 }
 
-function CalendarEvent({ card, highlighted, onPreview }: { card: EventCard; highlighted: boolean; onPreview: () => void }) {
+function EventAcknowledgements({ card, dispatch, member, canEdit }: { card: EventCard; dispatch: Dispatch<JourneyAction>; member: SpaceMember; canEdit: boolean }) {
+  const acknowledgements = card.acknowledgements ?? []
+  const choose = (response: 'going' | 'noted') => dispatch({ type: 'update-card', card: { ...card, acknowledgements: toggleAcknowledgement(acknowledgements, member.name, response) } })
+  const current = acknowledgements.find((entry) => entry.member === member.name)?.response
+  return <div className="event-acknowledgements interactive" role="group" aria-label={`Confirm ${card.title}`}>
+    <button type="button" disabled={!canEdit} className={current === 'going' ? 'is-active' : ''} aria-pressed={current === 'going'} onClick={() => choose('going')}>Going{acknowledgements.filter((entry) => entry.response === 'going').length ? ` · ${acknowledgements.filter((entry) => entry.response === 'going').length}` : ''}</button>
+    <button type="button" disabled={!canEdit} className={current === 'noted' ? 'is-active' : ''} aria-pressed={current === 'noted'} onClick={() => choose('noted')}>Noted{acknowledgements.filter((entry) => entry.response === 'noted').length ? ` · ${acknowledgements.filter((entry) => entry.response === 'noted').length}` : ''}</button>
+  </div>
+}
+
+function CalendarEvent({ card, highlighted, onPreview, dispatch, currentMember, canEdit }: { card: EventCard; highlighted: boolean; onPreview: () => void; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
   const time = card.allDay ? 'All day' : `${formatTime(card.time)}${card.endTime ? ` – ${formatTime(card.endTime)}` : ''}`
   return <article className={`calendar-event calendar-preview-entry ${highlighted ? 'selected-event' : ''}`} data-event-id={card.id}>
     <button type="button" className="calendar-preview-card" onClick={onPreview} aria-label={`Preview ${card.title} details`}>
       <span className="calendar-event-meta"><span><CalendarDays size="0.75rem" />{formatDate(card.date, { weekday: 'short', month: 'short', day: '2-digit' })} <i aria-hidden="true">·</i> {time || 'Time not set'}</span><span className="badge">{card.organization || 'Personal'}</span></span>
       <span className="calendar-preview-title"><strong>{card.title}</strong><ChevronRight size="1rem" aria-hidden="true" /></span>
     </button>
+    <EventAcknowledgements card={card} dispatch={dispatch} member={currentMember} canEdit={canEdit} />
   </article>
 }
 
@@ -113,20 +126,28 @@ function isMonthObservance(entry: CalendarSourceEntry) {
   return !!entry.endDate && entry.endDate > entry.date
 }
 
-function CalendarDateAddMenu({ date, onCompose }: { date: string; onCompose: (options?: ComposerOptions) => void }) {
+function CalendarDateAddMenu({ date, onQuickAdd, canEdit }: { date: string; onQuickAdd: (type: 'event' | 'task' | 'project', title: string) => void; canEdit: boolean }) {
   const [open, setOpen] = useState(false)
+  const [type, setType] = useState<'event' | 'task' | 'project'>('event')
+  const [title, setTitle] = useState('')
   const menuId = `calendar-add-${date}`
-  const choices: { type: 'event' | 'task' | 'project' | 'note'; label: string }[] = [
-    { type: 'event', label: 'Event' }, { type: 'task', label: 'Task list' }, { type: 'project', label: 'Project' }, { type: 'note', label: 'Journal note' },
-  ]
-  return <div className="calendar-add-menu"><button type="button" className="text-button" aria-expanded={open} aria-controls={menuId} onClick={() => setOpen((current) => !current)}><Plus size=".75rem" />Add</button>
-    {open && <div id={menuId} className="calendar-add-options" role="group" aria-label={`Add a card on ${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}`}>
-      {choices.map(({ type, label }) => <button key={type} type="button" onClick={() => onCompose({ type, date })}><TypeIcon type={type} size={13} />{label}</button>)}
-    </div>}
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (!title.trim()) return
+    onQuickAdd(type, title.trim())
+    setTitle('')
+    setOpen(false)
+  }
+  return <div className="calendar-add-menu"><button type="button" className="text-button" disabled={!canEdit} aria-expanded={open} aria-controls={menuId} onClick={() => setOpen((current) => !current)}><Plus size=".75rem" />Add</button>
+    {open && <form id={menuId} className="calendar-quick-add" aria-label={`Add a shared plan on ${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}`} onSubmit={submit}>
+      <div role="group" aria-label="Plan type">{([{ type: 'event', label: 'Event' }, { type: 'task', label: 'Task' }, { type: 'project', label: 'Milestone' }] as const).map((choice) => <button key={choice.type} type="button" className={type === choice.type ? 'is-active' : ''} aria-pressed={type === choice.type} onClick={() => setType(choice.type)}>{choice.label}</button>)}</div>
+      <label><span className="sr-only">Plan title</span><input autoFocus maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={type === 'project' ? 'Milestone title' : type === 'task' ? 'Task title' : 'Event title'} /></label>
+      <button className="button button-accent" type="submit">Add to {formatDate(date, { month: 'short', day: 'numeric' })}</button>
+    </form>}
   </div>
 }
 
-function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNavigate, onDeleteCard, canEdit }: WorkspaceProps) {
+function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNavigate, onDeleteCard, canEdit, dispatch, currentMember, space, scope, onScopeChange }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
@@ -135,7 +156,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNaviga
   const [observancesOpen, setObservancesOpen] = useState(false)
   const closePreview = useCallback(() => setPreview(null), [])
   const { month, selectedDate } = calendarPeriod(query, initialCard?.date)
-  const monthCards = cards.filter((card) => !card.backlog && card.date.startsWith(month))
+  const monthCards = cards.filter((card) => !card.backlog && card.date.startsWith(month) && (scope === 'all' || cardAssignedTo(card, currentMember)))
   const sourceEntries = calendarSourceEntriesForMonth(calendarSources, month)
   const sourceById = new Map(calendarSources.map((source) => [source.id, source]))
   const visibleCards = monthCards.filter((card) => enabledFilters.has(card.type))
@@ -155,6 +176,12 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNaviga
     else next.add(type)
     return next
   })
+  const quickAdd = (type: 'event' | 'task' | 'project', title: string) => {
+    const base = { id: makeId(type === 'project' ? 'milestone' : type), title: title.slice(0, 160), date: selectedDate ?? `${month}-01`, side: 'left' as const, context: space.kind === 'shared' ? `Added from ${space.name}'s calendar` : 'Added from Calendar', isCustom: true }
+    if (type === 'event') dispatch({ type: 'add-card', card: { ...base, type: 'event', allDay: true, holiday: false, occasion: 'auto', owner: currentMember.name, organization: space.kind === 'shared' ? space.name : 'Personal Calendar', location: '' } })
+    if (type === 'task') dispatch({ type: 'add-card', card: { ...base, type: 'task', subtasks: [{ id: makeId('task'), title: title.slice(0, 240), done: false, assignee: currentMember.name }] } })
+    if (type === 'project') dispatch({ type: 'add-card', card: { ...base, type: 'project', dueDate: selectedDate ?? `${month}-01`, team: [currentMember.name], featured: true, subtasks: [{ id: makeId('milestone'), title: title.slice(0, 240), done: false, assignee: currentMember.name, targetDate: selectedDate ?? `${month}-01` }] } })
+  }
   const openAgendaEntry = (entry: JourneyCard) => {
     if (entry.type === 'task') { onNavigate({ page: 'tasks', cardId: entry.id }); return }
     if (entry.type === 'project') { onNavigate({ page: 'project', cardId: entry.id }); return }
@@ -163,7 +190,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNaviga
   const renderAgendaEntry = (entry: CalendarAgendaItem) => isCalendarSourceEntry(entry)
     ? <CalendarSourceEvent key={entry.id} entry={entry} source={sourceById.get(entry.sourceId)} onPreview={() => setPreview(timelineSourcePreview(entry, sourceById.get(entry.sourceId)))} />
     : entry.type === 'event'
-      ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} onPreview={() => setPreview(entry)} />
+      ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} onPreview={() => setPreview(entry)} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} />
       : <button key={entry.id} type="button" className={`agenda-item agenda-item-${entry.type}`} onClick={() => openAgendaEntry(entry)} aria-label={`${entry.type === 'task' || entry.type === 'project' ? 'Open' : 'Preview'} ${entry.title || 'Untitled reflection'} details`}>
         <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ChevronRight size="0.9375rem" aria-hidden="true" />
       </button>
@@ -178,15 +205,17 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNaviga
       </WorkspaceHero>
       <section className="workspace-panel calendar-event-detail" aria-label={`${event.title || 'Untitled event'} details`}>
         <dl><div><dt>Date</dt><dd>{formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</dd></div><div><dt>Time</dt><dd>{time || 'Time not set'}</dd></div><div><dt>Calendar</dt><dd>{event.organization || 'Personal Calendar'}</dd></div>{event.location && <div><dt>Location</dt><dd>{event.location}</dd></div>}{event.owner && <div><dt>Organizer</dt><dd>{event.owner}</dd></div>}</dl>
+        <EventAcknowledgements card={event} dispatch={dispatch} member={currentMember} canEdit={canEdit} />
         <Link className="text-button" to="/">View on timeline <ArrowRight size=".75rem" /></Link>
       </section>
     </div>
   }
   return <div className="workspace-content calendar-workspace">
-    <WorkspaceHero type="event" month={month} eyebrow="Connected Calendar View" title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
+    <WorkspaceHero type="event" month={month} eyebrow={scope === 'assigned' ? `Calendar · ${currentMember.name}'s work` : 'Connected Calendar View'} title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
       stat={{ label: visibleEntryCount === 1 ? 'Entry this month' : 'Entries this month', value: visibleEntryCount }}>
-      Your personal plans and any calendar sources you choose to show.
+      {scope === 'assigned' ? 'Events, tasks, and projects assigned to you, alongside your selected calendar sources.' : 'Your personal plans and any calendar sources you choose to show.'}
     </WorkspaceHero>
+    <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
     <section className="workspace-panel calendar-panel" aria-label="Monthly calendar">
       <div className="panel-heading calendar-toolbar"><h3>{formatDate(`${month}-01`, { month: 'long', year: 'numeric' })}</h3>
         <div className="calendar-controls"><button className="text-button" onClick={() => navigate(`/calendar?date=${FOCUS_DATE}`)}>Focus date</button><button className="text-button calendar-today-button" onClick={() => navigate(`/calendar?date=${localDate()}`)}>Today</button>
@@ -214,7 +243,7 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNaviga
     </section>
     <section className="workspace-panel agenda-panel" aria-label={selectedDate ? `${selectedHeading} agenda` : 'Calendar agenda'}>
       <div className="panel-heading agenda-heading"><div>{selectedDate && <span className="eyebrow">Selected date</span>}<h3>{selectedHeading}</h3></div>
-        {selectedDate ? <div className="agenda-heading-actions"><CalendarDateAddMenu date={selectedDate} onCompose={onCompose} /></div> : <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All entries</button>}</div>
+        {selectedDate ? <div className="agenda-heading-actions"><CalendarDateAddMenu date={selectedDate} onQuickAdd={quickAdd} canEdit={canEdit} /></div> : <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All entries</button>}</div>
       {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map(renderAgendaEntry)}</div>
         : selectedDate ? <p className="calendar-date-empty">No items specifically scheduled for this date.</p>
           : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
@@ -275,11 +304,11 @@ function TaskChecklistRow({ item, index, task, dispatch, members, currentMember,
   }
   const subtext = [item.time ? formatTime(item.time) : '', item.note].filter(Boolean).join(' · ')
   return <article className={`workspace-check task-check task-check-item ${item.done ? 'is-done' : ''}`}>
-    <div className="task-check-row"><label className="task-check-toggle"><input type="checkbox" checked={item.done} disabled={!canEdit} onChange={() => dispatch({ type: 'toggle-item', cardId: task.id, itemId: item.id, actor: currentMember.name })} /><span className="check-copy"><strong>{item.title}</strong>{subtext && <small>{subtext}</small>}{item.assignee && <small className="item-attribution">Assigned to {item.assignee}</small>}{item.done && item.completedBy && <small className="item-attribution is-complete">Completed by {item.completedBy}</small>}</span></label>
-      {canEdit && <div className="task-item-actions">{removing ? <span className="task-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button task-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: task.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit checklist item ${index + 1}`} title="Edit item" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} up`} title="Move up" disabled={index === 0} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'up' })}><ArrowUp size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} down`} title="Move down" disabled={index === task.subtasks.length - 1} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'down' })}><ArrowDown size=".8125rem" /></button><button type="button" className="icon-button task-delete-button" aria-label={`Delete checklist item ${index + 1}`} title="Delete item" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>}
+    <div className="task-check-row"><label className="task-check-toggle"><input type="checkbox" checked={item.done} disabled={!canEdit} onChange={() => dispatch({ type: 'toggle-item', cardId: task.id, itemId: item.id, actor: currentMember.name })} /><span className="check-copy"><strong>{item.title}</strong>{subtext && <small>{subtext}</small>}{item.assignee && <small className="item-attribution">Assigned to {item.assignee}</small>}{item.done && item.completedBy && <small className="item-attribution is-complete">Completed by {item.completedBy}{item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}</small>}</span></label>
+      {canEdit && <div className="task-item-actions">{removing ? <span className="task-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button task-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: task.id, itemId: item.id })}>Delete</button></span> : <>{!item.assignee && <button type="button" className="claim-pill" onClick={() => dispatch({ type: 'update-item', cardId: task.id, item: { ...item, assignee: currentMember.name } })}>Claim</button>}<button type="button" className="icon-button" aria-label={`Edit checklist item ${index + 1}`} title="Edit item" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} up`} title="Move up" disabled={index === 0} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'up' })}><ArrowUp size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} down`} title="Move down" disabled={index === task.subtasks.length - 1} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'down' })}><ArrowDown size=".8125rem" /></button><button type="button" className="icon-button task-delete-button" aria-label={`Delete checklist item ${index + 1}`} title="Delete item" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>}
     </div>
-    <InlineComments item={item} cardId={task.id} dispatch={dispatch} author={currentMember.name} canEdit={canEdit} />
-    {editing && <form className="task-item-editor" onSubmit={save}><div className="task-edit-fields"><label>Item<input aria-label={`Checklist item ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Assignee<select aria-label={`Checklist item ${index + 1} assignee`} value={draft.assignee} onChange={(event) => setDraft((current) => ({ ...current, assignee: event.target.value }))}><option value="">Unassigned</option>{members.map((member) => <option key={member.id} value={member.name}>{member.name}</option>)}</select></label><label>Time<input aria-label={`Checklist item ${index + 1} time`} type="time" value={draft.time} onChange={(event) => setDraft((current) => ({ ...current, time: event.target.value }))} /></label></div><label className="task-item-note">Note<input aria-label={`Checklist item ${index + 1} note`} maxLength={240} value={draft.note} onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note" /></label><div className="task-item-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save item</button></div></form>}
+    <div className="check-collaboration"><InlineComments item={item} cardId={task.id} dispatch={dispatch} author={currentMember.name} canEdit={canEdit} /><QuickReactions reactions={item.reactions} memberName={currentMember.name} disabled={!canEdit} label={`Reactions to ${item.title}`} onReact={(emoji) => dispatch({ type: 'update-item', cardId: task.id, item: { ...item, reactions: toggleReaction(item.reactions, emoji, currentMember.name) } })} /></div>
+    {editing && <form className="task-item-editor" onSubmit={save}><div className="task-edit-fields"><label>Item<input aria-label={`Checklist item ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Assignee<select aria-label={`Checklist item ${index + 1} assignee`} value={draft.assignee} onChange={(event) => setDraft((current) => ({ ...current, assignee: event.target.value }))}><option value="">Unassigned</option>{members.map((member) => <option key={member.id} value={member.name}>{member.name}</option>)}</select></label><label>Time<input aria-label={`Checklist item ${index + 1} time`} type="time" value={draft.time} onChange={(event) => setDraft((current) => ({ ...current, time: event.target.value }))} /></label></div><label className="task-item-note">Note<input aria-label={`Checklist item ${index + 1} note`} maxLength={240} value={draft.note} onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note · @mention a teammate" /></label><div className="mention-chips" aria-label="Mention a teammate">{members.filter((member) => member.name !== currentMember.name).slice(0, 4).map((member) => <button type="button" key={member.id} onClick={() => setDraft((current) => ({ ...current, note: `${current.note}${current.note && !current.note.endsWith(' ') ? ' ' : ''}@${member.name} ` }))}>@{member.name}</button>)}</div><div className="task-item-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save item</button></div></form>}
   </article>
 }
 
@@ -371,6 +400,7 @@ function printProjectSummary(project: ProjectCard) {
 function ProjectMilestoneRow({ item, index, project, dispatch, members, currentMember, canEdit }: { item: ProjectCard['subtasks'][number]; index: number; project: ProjectCard; dispatch: Dispatch<JourneyAction>; members: SpaceMember[]; currentMember: SpaceMember; canEdit: boolean }) {
   const [editing, setEditing] = useState(false)
   const [removing, setRemoving] = useState(false)
+  const [remarksOpen, setRemarksOpen] = useState(false)
   const [draft, setDraft] = useState(() => ({ title: item.title, assignee: item.assignee ?? '', targetDate: item.targetDate ?? '', label: item.label ?? '', remarks: item.remarks ?? '' }))
   const reset = () => setDraft({ title: item.title, assignee: item.assignee ?? '', targetDate: item.targetDate ?? '', label: item.label ?? '', remarks: item.remarks ?? '' })
   const save = (event: FormEvent) => {
@@ -391,14 +421,15 @@ function ProjectMilestoneRow({ item, index, project, dispatch, members, currentM
   return <article className={`workspace-check project-check project-milestone ${item.done ? 'is-done' : ''}`}>
     <div className="project-milestone-row">
       <label className="project-milestone-toggle"><input type="checkbox" checked={item.done} disabled={!canEdit} onChange={() => dispatch({ type: 'toggle-item', cardId: project.id, itemId: item.id, actor: currentMember.name })} />
-        <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee}` : 'No assignee yet'}{meta.length ? ` · ${meta.join(' · ')}` : ''}</small>{item.done && item.completedBy && <small className="item-attribution is-complete">Completed by {item.completedBy}</small>}{item.remarks && <em className="milestone-remark"><MessageSquareText size=".6875rem" />{item.remarks}</em>}</span>
+        <span className="check-copy"><strong>{index + 1}. {item.title}</strong><small>{item.assignee ? `Assigned to: ${item.assignee}` : 'No assignee yet'}{meta.length ? ` · ${meta.join(' · ')}` : ''}</small>{item.done && item.completedBy && <small className="item-attribution is-complete">Completed by {item.completedBy}{item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}</small>}{item.remarks && <><button type="button" className="milestone-remark-toggle" aria-expanded={remarksOpen} onClick={(event) => { event.preventDefault(); setRemarksOpen((open) => !open) }}><MessageSquareText size=".6875rem" />{remarksOpen ? 'Hide blocker / update' : 'View blocker / update'}</button>{remarksOpen && <em className="milestone-remark"><MessageSquareText size=".6875rem" />{item.remarks}</em>}</>}</span>
       </label>
       {canEdit && <div className="project-milestone-actions">{removing ? <span className="milestone-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button milestone-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: project.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit milestone ${index + 1}`} title="Edit milestone" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button milestone-delete-button" aria-label={`Delete milestone ${index + 1}`} title="Delete milestone" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>}
     </div>
-    <InlineComments item={item} cardId={project.id} dispatch={dispatch} author={currentMember.name} canEdit={canEdit} />
+    <div className="check-collaboration"><InlineComments item={item} cardId={project.id} dispatch={dispatch} author={currentMember.name} canEdit={canEdit} /><QuickReactions reactions={item.reactions} memberName={currentMember.name} disabled={!canEdit} label={`Reactions to ${item.title}`} onReact={(emoji) => dispatch({ type: 'update-item', cardId: project.id, item: { ...item, reactions: toggleReaction(item.reactions, emoji, currentMember.name) } })} /></div>
     {editing && <form className="milestone-editor" onSubmit={save}>
       <div className="milestone-edit-fields"><label>Milestone<input aria-label={`Milestone ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Assignee<select aria-label={`Milestone ${index + 1} assignee`} value={draft.assignee} onChange={(event) => setDraft((current) => ({ ...current, assignee: event.target.value }))}><option value="">Unassigned</option>{members.map((member) => <option key={member.id} value={member.name}>{member.name}</option>)}</select></label><label>Target date<input aria-label={`Milestone ${index + 1} target date`} type="date" min={project.date} value={draft.targetDate} onChange={(event) => setDraft((current) => ({ ...current, targetDate: event.target.value }))} /></label><label>Tag / label<input aria-label={`Milestone ${index + 1} tag`} maxLength={80} value={draft.label} onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))} placeholder="Q1, MOOE…" /></label></div>
-      <label className="milestone-remarks">Remarks<input aria-label={`Milestone ${index + 1} remarks`} maxLength={240} value={draft.remarks} onChange={(event) => setDraft((current) => ({ ...current, remarks: event.target.value }))} placeholder="Optional blocker or status update" /></label>
+      <label className="milestone-remarks">Remarks<input aria-label={`Milestone ${index + 1} remarks`} maxLength={240} value={draft.remarks} onChange={(event) => setDraft((current) => ({ ...current, remarks: event.target.value }))} placeholder="Optional blocker or status update · @mention" /></label>
+      <div className="mention-chips" aria-label="Mention a teammate">{members.filter((member) => member.name !== currentMember.name).slice(0, 4).map((member) => <button type="button" key={member.id} onClick={() => setDraft((current) => ({ ...current, remarks: `${current.remarks}${current.remarks && !current.remarks.endsWith(' ') ? ' ' : ''}@${member.name} ` }))}>@{member.name}</button>)}</div>
       <div className="milestone-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save milestone</button></div>
     </form>}
   </article>

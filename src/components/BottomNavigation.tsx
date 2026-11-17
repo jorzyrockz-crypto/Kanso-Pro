@@ -5,6 +5,7 @@ import { PAGE_LINKS, pageForPath } from '../lib/navigation'
 import { FOCUS_DATE } from '../data'
 import { isValidDate } from '../lib/journey'
 import type { ComposerOptions } from '../types'
+import type { ActivityModule } from '../lib/collaboration'
 import { useChromeHeight } from '../lib/useChromeHeight'
 
 const icons = { timeline: Waypoints, calendar: CalendarDays, tasks: CircleCheck, project: Zap, journal: BookOpen }
@@ -23,7 +24,7 @@ function savedSidebarState() {
 }
 
 /** The same primary navigation becomes the desktop sidebar through fluid.css. */
-export function BottomNavigation({ onCompose, canEdit = true }: { onCompose: (options?: ComposerOptions) => void; canEdit?: boolean }) {
+export function BottomNavigation({ onCompose, canEdit = true, unreadActivity = {} }: { onCompose: (options?: ComposerOptions) => void; canEdit?: boolean; unreadActivity?: Partial<Record<ActivityModule, boolean>> }) {
   const ref = useChromeHeight<HTMLDivElement>('--navigation-height')
   const [collapsed, setCollapsed] = useState(savedSidebarState)
   const location = useLocation()
@@ -52,7 +53,7 @@ export function BottomNavigation({ onCompose, canEdit = true }: { onCompose: (op
         const Icon = icons[page]
         return <NavLink key={path} to={path} end={path === '/'} title={label}
           className={({ isActive }) => `bottom-nav-link ${isActive ? 'is-active' : ''}`}>
-          <Icon size="1.3125rem" strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
+          <span className="bottom-nav-icon"><Icon size="1.3125rem" strokeWidth={1.8} aria-hidden="true" />{unreadActivity[page] && <i className="sidebar-unread-dot" aria-label="New teammate activity" />}</span><span>{label}</span>
         </NavLink>
       })}
       <button type="button" aria-label={canEdit ? create.label : 'View-only space'} title={canEdit ? create.label : 'View-only space'} disabled={!canEdit} className={`bottom-nav-link bottom-nav-create${'type' in create ? ` is-${create.type}` : ''}`} onClick={() => page === 'journal' ? navigate('/journal?new=text') : onCompose(options)}>

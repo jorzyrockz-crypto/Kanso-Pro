@@ -2,7 +2,8 @@ import { collection, deleteDoc, doc, getDoc, getFirestore, increment, initialize
 import type { Firestore, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { firebaseApp } from './firebase'
 import { parseSavedState } from './store'
-import type { JournalAttachment, JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember } from '../types'
+import type { JournalAttachment, JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember, SpacePresence } from '../types'
+import { isSpaceColor, isSpaceIcon } from './spaceAppearance'
 
 const WORKSPACE_ID = 'default'
 export type FirestoreSpace = Pick<Space, 'id' | 'kind'>
@@ -28,9 +29,11 @@ export interface RemoteWorkspaceSnapshot {
   deletedCardIds: string[]
   fromCache: boolean
   pendingWrites: boolean
-  /** Shared-space membership metadata; authorization remains a Firestore rules concern. */
+  /** Shared-space metadata; authorization remains a Firestore rules concern. */
   members?: SpaceMember[]
+  space?: Pick<Space, 'name' | 'color' | 'icon'>
   activity?: SpaceActivity[]
+  presence?: SpacePresence[]
 }
 
 function workspaceRef(uid: string, space?: FirestoreSpace) {
@@ -85,9 +88,18 @@ function remoteMembers(value: unknown): SpaceMember[] | undefined {
     if (!candidate || typeof candidate !== 'object') return []
     const item = candidate as Record<string, unknown>
     if (typeof item.id !== 'string' || typeof item.name !== 'string' || !['owner', 'editor', 'viewer'].includes(String(item.role))) return []
-    return [{ id: item.id, name: item.name, ...(typeof item.email === 'string' ? { email: item.email } : {}), role: item.role as SpaceMember['role'], presence: 'offline' }]
+    return [{ id: item.id, name: item.name, ...(typeof item.email === 'string' ? { email: item.email } : {}), role: item.role as SpaceMember['role'], presence: 'offline', ...(typeof item.status === 'string' ? { status: item.status.slice(0, 120) } : {}) }]
   })
   return members.length ? members : undefined
+}
+
+function remoteSpace(value: Record<string, unknown>): Pick<Space, 'name' | 'color' | 'icon'> | undefined {
+  if (typeof value.name !== 'string' || !value.name.trim()) return undefined
+  return {
+    name: value.name.slice(0, 80),
+    ...(isSpaceColor(value.color) ? { color: value.color } : {}),
+    ...(isSpaceIcon(value.icon) ? { icon: value.icon } : {}),
+  }
 }
 
 function remoteActivity(entries: QueryDocumentSnapshot[]): SpaceActivity[] {
@@ -95,7 +107,17 @@ function remoteActivity(entries: QueryDocumentSnapshot[]): SpaceActivity[] {
     const data = entry.data()
     if (typeof data.kind !== 'string' || typeof data.title !== 'string' || typeof data.detail !== 'string' || typeof data.href !== 'string' || typeof data.createdAt !== 'string') return []
     if (!['invite', 'assignment', 'completion', 'comment', 'note', 'member'].includes(data.kind)) return []
-    return [{ id: entry.id, kind: data.kind as SpaceActivity['kind'], title: data.title, detail: data.detail, href: data.href, createdAt: data.createdAt, ...(typeof data.actor === 'string' ? { actor: data.actor } : {}) }]
+    return [{ id: entry.id, kind: data.kind as SpaceActivity['kind'], title: data.title, detail: data.detail, href: data.href, createdAt: data.createdAt, ...(typeof data.actor === 'string' ? { actor: data.actor } : {}), ...(typeof data.target === 'string' ? { target: data.target } : {}) }]
+  })
+}
+
+function remotePresence(entries: QueryDocumentSnapshot[]): SpacePresence[] {
+  const staleAfter = Date.now() - 10 * 60_000
+  return entries.flatMap((entry): SpacePresence[] => {
+    const data = entry.data()
+    if (typeof data.email !== 'string' || typeof data.name !== 'string' || typeof data.status !== 'string' || typeof data.activeAt !== 'number'
+      || !['online', 'away'].includes(String(data.presence)) || data.activeAt < staleAfter) return []
+    return [{ uid: entry.id, email: data.email, name: data.name, status: data.status.slice(0, 120), presence: data.presence as SpacePresence['presence'], activeAt: data.activeAt }]
   })
 }
 
@@ -116,6 +138,7 @@ export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefine
   let cardsFromCache = true
   let cardsPendingWrites = false
   let activityData: QueryDocumentSnapshot[] = []
+  let presenceData: QueryDocumentSnapshot[] = []
 
   const publish = () => {
     if (!workspaceData || !cardData) return
@@ -128,7 +151,9 @@ export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefine
       fromCache: workspaceFromCache || cardsFromCache,
       pendingWrites: workspacePendingWrites || cardsPendingWrites,
       members: remoteMembers(workspaceData.members),
+      space: remoteSpace(workspaceData),
       activity: remoteActivity(activityData),
+      presence: remotePresence(presenceData),
     })
   }
 
@@ -150,7 +175,13 @@ export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefine
     activityData = [...snapshot.docs]
     publish()
   }, onError)
-  return () => { unsubscribeWorkspace(); unsubscribeCards(); unsubscribeActivity() }
+  const unsubscribePresence = space?.kind === 'shared'
+    ? onSnapshot(collection(workspace, 'presence'), { includeMetadataChanges: true }, (snapshot) => {
+      presenceData = [...snapshot.docs]
+      publish()
+    }, onError)
+    : () => {}
+  return () => { unsubscribeWorkspace(); unsubscribeCards(); unsubscribeActivity(); unsubscribePresence() }
 }
 
 async function writeCardBatch(uid: string, cards: JourneyCard[], space?: FirestoreSpace) {
@@ -207,9 +238,12 @@ export async function writeSpaceMembers(uid: string, space: Space) {
     schemaVersion: 1,
     name: space.name,
     joinCode: space.joinCode,
-    members: space.members.map(({ id, name, email, role }) => ({ id, name, ...(email ? { email } : {}), role })),
+    color: space.color ?? null,
+    icon: space.icon ?? null,
+    members: space.members.map(({ id, name, email, role, status }) => ({ id, name, ...(email ? { email } : {}), role, ...(status ? { status: status.slice(0, 120) } : {}) })),
     memberEmails: space.members.flatMap((member) => member.email ? [member.email.toLocaleLowerCase()] : []),
     ownerEmails: space.members.flatMap((member) => member.id === space.ownerId && member.email ? [member.email.toLocaleLowerCase()] : []),
+    editorEmails: space.members.flatMap((member) => member.role !== 'viewer' && member.email ? [member.email.toLocaleLowerCase()] : []),
     updatedAt: serverTimestamp(),
   }, { merge: true })
 }
@@ -219,4 +253,10 @@ export async function writeSpaceMembers(uid: string, space: Space) {
 export async function writeSpaceActivity(uid: string, space: FirestoreSpace, entry: SpaceActivity) {
   if (space.kind !== 'shared') return
   await setDoc(doc(workspaceRef(uid, space), 'activity', entry.id), { ...entry })
+}
+
+/** Presence is a short-lived client heartbeat, never membership or authorization metadata. */
+export async function writeSpacePresence(uid: string, space: FirestoreSpace, presence: Omit<SpacePresence, 'uid'>) {
+  if (space.kind !== 'shared') return
+  await setDoc(doc(workspaceRef(uid, space), 'presence', uid), presence, { merge: true })
 }

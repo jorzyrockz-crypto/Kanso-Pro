@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('Spaces keep local team work separate and require Google before online invitations or sync', async ({ page }) => {
+test('Spaces keep local team work separate and let owners configure shared workspace identity and members', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/')
 
@@ -12,12 +12,28 @@ test('Spaces keep local team work separate and require Google before online invi
   await expect(page.getByRole('button', { name: /Switch workspace, current space: Curriculum Planning/ })).toBeVisible()
   await expect(page.locator('.space-member-stack')).toHaveAttribute('aria-label', /J\. Santos/)
   await expect(page.getByText('Local Space', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Invite', exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: 'Manage', exact: true }).click()
+  const settings = page.getByRole('dialog', { name: 'Configure Curriculum Planning' })
+  await expect(settings).toBeVisible()
+  await settings.getByLabel('Workspace title', { exact: true }).fill('Curriculum Studio')
+  await settings.getByRole('button', { name: 'Forest workspace color', exact: true }).click()
+  await settings.getByRole('button', { name: 'Book workspace icon', exact: true }).click()
+  await settings.getByLabel('Name', { exact: true }).fill('Ana Reyes')
+  await settings.getByLabel('Email', { exact: true }).fill('ana.reyes@example.test')
+  await settings.getByLabel('New member role', { exact: true }).selectOption('viewer')
+  await settings.getByRole('button', { name: 'Add member', exact: true }).click()
+  await expect(settings.getByRole('list', { name: 'Workspace members' })).toContainText('Ana Reyes')
+  await settings.getByLabel('Role for Ana Reyes', { exact: true }).selectOption('editor')
+  await settings.getByRole('button', { name: 'Remove Ana Reyes', exact: true }).click()
+  await expect(settings.getByRole('list', { name: 'Workspace members' })).not.toContainText('Ana Reyes')
+  await settings.getByRole('button', { name: 'Save workspace', exact: true }).click()
+  await expect(settings).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Switch workspace, current space: Curriculum Studio/ })).toBeVisible()
 
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('button', { name: 'All Team', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: /Assigned to Me/ }).click()
-  await expect(page.getByRole('button', { name: /Assigned to Me/ })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: /My Work/ }).click()
+  await expect(page.getByRole('button', { name: /My Work/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'All Team', exact: true }).click()
   await page.getByRole('button', { name: 'Edit milestone 2', exact: true }).click()
   await page.getByLabel('Milestone 2 assignee', { exact: true }).selectOption('J. Santos')
@@ -25,6 +41,16 @@ test('Spaces keep local team work separate and require Google before online invi
   await page.getByRole('button', { name: /Notifications/ }).click()
   await expect(page.getByRole('dialog', { name: 'Notifications' })).toContainText('Assignment updated')
   await page.keyboard.press('Escape')
+  const reaction = page.getByRole('button', { name: 'Add 👍 reaction', exact: true }).first()
+  await reaction.click()
+  await expect(page.getByRole('button', { name: /Remove 👍 reaction/ }).first()).toHaveAttribute('aria-pressed', 'true')
+
+  await page.goto('/calendar?date=2026-11-15')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByRole('button', { name: 'Task', exact: true }).click()
+  await page.getByPlaceholder('Task title').fill('Draft the family invitation')
+  await page.getByRole('button', { name: /Add to Nov 15/ }).click()
+  await expect(page.getByText('Draft the family invitation', { exact: true })).toBeVisible()
 
   await page.goto('/tasks/task-grades')
   await page.getByRole('button', { name: 'Add comment', exact: true }).first().click()
@@ -33,6 +59,6 @@ test('Spaces keep local team work separate and require Google before online invi
   await expect(page.getByText('I can take the first pass this afternoon.', { exact: true })).toBeVisible()
 
   await page.goto('/journal')
-  await expect(page.getByText('Team Notes · this device', { exact: true })).toBeVisible()
-  await expect(page.getByText(/shared team note/i).first()).toBeVisible()
+  await expect(page.getByText('Space Notes · this device', { exact: true })).toBeVisible()
+  await expect(page.getByText(/Space Note/i).first()).toBeVisible()
 })

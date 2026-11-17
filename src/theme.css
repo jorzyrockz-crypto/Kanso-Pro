@@ -95,6 +95,12 @@
     :root[data-theme='dark'] .space-switcher-list > button:hover, :root[data-theme='dark'] .space-switcher-list > button.is-selected { border-color: #416b86; background: #1c3b52; }
     :root[data-theme='dark'] .space-switcher-list strong, :root[data-theme='dark'] .invite-members strong, :root[data-theme='dark'] .invite-code strong { color: #dbeaf4; }
     :root[data-theme='dark'] .space-create-form input, :root[data-theme='dark'] .invite-form input, :root[data-theme='dark'] .invite-form select, :root[data-theme='dark'] .invite-members select { border-color: #405d74; background: #1b3246; color: #e3edf5; }
+    :root[data-theme='dark'] .workspace-settings-dialog { border-color: #476076; background: #162537; box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 52%); }
+    :root[data-theme='dark'] .workspace-settings-header, :root[data-theme='dark'] .workspace-settings-section { border-color: #3c556c; }
+    :root[data-theme='dark'] .workspace-settings-heading h2, :root[data-theme='dark'] .workspace-member-copy strong { color: #e3edf5; }
+    :root[data-theme='dark'] .workspace-settings-close, :root[data-theme='dark'] .workspace-color-options button, :root[data-theme='dark'] .workspace-icon-options button, :root[data-theme='dark'] .workspace-member-list > li, :root[data-theme='dark'] .workspace-settings-actions { border-color: #3f5b72; background: #182d41; }
+    :root[data-theme='dark'] .workspace-title-field input, :root[data-theme='dark'] .workspace-member-invite input, :root[data-theme='dark'] .workspace-member-invite select, :root[data-theme='dark'] .workspace-member-list select { border-color: #405d74; background: #1b3246; color: #e3edf5; }
+    :root[data-theme='dark'] .workspace-invite-link, :root[data-theme='dark'] .workspace-member-invite, :root[data-theme='dark'] .workspace-member-readonly { border-color: #3e596f; background: #182d41; }
     :root[data-theme='dark'] .invite-code { border-color: #405d74; background: #1b3145; }
     :root[data-theme='dark'] .topbar.has-backdrop { background: rgb(14 29 44 / 62%); }
     :root[data-theme='dark'] .button-jump-today { border-color: rgb(156 221 255 / 48%); background: linear-gradient(135deg, rgb(25 128 183 / 72%), rgb(50 93 185 / 68%)); box-shadow: inset 0 1px 0 rgb(222 247 255 / 20%), 0 .375rem 1rem rgb(0 0 0 / 24%); }
@@ -291,6 +297,11 @@
     :root[data-theme='dark'] .timeline-preview-dialog.is-project { --preview-accent: #c5bbfa; --preview-soft: #302d49; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-note { --preview-accent: #f3b2c9; --preview-soft: #3b2940; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-source { --preview-accent: #efd293; --preview-soft: #38301f; }
+    :root[data-theme='dark'] .space-member-status, :root[data-theme='dark'] .space-update-form, :root[data-theme='dark'] .calendar-quick-add { border-color: #3c5870; background: #172c3f; color: #c8d8e5; }
+    :root[data-theme='dark'] .space-member-status strong { color: #e2edf4; }
+    :root[data-theme='dark'] .space-update-trigger, :root[data-theme='dark'] .quick-reactions > button, :root[data-theme='dark'] .event-acknowledgements > button, :root[data-theme='dark'] .calendar-quick-add > div button, :root[data-theme='dark'] .studio-mention-row { border-color: #3d5a72; background: #193247; color: #bfd0df; }
+    :root[data-theme='dark'] .quick-reactions > button.is-reacted, :root[data-theme='dark'] .event-acknowledgements > button.is-active, :root[data-theme='dark'] .calendar-quick-add > div button.is-active { border-color: #4f8eae; background: #193d53; color: #98d7f7; }
+    :root[data-theme='dark'] .space-update-form input, :root[data-theme='dark'] .calendar-quick-add input, :root[data-theme='dark'] .mention-chips > button, :root[data-theme='dark'] .studio-mention-row > button { border-color: #405e75; background: #1a3348; color: #e0ebf4; }
   }
   @media (max-width: 960px) and (min-width: 761px), (max-width: 420px) {
     .appearance-options { gap: 0.5rem; }

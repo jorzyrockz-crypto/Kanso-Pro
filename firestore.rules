@@ -58,8 +58,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerEmails.hasAny([request.auth.token.email.lower()]);
     }
 
-    // Shared-space membership is email-scoped. The app writes only role/name metadata;
-    // Firestore rules remain the final gate for every card, image, and activity request.
+    function isSpaceEditor(spaceId) {
+      // Owners retain edit access while existing documents are hydrated with editorEmails.
+      return isSpaceOwner(spaceId)
+        || (signedInGoogle()
+          && request.auth.token.email != null
+          && get(/databases/$(database)/documents/spaces/$(spaceId)).data.editorEmails.hasAny([request.auth.token.email.lower()]));
+    }
+
+    // Shared-space membership is email-scoped. The parent document carries workspace
+    // metadata, while Firestore rules remain the final gate for every child request.
     match /spaces/{spaceId} {
       allow read: if isSpaceMember(spaceId);
       allow create: if signedInGoogle()
@@ -73,9 +81,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Presence is a short-lived, self-authored heartbeat. It is intentionally separate
+    // from membership so no client can grant itself workspace access.
+    match /spaces/{spaceId}/presence/{uid} {
+      allow read: if isSpaceMember(spaceId);
+      allow create, update: if signedInGoogle()
+        && request.auth.uid == uid
+        && request.auth.token.email != null
+        && request.resource.data.keys().hasOnly(['email', 'name', 'status', 'presence', 'activeAt'])
+        && request.resource.data.keys().hasAll(['email', 'name', 'status', 'presence', 'activeAt'])
+        && request.resource.data.email == request.auth.token.email.lower()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.status is string
+        && request.resource.data.status.size() <= 120
+        && request.resource.data.presence in ['online', 'away']
+        && request.resource.data.activeAt is number;
+      allow delete: if false;
+    }
+
     match /spaces/{spaceId}/cards/{cardId} {
       allow read: if isSpaceMember(spaceId);
-      allow create, update: if isSpaceMember(spaceId)
+      allow create, update: if isSpaceEditor(spaceId)
         && request.resource.data.id == cardId
         && request.resource.data.title is string
         && request.resource.data.date is string
@@ -86,7 +113,8 @@ service cloud.firestore {
     }
 
     match /spaces/{spaceId}/activity/{activityId} {
-      allow read, create: if isSpaceMember(spaceId)
+      allow read: if isSpaceMember(spaceId);
+      allow create: if isSpaceEditor(spaceId)
         && request.resource.data.id == activityId
         && request.resource.data.title is string
         && request.resource.data.detail is string
@@ -96,7 +124,8 @@ service cloud.firestore {
     }
 
     match /spaces/{spaceId}/journalImages/{imageId} {
-      allow read, create, update: if isSpaceMember(spaceId);
+      allow read: if isSpaceMember(spaceId);
+      allow create, update: if isSpaceEditor(spaceId);
       allow delete: if isSpaceOwner(spaceId);
     }
   }

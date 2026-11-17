@@ -7,6 +7,9 @@ export type OccasionChoice = 'auto' | 'none' | OccasionTheme
 export type SpaceKind = 'personal' | 'shared'
 export type SpaceRole = 'owner' | 'editor' | 'viewer'
 export type Presence = 'online' | 'away' | 'offline'
+export type ReactionEmoji = '👍' | '✅' | '👀'
+export type SpaceColor = 'ocean' | 'violet' | 'rose' | 'amber' | 'forest' | 'slate'
+export type SpaceIcon = 'people' | 'book' | 'calendar' | 'briefcase' | 'sparkles' | 'landmark'
 
 /** A lightweight, local-first identity used in a Space. Firebase auth can enrich it when available. */
 export interface SpaceMember {
@@ -15,6 +18,28 @@ export interface SpaceMember {
   email?: string
   role: SpaceRole
   presence: Presence
+  /** A compact route-aware status, shared only inside a Shared Space. */
+  status?: string
+}
+
+/** A member's heartbeat is deliberately ephemeral and never part of their permissions. */
+export interface SpacePresence {
+  uid: string
+  email: string
+  name: string
+  presence: Exclude<Presence, 'offline'>
+  status: string
+  activeAt: number
+}
+
+export interface QuickReaction {
+  emoji: ReactionEmoji
+  member: string
+}
+
+export interface EventAcknowledgement {
+  member: string
+  response: 'going' | 'noted'
 }
 
 export interface Space {
@@ -25,6 +50,9 @@ export interface Space {
   members: SpaceMember[]
   joinCode: string
   createdAt: string
+  /** The saved visual identity is independent from the Space's cards and member roles. */
+  color?: SpaceColor
+  icon?: SpaceIcon
 }
 
 export interface SpaceActivity {
@@ -35,6 +63,8 @@ export interface SpaceActivity {
   href: string
   createdAt: string
   actor?: string
+  /** A handoff or mention is routed only to this collaborator's local bell. */
+  target?: string
 }
 
 export interface ChecklistComment {
@@ -62,6 +92,8 @@ export interface ChecklistItem {
   note?: string
   /** Optional task-item time label, stored as local 24-hour time. */
   time?: string
+  /** Small acknowledgements keep a handoff lightweight instead of opening a comment thread. */
+  reactions?: QuickReaction[]
 }
 
 interface BaseCard {
@@ -78,6 +110,8 @@ interface BaseCard {
   /** Display attribution for shared-space cards. Personal cards may omit it. */
   authoredBy?: string
   lastEditedBy?: string
+  /** Fast, low-noise acknowledgement reactions shown in the Journey Stream. */
+  reactions?: QuickReaction[]
 }
 
 export interface EventCard extends BaseCard {
@@ -90,6 +124,7 @@ export interface EventCard extends BaseCard {
   owner: string
   organization: string
   location: string
+  acknowledgements?: EventAcknowledgement[]
 }
 
 export interface TaskCard extends BaseCard {
