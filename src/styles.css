@@ -561,6 +561,7 @@
   .list-summary strong { display: block; color: var(--theme-text-secondary, #627185); font-size: 0.6875rem; font-weight: 700; line-height: 1.5; }
   .list-summary small { display: block; color: var(--theme-text-secondary, #6b788b); font-size: 0.5625rem; line-height: 1.6; margin-top: 0.1875rem; }
   .list-icon { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; flex-shrink: 0; border-radius: 0.625rem; color: var(--theme-green, #6ab69b); background: var(--theme-green-soft, #edf8f2); }
+  .project-other-projects .list-icon { color: var(--theme-violet, #6a58b5); background: var(--theme-violet-soft, #f0efff); }.project-other-projects .list-summary:hover { border-color: #c9c1ec; background: var(--theme-violet-soft, #f7f5ff); }
   .team-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.9375rem 1.0625rem; border: 1px solid var(--theme-border, #e2e8f0); border-radius: 1.0625rem; background: var(--theme-surface, white); }
   .team-members { display: flex; flex-wrap: wrap; gap: 0.375rem; }
   .team-members .person-pill { font-size: 0.5625rem; }

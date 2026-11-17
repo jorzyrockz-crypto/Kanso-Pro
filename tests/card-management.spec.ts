@@ -82,6 +82,15 @@ test('Project tracking keeps the next milestone visible and preserves milestones
   await expect(summary.getByText('Waiting on the item review.', { exact: true })).toBeVisible()
 })
 
+test('Projects offer compact links to other project workspaces beside the at-a-glance plan', async ({ page }) => {
+  await page.goto('/projects/proj-tos')
+  const otherProjects = page.locator('.project-other-projects')
+  await expect(otherProjects).toBeVisible()
+  await otherProjects.getByRole('link', { name: /School-Wide Reading Festival & Literacy Booths/ }).click()
+  await expect(page).toHaveURL('/projects/proj-reading')
+  await expect(page.getByRole('heading', { name: 'School-Wide Reading Festival & Literacy Booths', exact: true })).toBeVisible()
+})
+
 test('Event backgrounds are customized in the event editor, not its preview', async ({ page }) => {
   await page.goto('/calendar')
   await page.getByRole('button', { name: 'Preview Faculty Alignment & Curriculum Sync details', exact: true }).click()

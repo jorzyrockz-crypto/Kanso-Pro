@@ -291,6 +291,9 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDe
       </section>
       <aside className="workspace-desktop-aside project-workspace-aside" aria-label="Project context">
         <section className="workspace-insight-card project-insight-card"><span className="eyebrow"><Zap size={11} />Project plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Started</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Due</dt><dd>{shortDate(selected.dueDate)}</dd></div><div><dt>Progress</dt><dd>{percent}% · {done} of {total}</dd></div><div><dt>Next up</dt><dd>{nextMilestone?.title ?? 'Complete'}</dd></div></dl></section>
+        {projects.length > 1 && <div className="other-lists project-other-projects"><span className="eyebrow">Other projects</span>{projects.filter((project) => project.id !== selected.id).map((project) => { const milestone = project.subtasks.find((item) => !item.done); const projectProgress = progress(project.subtasks); return <Link key={project.id} className="list-summary" to={destinationPath({ page: 'project', cardId: project.id })}>
+          <span className="list-icon"><Zap size={17} /></span><span><strong>{project.title}</strong><small>Due {shortDate(project.dueDate)} · {projectProgress.percent}% complete{milestone ? ` · Next: ${milestone.title}` : ''}</small></span><ChevronRight size="1rem" />
+        </Link> })}</div>}
         <div className="team-panel"><span className="eyebrow"><Users size="0.8125rem" />Planning team</span><div className="team-members">{selected.team.map((name) => <span className="person-pill" key={name}><Avatar name={name} />{name}</span>)}</div></div>
         <p className="workspace-fineprint"><Users size="0.75rem" />Team names are planning references. This workspace is stored on your device.</p>
       </aside>
