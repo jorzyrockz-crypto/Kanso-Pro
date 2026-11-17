@@ -2,7 +2,7 @@ import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, Chevron
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
-import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
+import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, ProjectCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useJourneyStore } from './lib/store'
@@ -193,14 +193,14 @@ function NewCardPage({ cards, onCancel, onCreate, onUpdate }: {
   cards: JourneyCard[]
   onCancel: () => void
   onCreate: (card: JourneyCard) => void
-  onUpdate: (card: EventCard | TaskCard) => void
+  onUpdate: (card: EventCard | TaskCard | ProjectCard) => void
 }) {
   const location = useLocation()
   const editId = new URLSearchParams(location.search).get('edit')
   const candidate = editId ? cards.find((card) => card.id === editId) : undefined
-  const editingCard = candidate?.type === 'event' || candidate?.type === 'task' ? candidate : undefined
+  const editingCard = candidate?.type === 'event' || candidate?.type === 'task' || candidate?.type === 'project' ? candidate : undefined
   if (editId && !editingCard) return <main id="main-content" tabIndex={-1} className="create-page" aria-label="Card not found"><NotFoundPage card backTo="/" /></main>
-  const typeLabel = editingCard?.type === 'event' ? 'Event' : editingCard?.type === 'task' ? 'Task list' : 'card'
+  const typeLabel = editingCard?.type === 'event' ? 'Event' : editingCard?.type === 'task' ? 'Task list' : editingCard?.type === 'project' ? 'Project' : 'card'
   return <main id="main-content" tabIndex={-1} className="create-page" aria-labelledby="page-title">
     <PageHeader title={editingCard ? `Edit ${typeLabel}` : 'New card'} description={editingCard ? 'Update the details that keep this card useful across your planning space.' : 'An event, a small step, a bigger idea, or a thought worth keeping.'} />
     <button className="text-button return-to-page" onClick={onCancel}><ArrowLeft size="0.8125rem" />Back to your workspace</button>
@@ -443,10 +443,11 @@ export default function App() {
     navigate('/', { replace: true, state: { focusCardId: card.id } })
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
-  const updateJourneyCard = (card: EventCard | TaskCard) => {
+  const updateJourneyCard = (card: EventCard | TaskCard | ProjectCard) => {
     dispatch({ type: 'update-card', card })
-    navigate(destinationPath({ page: card.type === 'event' ? 'calendar' : 'tasks', cardId: card.id }), { replace: true })
-    setToast({ message: `${card.type === 'event' ? 'Event' : 'Task card'} updated.`, id: Date.now() })
+    const page = card.type === 'event' ? 'calendar' : card.type === 'task' ? 'tasks' : 'project'
+    navigate(destinationPath({ page, cardId: card.id }), { replace: true })
+    setToast({ message: `${card.type === 'event' ? 'Event' : card.type === 'task' ? 'Task list' : 'Project'} updated.`, id: Date.now() })
   }
   const deleteJourneyCard = (card: JourneyCard) => {
     dispatch({ type: 'delete-card', id: card.id })

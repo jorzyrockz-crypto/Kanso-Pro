@@ -127,6 +127,10 @@
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity p, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #ead8af; }
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #796943; }
     :root[data-theme='dark'] .calendar-preview-card:hover { background: rgb(255 255 255 / 7%); }
+    :root[data-theme='dark'] .project-pulse { border-color: #554b80; background: linear-gradient(120deg, #302d49, #172b3d); }
+    :root[data-theme='dark'] .project-pulse strong { color: #e7e0fb; }
+    :root[data-theme='dark'] .project-pulse p { color: #bac9dc; }
+    :root[data-theme='dark'] .project-due-status { background: #3c355d; color: #d5c8ff; }
     :root[data-theme='dark'] .timeline-month-empty, :root[data-theme='dark'] .timeline-boundary > button { border-color: #45627c; background: rgb(20 38 57 / 74%); }
     :root[data-theme='dark'] .dawn-rollover { border-color: #8e763d; background: radial-gradient(circle at 100% 0%, rgb(241 188 72 / 13%), transparent 34%), linear-gradient(125deg, rgb(38 48 56 / 96%), rgb(24 45 62 / 91%)); box-shadow: 0 .75rem 1.625rem rgb(0 0 0 / 22%), inset 0 1px 0 rgb(255 240 193 / 8%); }
     :root[data-theme='dark'] .dawn-rollover h2 { color: #ffd066; }

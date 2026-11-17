@@ -1,5 +1,5 @@
 import type {
-  CardType, EventCard, Filter, JourneyCard, NewCardInput, RolloverCandidate, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry, Workspace,
+  CardType, EventCard, Filter, JourneyCard, NewCardInput, ProjectCard, RolloverCandidate, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry, Workspace,
 } from '../types'
 import { isOccasionChoice } from './occasions'
 
@@ -196,8 +196,8 @@ export function createCard(input: NewCardInput, existing: JourneyCard[]): Journe
   }
 }
 
-/** Applies the shared card form without resetting a task's existing checklist progress. */
-export function updateCardFromInput(card: EventCard | TaskCard, input: NewCardInput) {
+/** Applies shared project details without resetting existing milestones or their progress. */
+export function updateCardFromInput(card: EventCard | TaskCard | ProjectCard, input: NewCardInput) {
   const created = createCard({ ...input, type: card.type }, [])
   if (card.type === 'event' && created.type === 'event') return {
     ...card,
@@ -218,6 +218,13 @@ export function updateCardFromInput(card: EventCard | TaskCard, input: NewCardIn
     date: created.date,
     context: created.context,
     reminder: created.reminder,
+  }
+  if (card.type === 'project' && created.type === 'project') return {
+    ...card,
+    title: created.title,
+    date: created.date,
+    dueDate: created.dueDate,
+    context: created.context,
   }
   return card
 }
