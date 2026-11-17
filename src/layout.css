@@ -233,6 +233,19 @@
   @media (min-width: 1081px) {
     .timeline-page.app-shell { display: grid; grid-template-columns: minmax(0, 1fr) 18.25rem; grid-template-rows: auto minmax(0, 1fr); align-items: start; column-gap: 1.625rem; max-width: 84rem; padding: 0 2rem 1.5rem; }
     .timeline-page .stream-header { grid-column: 1; grid-row: 1; margin: 1.75rem 0 0; }
+    /* The planning desk narrows the Stream column even on a wide display. Replace the
+       five inline pills with one active-filter menu, then reserve the row for context. */
+    .timeline-page .stream-controls { justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
+    .timeline-page .filter-bar { display: none; }
+    .timeline-page .stream-filter-menu { display: block; flex: 1 1 8.5rem; min-width: 7.5rem; max-width: 12rem; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger { width: 100%; border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
+    .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
+    .timeline-page .stream-sources-menu .stream-dropdown-trigger { min-width: 0; padding-right: .4375rem; padding-left: .5rem; }
+    .timeline-page .stream-sources-menu .source-summary-label { display: none; }
+    .timeline-page .stream-sources-menu .source-summary-label-compact { display: inline; }
+    .timeline-page .stream-sources-menu .source-summary-shown { display: none; }
+    .timeline-page .stream-reference-controls { margin-left: auto; }
     .timeline-layout { display: contents; }
     .timeline-page .timeline { grid-column: 1; grid-row: 2; min-width: 0; padding: 2rem 0 1.5rem; }
     .timeline-page .desktop-planning-rail { position: sticky; top: calc(var(--hdr-h) + .875rem); grid-column: 2; grid-row: 1 / span 2; align-self: start; display: flex; min-width: 0; flex-direction: column; gap: .75rem; margin-top: 1.75rem; padding: .9375rem; border: 1px solid var(--theme-border, #d6e6f0); border-radius: 1.25rem; background: var(--theme-glass, rgb(255 255 255 / 82%)); box-shadow: 0 .75rem 2rem rgb(31 79 111 / 9%); backdrop-filter: blur(1.125rem) saturate(1.12); -webkit-backdrop-filter: blur(1.125rem) saturate(1.12); }

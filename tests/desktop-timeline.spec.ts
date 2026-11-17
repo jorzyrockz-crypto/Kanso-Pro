@@ -14,6 +14,16 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   await expect(rail.getByRole('heading', { name: 'Carry forward', exact: true })).toBeVisible()
   await expect(rail.getByRole('button', { name: 'Task list', exact: true })).toBeVisible()
 
+  const header = page.locator('.stream-header')
+  const filterTrigger = page.getByRole('button', { name: 'Filter journey cards: All Stream', exact: true })
+  const sourceTrigger = page.getByRole('button', { name: /^Calendar sources, \d+ shown$/ })
+  await expect(header.getByRole('navigation', { name: 'Filter journey cards' })).toBeHidden()
+  await expect(filterTrigger).toBeVisible()
+  await expect(sourceTrigger).toBeVisible()
+  const [filterBox, scopeBox, sourceBox] = await Promise.all([filterTrigger.boundingBox(), page.getByRole('group', { name: 'Team workload scope', exact: true }).boundingBox(), sourceTrigger.boundingBox()])
+  expect(Math.abs(filterBox!.y - scopeBox!.y)).toBeLessThanOrEqual(1)
+  expect(Math.abs(scopeBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
+
   const [headerBox, streamBox, railBox, viewport] = await Promise.all([
     page.locator('.stream-header').boundingBox(), stream.boundingBox(), rail.boundingBox(), page.evaluate(() => document.documentElement.scrollWidth),
   ])
