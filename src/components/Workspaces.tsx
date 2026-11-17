@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, MessageSquareText, Pencil, Plus, Printer, School, Users, Zap } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, MessageSquareText, Pencil, Plus, Printer, School, Users, Zap } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, FormEvent, ReactNode } from 'react'
@@ -60,10 +60,6 @@ function CalendarEvent({ card, highlighted, onPreview }: { card: EventCard; high
   </article>
 }
 
-function entryIncludesDate(entry: CalendarSourceEntry, date: string) {
-  return entry.date <= date && (entry.endDate ?? entry.date) >= date
-}
-
 function sourceEntryDate(entry: CalendarSourceEntry) {
   const start = formatDate(entry.date, { weekday: 'short', month: 'short', day: '2-digit' })
   if (!entry.endDate || entry.endDate === entry.date) return start
@@ -99,24 +95,71 @@ function timelineSourcePreview(entry: CalendarSourceEntry, source?: CalendarSour
   }
 }
 
-function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onDeleteCard }: WorkspaceProps) {
+type CalendarFilter = 'event' | 'task' | 'project' | 'note' | 'source'
+
+const calendarFilters: { type: CalendarFilter; label: string }[] = [
+  { type: 'event', label: 'Events' }, { type: 'task', label: 'Task lists' }, { type: 'project', label: 'Projects' }, { type: 'note', label: 'Journal Notes' }, { type: 'source', label: 'Calendar source' },
+]
+
+function isMonthObservance(entry: CalendarSourceEntry) {
+  return !!entry.endDate && entry.endDate > entry.date
+}
+
+function CalendarDateAddMenu({ date, onCompose }: { date: string; onCompose: (options?: ComposerOptions) => void }) {
+  const [open, setOpen] = useState(false)
+  const menuId = `calendar-add-${date}`
+  const choices: { type: 'event' | 'task' | 'project' | 'note'; label: string }[] = [
+    { type: 'event', label: 'Event' }, { type: 'task', label: 'Task list' }, { type: 'project', label: 'Project' }, { type: 'note', label: 'Journal note' },
+  ]
+  return <div className="calendar-add-menu"><button type="button" className="text-button" aria-expanded={open} aria-controls={menuId} onClick={() => setOpen((current) => !current)}><Plus size=".75rem" />Add</button>
+    {open && <div id={menuId} className="calendar-add-options" role="group" aria-label={`Add a card on ${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}`}>
+      {choices.map(({ type, label }) => <button key={type} type="button" onClick={() => onCompose({ type, date })}><TypeIcon type={type} size={13} />{label}</button>)}
+    </div>}
+  </div>
+}
+
+function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
   const initialCard = cards.find((card) => card.id === cardId)
   const navigate = useNavigate()
   const [query] = useSearchParams()
   const [preview, setPreview] = useState<TimelineItem | null>(null)
+  const [enabledFilters, setEnabledFilters] = useState<Set<CalendarFilter>>(() => new Set(calendarFilters.map(({ type }) => type)))
+  const [observancesOpen, setObservancesOpen] = useState(false)
   const closePreview = useCallback(() => setPreview(null), [])
   const { month, selectedDate } = calendarPeriod(query, initialCard?.date)
   const monthCards = cards.filter((card) => !card.backlog && card.date.startsWith(month))
-  const events = monthCards.filter((card): card is EventCard => card.type === 'event')
   const sourceEntries = calendarSourceEntriesForMonth(calendarSources, month)
   const sourceById = new Map(calendarSources.map((source) => [source.id, source]))
+  const visibleCards = monthCards.filter((card) => enabledFilters.has(card.type))
+  const visibleSources = sourceEntries.filter(() => enabledFilters.has('source'))
+  const monthObservances = visibleSources.filter(isMonthObservance).sort((first, second) => first.date.localeCompare(second.date) || first.title.localeCompare(second.title))
+  // Without a date in the URL, keep the original useful monthly overview as the fallback.
   const agenda: CalendarAgendaItem[] = selectedDate
-    ? [...monthCards.filter((card) => card.date === selectedDate), ...sourceEntries.filter((entry) => entryIncludesDate(entry, selectedDate))]
-    : [...events, ...sourceEntries]
+    ? [...visibleCards.filter((card) => card.date === selectedDate), ...visibleSources.filter((entry) => entry.date === selectedDate && !isMonthObservance(entry))]
+    : [...visibleCards, ...visibleSources.filter((entry) => !isMonthObservance(entry))]
   const sortedAgenda = [...agenda].sort((first, second) => first.date.localeCompare(second.date) || first.title.localeCompare(second.title))
-  const previewItems: TimelineItem[] = sortedAgenda.map((entry) => isCalendarSourceEntry(entry) ? timelineSourcePreview(entry, sourceById.get(entry.sourceId)) : entry)
-  const visibleEntryCount = events.length + sourceEntries.length
+  const previewItems: TimelineItem[] = [...sortedAgenda, ...monthObservances].map((entry) => isCalendarSourceEntry(entry) ? timelineSourcePreview(entry, sourceById.get(entry.sourceId)) : entry)
+  const visibleEntryCount = visibleCards.filter((card): card is EventCard => card.type === 'event').length + visibleSources.length
   const changeMonth = (amount: number) => navigate(`/calendar?month=${shiftMonth(month, amount)}`)
+  const toggleFilter = (type: CalendarFilter) => setEnabledFilters((current) => {
+    const next = new Set(current)
+    if (next.has(type)) next.delete(type)
+    else next.add(type)
+    return next
+  })
+  const openAgendaEntry = (entry: JourneyCard) => {
+    if (entry.type === 'task') { onNavigate({ page: 'tasks', cardId: entry.id }); return }
+    if (entry.type === 'project') { onNavigate({ page: 'project', cardId: entry.id }); return }
+    setPreview(entry)
+  }
+  const renderAgendaEntry = (entry: CalendarAgendaItem) => isCalendarSourceEntry(entry)
+    ? <CalendarSourceEvent key={entry.id} entry={entry} source={sourceById.get(entry.sourceId)} onPreview={() => setPreview(timelineSourcePreview(entry, sourceById.get(entry.sourceId)))} />
+    : entry.type === 'event'
+      ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} onPreview={() => setPreview(entry)} />
+      : <button key={entry.id} type="button" className={`agenda-item agenda-item-${entry.type}`} onClick={() => openAgendaEntry(entry)} aria-label={`${entry.type === 'task' || entry.type === 'project' ? 'Open' : 'Preview'} ${entry.title || 'Untitled reflection'} details`}>
+        <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ChevronRight size="0.9375rem" aria-hidden="true" />
+      </button>
+  const selectedHeading = selectedDate ? formatDate(selectedDate, { weekday: 'long', month: 'short', day: 'numeric' }) : 'Connected calendar details'
   return <div className="workspace-content calendar-workspace">
     <WorkspaceHero type="event" month={month} eyebrow="Connected Calendar View" title={`${formatDate(`${month}-01`, { month: 'long', year: 'numeric' })} Schedule`}
       stat={{ label: visibleEntryCount === 1 ? 'Entry this month' : 'Entries this month', value: visibleEntryCount }}>
@@ -124,40 +167,38 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onDelete
     </WorkspaceHero>
     <section className="workspace-panel calendar-panel" aria-label="Monthly calendar">
       <div className="panel-heading calendar-toolbar"><h3>{formatDate(`${month}-01`, { month: 'long', year: 'numeric' })}</h3>
-        <div className="calendar-controls"><button className="text-button" onClick={() => navigate(`/calendar?date=${FOCUS_DATE}`)}>Focus date</button>
+        <div className="calendar-controls"><button className="text-button" onClick={() => navigate(`/calendar?date=${FOCUS_DATE}`)}>Focus date</button><button className="text-button calendar-today-button" onClick={() => navigate(`/calendar?date=${localDate()}`)}>Today</button>
           <button className="icon-button" aria-label="Previous month" onClick={() => changeMonth(-1)}><ChevronLeft size="1.0625rem" /></button>
           <button className="icon-button" aria-label="Next month" onClick={() => changeMonth(1)}><ChevronRight size="1.0625rem" /></button></div></div>
       <div className="calendar-grid">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => <span key={day} className="calendar-weekday">{day}</span>)}
         {calendarDays(month).map((date, index) => {
           if (!date) return <span key={`blank-${index}`} className="calendar-blank" />
-          const dateCards = monthCards.filter((card) => card.date === date)
-          const dateSourceEntries = sourceEntries.filter((entry) => entryIncludesDate(entry, date))
+          const dateCards = visibleCards.filter((card) => card.date === date)
+          // A range is represented at its occurrence start, keeping the month grid legible.
+          const dateSourceEntries = visibleSources.filter((entry) => entry.date === date)
           const labels = [
             dateCards.length ? `${dateCards.length} personal ${dateCards.length === 1 ? 'card' : 'cards'}` : '',
             dateSourceEntries.length ? `${dateSourceEntries.length} calendar-source ${dateSourceEntries.length === 1 ? 'entry' : 'entries'}` : '',
           ].filter(Boolean).join(', ') || 'no entries'
-          return <button key={date} className={`calendar-day ${selectedDate === date ? 'is-selected' : ''} ${date === FOCUS_DATE ? 'is-today' : ''}`}
+          return <button key={date} className={`calendar-day ${selectedDate === date ? 'is-selected' : ''} ${date === localDate() ? 'is-today' : ''}`}
             onClick={() => navigate(`/calendar?date=${date}`)} aria-pressed={selectedDate === date}
             aria-label={`${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${labels}`}>
             <span>{Number(date.slice(8))}</span><span className="calendar-dots">{[...new Set(dateCards.map((card) => card.type))].map((type) => <i key={type} className={`calendar-dot dot-${type}`} />)}{dateSourceEntries.length > 0 && <i className="calendar-dot dot-source" />}</span>
           </button>
         })}
       </div>
-      <div className="calendar-legend">{(['event', 'task', 'project', 'note'] as const).map((type) => <span key={type}><i className={`calendar-dot dot-${type}`} />{TYPE_CONFIG[type].shortLabel}</span>)}{sourceEntries.length > 0 && <span><i className="calendar-dot dot-source" />Calendar source</span>}</div>
+      <div className="calendar-legend" role="group" aria-label="Calendar entry filters">{calendarFilters.map(({ type, label }) => <button key={type} type="button" className={`calendar-legend-pill ${enabledFilters.has(type) ? 'is-active' : ''}`} aria-pressed={enabledFilters.has(type)} onClick={() => toggleFilter(type)}><i className={`calendar-dot dot-${type === 'source' ? 'source' : type}`} />{label}</button>)}</div>
     </section>
-    <section className="workspace-panel agenda-panel">
-      <div className="panel-heading"><h3>{selectedDate ? `${shortDate(selectedDate)} · Connected agenda` : 'Connected calendar details'}</h3>
-        {selectedDate && <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All entries</button>}</div>
-      {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map((entry) => isCalendarSourceEntry(entry)
-        ? <CalendarSourceEvent key={entry.id} entry={entry} source={sourceById.get(entry.sourceId)} onPreview={() => setPreview(timelineSourcePreview(entry, sourceById.get(entry.sourceId)))} />
-        : entry.type === 'event'
-          ? <CalendarEvent key={entry.id} card={entry} highlighted={entry.id === cardId} onPreview={() => setPreview(entry)} />
-          : <button key={entry.id} type="button" className={`agenda-item agenda-item-${entry.type}`} onClick={() => setPreview(entry)} aria-label={`Preview ${entry.title || 'Untitled reflection'} details`}>
-            <span className="agenda-item-icon"><TypeIcon type={entry.type} size={19} /></span><span><small>{TYPE_CONFIG[entry.type].label}</small><strong>{entry.title || 'Untitled reflection'}</strong></span><ChevronRight size="0.9375rem" aria-hidden="true" />
-          </button>)}</div>
-        : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
-      {sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: selectedDate ?? `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
+    <section className="workspace-panel agenda-panel" aria-label={selectedDate ? `${selectedHeading} agenda` : 'Calendar agenda'}>
+      <div className="panel-heading agenda-heading"><div>{selectedDate && <span className="eyebrow">Selected date</span>}<h3>{selectedHeading}</h3></div>
+        {selectedDate ? <div className="agenda-heading-actions"><CalendarDateAddMenu date={selectedDate} onCompose={onCompose} /></div> : <button className="text-button" onClick={() => navigate(`/calendar?month=${month}`)}>All entries</button>}</div>
+      {sortedAgenda.length ? <div className="agenda-list">{sortedAgenda.map(renderAgendaEntry)}</div>
+        : selectedDate ? <p className="calendar-date-empty">No items specifically scheduled for this date.</p>
+          : <EmptyState title="A little breathing room" action={<button className="button button-soft" onClick={() => onCompose({ type: 'event', date: `${month}-01` })}><Plus size="0.8125rem" />Plan something</button>}>No personal cards or enabled source entries here yet. An open day has its own possibilities.</EmptyState>}
+      {monthObservances.length > 0 && <section className="month-observances" aria-labelledby="month-observances-title"><button type="button" className="month-observances-toggle" aria-expanded={observancesOpen} aria-controls="month-observances-list" onClick={() => setObservancesOpen((current) => !current)}><span><span className="eyebrow">Calendar source</span><strong id="month-observances-title">Month Observances</strong><small>{monthObservances.length} multi-day {monthObservances.length === 1 ? 'entry' : 'entries'}</small></span><ChevronDown size=".9375rem" /></button>
+        {observancesOpen && <div id="month-observances-list" className="agenda-list month-observances-list">{monthObservances.map(renderAgendaEntry)}</div>}</section>}
+      {!selectedDate && sortedAgenda.length > 0 && <button className="text-button agenda-add" onClick={() => onCompose({ type: 'event', date: `${month}-14` })}><Plus size="0.8125rem" />Add a personal event</button>}
     </section>
     <TimelineCardPreview item={preview} items={previewItems} onItemChange={(item) => setPreview(item)} onClose={closePreview} onDeleteCard={onDeleteCard} />
   </div>

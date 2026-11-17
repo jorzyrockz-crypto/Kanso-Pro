@@ -130,6 +130,18 @@
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity p, :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { color: #ead8af; }
     :root[data-theme='dark'] .calendar-source-event.source-legislated-activity .calendar-source-event-note { border-color: #796943; }
     :root[data-theme='dark'] .calendar-preview-card:hover { background: rgb(255 255 255 / 7%); }
+    :root[data-theme='dark'] .calendar-legend-pill { border-color: #3d5871; background: #172b3e; color: #aebfd0; }
+    :root[data-theme='dark'] .calendar-legend-pill.is-active { border-color: #527999; background: #203b52; color: #def0fb; box-shadow: none; }
+    :root[data-theme='dark'] .calendar-legend-pill:hover { border-color: #6c9abb; background: #21465f; color: #d5efff; }
+    :root[data-theme='dark'] .calendar-date-empty { border-color: #3d5871; background: #172b3e; color: #b9cbda; }
+    :root[data-theme='dark'] .calendar-add-menu > .text-button { border-color: #3d6682; background: #1b4057; color: #b8e8ff; }
+    :root[data-theme='dark'] .calendar-add-options { border-color: #3d5871; background: #16283a; box-shadow: 0 .625rem 1.5rem rgb(0 0 0 / 32%); }
+    :root[data-theme='dark'] .calendar-add-options > button { color: #c7d8e5; }
+    :root[data-theme='dark'] .calendar-add-options > button:hover, :root[data-theme='dark'] .calendar-add-options > button:focus-visible { background: #1d415a; color: #dbf0ff; }
+    :root[data-theme='dark'] .month-observances { border-color: #3a556b; }
+    :root[data-theme='dark'] .month-observances-toggle .eyebrow { color: #f1c46d; }
+    :root[data-theme='dark'] .month-observances-toggle strong { color: #dbe8f2; }
+    :root[data-theme='dark'] .month-observances-toggle small { color: #aabed0; }
     :root[data-theme='dark'] .project-stream-card { border-color: #4f4a75; background: linear-gradient(145deg, #242740, #1b2d3b); }
     :root[data-theme='dark'] .project-stream-card .type-badge { border-color: #605a8f; background: #342f56; color: #d8d0ff; }
     :root[data-theme='dark'] .timeline-project-due { background: #373454; color: #d3cbff; }

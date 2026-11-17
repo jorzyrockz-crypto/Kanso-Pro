@@ -286,7 +286,7 @@ test('Back and Forward restore the selected task list and calendar state', async
   await page.goForward()
   await expect(page.getByRole('button', { name: 'Tuesday, December 8, no entries', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Dec 8 · Connected agenda', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tuesday, Dec 8', exact: true })).toBeVisible()
 })
 
 test('keyboard users can skip the navigation and open pages without a focus trap', async ({ page }) => {
