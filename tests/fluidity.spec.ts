@@ -13,7 +13,12 @@ async function layout(page: Page, width: number, height: number, coarse: boolean
   await settle(page)
   const sidebar = coarse ? width >= 1000 && width > height && height >= 600 : width >= 1024
   const scaled = coarse && width >= 700 && height >= 600
-  const rootSize = scaled ? Math.min(20, Math.max(16, width / 42)) : 16
+  const desktopScaled = !coarse && width >= 1024
+  const rootSize = scaled
+    ? Math.min(20, Math.max(16, width / 42))
+    : desktopScaled
+      ? Math.min(18, Math.max(16, width / 90))
+      : 16
   const state = await page.evaluate(() => {
     const root = getComputedStyle(document.documentElement)
     const bar = document.querySelector('.bottom-bar')!.getBoundingClientRect()
@@ -30,13 +35,19 @@ async function layout(page: Page, width: number, height: number, coarse: boolean
       scrollBottom: parseFloat(root.scrollPaddingBottom), overflow: document.documentElement.scrollWidth > innerWidth,
       columns: getComputedStyle(document.querySelector('.calendar-workspace')!).gridTemplateColumns.split(' ').length,
       control: document.querySelector('[aria-label="Next month"]')!.getBoundingClientRect().height,
-      heading: parseFloat(getComputedStyle(document.querySelector('h1')!).fontSize),
+      heading: parseFloat(getComputedStyle(document.querySelector('.workspace-hero h2')!).fontSize),
+      navigationText: parseFloat(getComputedStyle(document.querySelector('.bottom-nav-link')!).fontSize),
+      supportingCopy: parseFloat(getComputedStyle(document.querySelector('.workspace-hero p')!).fontSize),
     }
   })
   expect(state.coarse).toBe(coarse)
   expect(state.layout, `${width}×${height}`).toBe(sidebar ? 'sidebar' : 'bottom')
   expect(state.rootSize).toBeCloseTo(rootSize, 1)
-  if (width >= 700) expect(state.heading).toBeCloseTo(rootSize * 1.875, 1)
+  if (width >= 700) expect(state.heading).toBeCloseTo(rootSize * 1.5625, 1)
+  if (!coarse && width >= 1024) {
+    expect(state.navigationText, `${width}×${height} navigation text`).toBeGreaterThanOrEqual(12)
+    expect(state.supportingCopy, `${width}×${height} supporting copy`).toBeGreaterThanOrEqual(12)
+  }
   expect(state.overflow, `${width}×${height} overflow`).toBe(false)
   expect(await nav(page).getByRole('link').count()).toBe(5)
   expect(state.header.x).toBe(0)
@@ -148,7 +159,9 @@ test.describe('touch-aware fluid layout', () => {
   })
 })
 
-test('fine-pointer laptops never receive tablet scaling, even at identical widths', async ({ page, context }) => {
+test('fine-pointer layouts retain a bounded desktop type scale without tablet sizing', async ({ page, context }) => {
+  // This exercises eight viewport transitions and a navigation round-trip.
+  test.setTimeout(60_000)
   await mockFirebase(context)
   await page.goto('/calendar')
   for (const [width, height] of [[375, 812], [800, 1280], [1000, 800], [1023, 768], [1024, 768], [1194, 834], [1440, 900], [1680, 1050]]) {
@@ -159,6 +172,9 @@ test('fine-pointer laptops never receive tablet scaling, even at identical width
   await page.goBack()
   await expect(page).toHaveURL('/calendar')
   await expect(nav(page).getByRole('link', { name: 'Calendar', exact: true })).toHaveAttribute('aria-current', 'page')
+  await page.goto('/new?type=note')
+  await expect(page.locator('#card-title')).toBeVisible()
+  expect(await page.locator('#card-title').evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(13)
   await page.emulateMedia({ media: 'print' })
   await expect(nav(page)).toBeHidden()
   expect(await page.locator('.page-outlet').evaluate(element => element.getBoundingClientRect().x)).toBe(0)
