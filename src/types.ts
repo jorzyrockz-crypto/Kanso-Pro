@@ -16,6 +16,10 @@ export interface ChecklistItem {
   targetDate?: string
   /** One concise planning note, blocker, or status update. */
   remarks?: string
+  /** Optional one-line note for a task-list item. */
+  note?: string
+  /** Optional task-item time label, stored as local 24-hour time. */
+  time?: string
 }
 
 interface BaseCard {
@@ -128,6 +132,7 @@ export type JourneyAction =
   | { type: 'add-item'; cardId: string; item: ChecklistItem }
   | { type: 'update-item'; cardId: string; item: ChecklistItem }
   | { type: 'delete-item'; cardId: string; itemId: string }
+  | { type: 'move-item'; cardId: string; itemId: string; direction: 'up' | 'down' }
   | { type: 'toggle-bezel' }
   | { type: 'hydrate'; state: JourneyState }
 

@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, MessageSquareText, Pencil, Plus, Printer, School, Users, Zap } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText, Landmark, MessageSquareText, Pencil, Plus, Printer, School, Users, Zap } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Dispatch, FormEvent, ReactNode } from 'react'
@@ -163,35 +163,95 @@ function CalendarWorkspace({ cards, calendarSources, cardId, onCompose, onDelete
   </div>
 }
 
+function localDate(offset = 0) {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setDate(date.getDate() + offset)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function taskReminderState(task: TaskCard) {
+  if (!task.reminder) return null
+  const formatted = formatTime(task.reminder)
+  if (task.date !== localDate()) return { text: `${formatted} reminder`, passed: false }
+  const [hours, minutes] = task.reminder.split(':').map(Number)
+  const now = new Date()
+  return now.getHours() * 60 + now.getMinutes() > hours * 60 + minutes
+    ? { text: `Passed · ${formatted}`, passed: true }
+    : { text: `${formatted} reminder`, passed: false }
+}
+
+function TaskChecklistRow({ item, index, task, dispatch }: { item: TaskCard['subtasks'][number]; index: number; task: TaskCard; dispatch: Dispatch<JourneyAction> }) {
+  const [editing, setEditing] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [draft, setDraft] = useState(() => ({ title: item.title, time: item.time ?? '', note: item.note ?? '' }))
+  const reset = () => setDraft({ title: item.title, time: item.time ?? '', note: item.note ?? '' })
+  const save = (event: FormEvent) => {
+    event.preventDefault()
+    const title = draft.title.trim()
+    if (!title) return
+    dispatch({ type: 'update-item', cardId: task.id, item: { ...item, title: title.slice(0, 240), time: draft.time || undefined, note: draft.note.trim().slice(0, 240) || undefined } })
+    setEditing(false)
+  }
+  const subtext = [item.time ? formatTime(item.time) : '', item.note].filter(Boolean).join(' · ')
+  return <article className={`workspace-check task-check task-check-item ${item.done ? 'is-done' : ''}`}>
+    <div className="task-check-row"><label className="task-check-toggle"><input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: task.id, itemId: item.id })} /><span className="check-copy"><strong>{item.title}</strong>{subtext && <small>{subtext}</small>}</span></label>
+      <div className="task-item-actions">{removing ? <span className="task-remove-confirm"><span>Remove?</span><button type="button" className="text-button" onClick={() => setRemoving(false)}>Keep</button><button type="button" className="text-button task-delete-confirm" onClick={() => dispatch({ type: 'delete-item', cardId: task.id, itemId: item.id })}>Delete</button></span> : <><button type="button" className="icon-button" aria-label={`Edit checklist item ${index + 1}`} title="Edit item" onClick={() => { reset(); setEditing(true) }}><Pencil size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} up`} title="Move up" disabled={index === 0} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'up' })}><ArrowUp size=".8125rem" /></button><button type="button" className="icon-button" aria-label={`Move checklist item ${index + 1} down`} title="Move down" disabled={index === task.subtasks.length - 1} onClick={() => dispatch({ type: 'move-item', cardId: task.id, itemId: item.id, direction: 'down' })}><ArrowDown size=".8125rem" /></button><button type="button" className="icon-button task-delete-button" aria-label={`Delete checklist item ${index + 1}`} title="Delete item" onClick={() => setRemoving(true)}><span aria-hidden="true">×</span></button></>}</div>
+    </div>
+    {editing && <form className="task-item-editor" onSubmit={save}><div className="task-edit-fields"><label>Item<input aria-label={`Checklist item ${index + 1} title`} required maxLength={240} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label><label>Time<input aria-label={`Checklist item ${index + 1} time`} type="time" value={draft.time} onChange={(event) => setDraft((current) => ({ ...current, time: event.target.value }))} /></label></div><label className="task-item-note">Note<input aria-label={`Checklist item ${index + 1} note`} maxLength={240} value={draft.note} onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note" /></label><div className="task-item-editor-actions"><button type="button" className="button button-quiet" onClick={() => { reset(); setEditing(false) }}>Cancel</button><button type="submit" className="button button-soft">Save item</button></div></form>}
+  </article>
+}
+
 function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDeleteCard }: WorkspaceProps) {
   const tasks = cards.filter((card): card is TaskCard => card.type === 'task')
   const activeId = cardId ?? 'task-grades'
   const selected = tasks.find((card) => card.id === activeId) ?? tasks[0]
-  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task list</button>}>Create a date-specific task list, then add the immediate actions that move it forward.</EmptyState>
+  if (!selected) return <EmptyState title="Small steps start here" action={<button className="button button-dark" onClick={() => onCompose({ type: 'task' })}><Plus size="0.875rem" />Create a task list</button>}>Keep related, date-specific actions together. Add a reminder when the timing matters.</EmptyState>
   const { done, total, percent } = progress(selected.subtasks)
+  const unfinished = selected.subtasks.filter((item) => !item.done)
+  const reminder = taskReminderState(selected)
+  const clearCompleted = () => dispatch({ type: 'update-card', card: { ...selected, subtasks: selected.subtasks.filter((item) => !item.done) } })
+  const moveUnfinishedToTomorrow = () => {
+    if (!unfinished.length) return
+    const tomorrow = localDate(1)
+    const movedItems = unfinished.map((item) => ({ ...item, id: makeId('task'), done: false }))
+    const existingTomorrow = tasks.find((task) => task.id !== selected.id && task.date === tomorrow)
+    if (existingTomorrow) {
+      dispatch({ type: 'update-card', card: { ...existingTomorrow, subtasks: [...existingTomorrow.subtasks, ...movedItems] } })
+      dispatch({ type: 'update-card', card: { ...selected, subtasks: selected.subtasks.filter((item) => item.done) } })
+      onNavigate({ page: 'tasks', cardId: existingTomorrow.id })
+      return
+    }
+    const tomorrowList: TaskCard = { ...selected, id: makeId('task'), title: `${selected.title} · follow-up`, date: tomorrow, side: selected.side === 'left' ? 'right' : 'left', subtasks: movedItems, quiet: false, backlog: false, isCustom: true }
+    dispatch({ type: 'add-card', card: tomorrowList })
+    dispatch({ type: 'update-card', card: { ...selected, subtasks: selected.subtasks.filter((item) => item.done) } })
+    onNavigate({ page: 'tasks', cardId: tomorrowList.id })
+  }
+  const promoteToProject = () => {
+    const project: ProjectCard = { id: makeId('project'), type: 'project', title: selected.title, date: selected.date, dueDate: selected.date, side: selected.side, context: selected.context, quiet: selected.quiet, backlog: selected.backlog, isCustom: true, featured: true, team: ['You'], subtasks: selected.subtasks.map((item) => ({ ...item })) }
+    dispatch({ type: 'add-card', card: project })
+    dispatch({ type: 'delete-card', id: selected.id })
+    onNavigate({ page: 'project', cardId: project.id })
+  }
   return <div className="workspace-content task-workspace">
-    <WorkspaceHero type="task" eyebrow="Task lists · immediate action" title="Focus for this day" stat={{ label: 'Completion', value: `${percent}%` }}>
-      Keep related, date-specific actions together. Add a reminder when the timing matters.
-    </WorkspaceHero>
     <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
       {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
     </select></div>
+    <WorkspaceHero type="task" eyebrow="Task lists · immediate action" title={selected.title} stat={{ label: 'Completion', value: `${percent}%` }} extra={<span className="hero-date">Planned {shortDate(selected.date)}</span>}>
+      {selected.context || 'A focused list for the actions that matter today.'}
+    </WorkspaceHero>
     <div className="workspace-desktop-split">
       <section className="workspace-panel checklist-panel">
-        <div className="checklist-heading"><div><span className="eyebrow">{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><h3>{selected.title}</h3></div>
-          {selected.reminder && <span className="reminder-pill"><Bell size="0.75rem" />{formatTime(selected.reminder)} reminder</span>}</div>
-        <div className="task-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}>Edit task list</Link><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
-        <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span></div>
-        <div className="workspace-checklist">{selected.subtasks.map((item) => <label key={item.id} className={`workspace-check task-check ${item.done ? 'is-done' : ''}`}>
-          <input type="checkbox" checked={item.done} onChange={() => dispatch({ type: 'toggle-item', cardId: selected.id, itemId: item.id })} />
-          <span className="check-copy"><strong>{item.title}</strong><small>{item.done ? 'Complete. A little more room to breathe.' : 'Connected to your timeline task list'}</small></span>
-          {item.label && <span className="check-label">{item.done ? <Check size="0.75rem" /> : <Clock3 size="0.6875rem" />}{item.label}</span>}
-        </label>)}</div>
+        <div className="checklist-heading"><div><span className="eyebrow">{formatDate(selected.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><h3>Checklist</h3></div>
+          {reminder && <span className={`reminder-pill ${reminder.passed ? 'is-passed' : ''}`}><Bell size="0.75rem" />{reminder.text}</span>}</div>
+        <div className="task-card-actions"><Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'tasks', cardId: selected.id }) }}><Pencil size=".8125rem" />Edit task list</Link>{unfinished.length > 0 && <button type="button" className="button task-rollover-action" onClick={moveUnfinishedToTomorrow}><ArrowRight size=".8125rem" />Move unfinished to tomorrow</button>}<button type="button" className="button button-soft" onClick={promoteToProject}><Zap size=".8125rem" />Promote to project</button><CardDeleteAction card={selected} onDelete={(card) => { onDeleteCard(card); onNavigate({ page: 'tasks' }) }} /></div>
+        <div className="checklist-progress"><ProgressBar value={percent} label="Task list completion" /><span>{done} of {total} completed</span>{done > 0 && <button type="button" className="text-button clear-completed" onClick={clearCompleted}>Clear completed</button>}</div>
+        <div className="workspace-checklist">{selected.subtasks.map((item, index) => <TaskChecklistRow key={item.id} item={item} index={index} task={selected} dispatch={dispatch} />)}</div>
         {!total && <p className="inline-empty">No items yet. Add the first one below.</p>}
         <AddChecklistItem key={selected.id} placeholder="Add a checklist item…" label="Add item" onAdd={(title) => dispatch({ type: 'add-item', cardId: selected.id, item: { id: makeId('task'), title, done: false } })} />
       </section>
       <aside className="workspace-desktop-aside task-workspace-aside" aria-label="Task list context">
-        <section className="workspace-insight-card task-insight-card"><span className="eyebrow"><TypeIcon type="task" size={11} />Task-list plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Planned for</dt><dd>{formatDate(selected.date, { weekday: 'short', month: 'short', day: 'numeric' })}</dd></div><div><dt>Reminder</dt><dd>{selected.reminder ? formatTime(selected.reminder) : 'No reminder'}</dd></div><div><dt>Actions left</dt><dd>{total - done} of {total}</dd></div></dl></section>
+        <section className="workspace-insight-card task-insight-card"><span className="eyebrow"><TypeIcon type="task" size={11} />Task-list plan</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Planned for</dt><dd>{formatDate(selected.date, { weekday: 'short', month: 'short', day: 'numeric' })}</dd></div><div><dt>Reminder</dt><dd>{reminder?.text ?? 'No reminder'}</dd></div><div><dt>Actions left</dt><dd>{total - done} of {total}</dd></div></dl></section>
         {tasks.length > 1 && <div className="other-lists"><span className="eyebrow">Your other lists</span>{tasks.filter((card) => card.id !== selected.id).map((card) => <Link key={card.id} className="list-summary" to={destinationPath({ page: 'tasks', cardId: card.id })}>
           <span className="list-icon"><TypeIcon type="task" size={17} /></span><span><strong>{card.title}</strong><small>{shortDate(card.date)} · {progress(card.subtasks).done} of {card.subtasks.length} completed</small></span><ChevronRight size="1rem" />
         </Link>)}</div>}

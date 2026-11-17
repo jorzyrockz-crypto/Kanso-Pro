@@ -218,7 +218,7 @@
     .workspace-journal { max-width: 86rem; }
     .workspace-desktop-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, .4fr); align-items: start; gap: 1.375rem; }
     .workspace-desktop-aside { position: sticky; top: calc(var(--hdr-h) + 1rem); align-self: start; gap: 1rem; }
-    .project-workspace-aside { order: 0; }
+    .project-workspace-aside, .task-workspace-aside { order: 0; }
     .workspace-desktop-aside .workspace-fineprint { justify-content: flex-start; padding: 0 .25rem; text-align: left; }
     .workspace-desktop-aside .other-lists { gap: .5rem; }
     .workspace-desktop-aside .list-summary { padding: .75rem; }
