@@ -344,10 +344,12 @@ function TaskWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDelet
     onNavigate({ page: 'project', cardId: project.id })
   }
   return <div className="workspace-content task-workspace">
-    <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
-      {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
-    </select></div>
-    <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
+    <div className="workspace-control-row">
+      <div className="workspace-selector"><label htmlFor="task-list-select">Your task list</label><select id="task-list-select" value={selected.id} onChange={(event) => onNavigate({ page: 'tasks', cardId: event.target.value })}>
+        {tasks.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
+      </select></div>
+      <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
+    </div>
     <WorkspaceHero type="task" eyebrow={scope === 'assigned' ? `Tasks assigned to ${currentMember.name}` : 'Task lists · immediate action'} title={selected.title} stat={{ label: 'Completion', value: `${percent}%` }} extra={<span className="hero-date">Planned {shortDate(selected.date)}</span>}>
       {selected.context || 'A focused list for the actions that matter today.'}
     </WorkspaceHero>
@@ -445,10 +447,12 @@ function ProjectWorkspace({ cards, cardId, dispatch, onCompose, onNavigate, onDe
   const allMilestonesComplete = total > 0 && done === total
   const dueStatus = projectDueStatus(nextMilestone?.targetDate ?? selected.dueDate)
   return <div className="workspace-content project-workspace">
-    {projects.length > 1 && <div className="workspace-selector project-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
-      {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
-    </select></div>}
-    <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
+    <div className="workspace-control-row">
+      {projects.length > 1 && <div className="workspace-selector project-selector"><label htmlFor="project-select">Project workspace</label><select id="project-select" value={selected.id} onChange={(event) => onNavigate({ page: 'project', cardId: event.target.value })}>
+        {projects.map((card) => <option key={card.id} value={card.id}>{card.title}</option>)}
+      </select></div>}
+      <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
+    </div>
     <WorkspaceHero type="project" eyebrow={scope === 'assigned' ? `Projects assigned to ${currentMember.name}` : 'Projects · outcomes over time'} title={selected.title} stat={{ label: 'Project progress', value: `${percent}%` }}
       extra={<><span className="hero-date">Start {shortDate(selected.date)}</span><span className="hero-date">Due {shortDate(selected.dueDate)}</span></>}
       actions={<div className="project-hero-actions">{canEdit && <Link className="button button-soft" to={`/new?edit=${encodeURIComponent(selected.id)}`} state={{ from: destinationPath({ page: 'project', cardId: selected.id }) }}><Pencil size=".8125rem" />Edit project</Link>}<button type="button" className="button hero-print-summary" onClick={() => printProjectSummary(selected)}><Printer size=".8125rem" />Export / Print summary</button>{canEdit && <CardDeleteAction card={selected} onDelete={() => { onDeleteCard(selected); onNavigate({ page: 'project' }) }} />}</div>}>

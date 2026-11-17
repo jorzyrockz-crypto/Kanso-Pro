@@ -577,6 +577,10 @@
   .task-card-actions .button { padding: .5rem .6875rem; font-size: .625rem; }
   .task-card-actions .card-delete-confirm { justify-content: flex-end; }
   .task-rollover-action { border-color: #8fd2bc; background: var(--theme-green-soft, #eaf8f1); color: var(--theme-green, #197b61); }.task-rollover-action:hover { background: #dff4e9; }.reminder-pill.is-passed { border-color: #d8dfe5; background: var(--theme-surface-muted, #f4f6f8); color: var(--theme-text-muted, #778491); }
+  /* Keep a workspace picker and its team scope together until the available width calls for a second line. */
+  .workspace-control-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }
+  .workspace-control-row > .workspace-selector { flex: 1 1 20rem; min-width: 0; }
+  .workspace-control-row > .team-scope-toggle { flex: 0 0 auto; align-self: center; }
   .workspace-selector { display: flex; align-items: center; gap: 0.9375rem; }
   .workspace-selector > label { flex-shrink: 0; font-size: 0.625rem; color: var(--theme-text-secondary, #637287); font-weight: 700; }
   .workspace-selector > select { flex: 1; width: 0.0625rem; padding: 0.6875rem 0.75rem; border: 1px solid var(--theme-border, #e0e7ef); border-radius: 0.75rem; background: var(--theme-field, white); color: var(--theme-text-secondary, #617087); font-size: 0.65625rem; line-height: 1.5; font-weight: 650; }
