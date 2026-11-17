@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { JourneyCard } from '../types'
-import { addNotifications, emptyNotifications, NOTIFICATIONS_KEY, parseNotifications, quietNow, reconcileReminders } from './notifications'
+import type { JourneyCard, SpaceActivity } from '../types'
+import { addNotifications, emptyNotifications, NOTIFICATIONS_KEY, parseNotifications, quietNow, reconcileReminders, safeNotificationPath } from './notifications'
 import type { NotificationPreferences, NotificationState, PlannerNotification } from './notifications'
 
 const permissionNow = () => { try { return 'Notification' in window ? Notification.permission : 'unsupported' as const } catch { return 'unsupported' as const } }
@@ -120,7 +120,20 @@ export function useNotifications(cards: JourneyCard[]) {
   }
   const markRead = useCallback((id?: string) => change(current => ({ ...current, items: current.items.map(item => !id || item.id === id ? { ...item, read: true } : item), pendingPhone: id ? current.pendingPhone.filter(value => value !== id) : [] })), [change])
   const addUpdate = useCallback((version: string, title: string) => change(current => addNotifications(current, [{ id: `update:${version}`, kind: 'update', title: 'A new version of Kanso Pro is ready', detail: title, href: '/settings#about', createdAt: Date.now(), read: false }])), [change])
+  const addCollaboration = useCallback((spaceId: string, entry: SpaceActivity) => {
+    const href = safeNotificationPath(entry.href) ? entry.href : '/notifications'
+    const item: PlannerNotification = { id: `team:${spaceId}:${entry.id}`, kind: 'team', title: entry.title.slice(0, 240), detail: entry.detail.slice(0, 400), href, createdAt: new Date(entry.createdAt).getTime() || Date.now(), read: false }
+    void change(current => addNotifications(current, [item]))
+    if (document.visibilityState === 'visible') {
+      setAnnouncement({ id: item.id, message: item.title, href: item.href, notificationId: item.id })
+      return
+    }
+    if (!state.preferences.phone || permissionNow() !== 'granted' || !phoneSupported) return
+    void navigator.serviceWorker.getRegistration().then((registration) => registration?.showNotification('Kanso Pro · Space activity', {
+      body: 'A teammate updated your Space. Open Kanso Pro to review it.', icon: '/icons/icon-192.png', badge: '/icons/icon-96.png', tag: `kanso-pro-${item.id}`, data: { url: item.href, id: item.id }, renotify: false,
+    } as NotificationOptions)).catch(() => {})
+  }, [change, phoneSupported, state.preferences.phone])
 
-  return { state, unread, storageAvailable, permission, phoneSupported, feedback, announcement, preferences, phone, markRead, addUpdate }
+  return { state, unread, storageAvailable, permission, phoneSupported, feedback, announcement, preferences, phone, markRead, addUpdate, addCollaboration }
 }
 export type NotificationsController = ReturnType<typeof useNotifications>

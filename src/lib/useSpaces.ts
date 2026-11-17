@@ -5,15 +5,16 @@ import { makeId } from './journey'
 import { journeyReducer, parseSavedState } from './store'
 import { activeMember, canEditSpace, currentSpace, defaultSpacesState, destinationForCard, newSharedSpace, parseSpacesState, PERSONAL_SPACE_ID, SPACES_STORAGE_KEY } from './spaces'
 import { defaultSpaceColor, defaultSpaceIcon } from './spaceAppearance'
-import type { ChecklistItem, JourneyAction, JourneyState, ProjectCard, Space, SpaceActivity, SpaceColor, SpaceIcon, SpaceMember, SpaceRole, SpacesState, TaskCard } from '../types'
+import { mentionedMembers } from './collaboration'
+import type { ChecklistItem, JourneyAction, JourneyState, NoteCard, ProjectCard, Space, SpaceActivity, SpaceColor, SpaceIcon, SpaceMember, SpacePresence, SpaceRole, SpacesState, TaskCard } from '../types'
 import { LEGACY_STORAGE_KEY, STORAGE_KEY } from '../data'
 
 function userName(account: AccountUser | null) {
   return account?.displayName?.trim() || account?.email?.split('@')[0] || 'You'
 }
 
-function activity(id: string, kind: SpaceActivity['kind'], title: string, detail: string, href: string, actor?: string): SpaceActivity {
-  return { id, kind, title, detail, href, actor, createdAt: new Date().toISOString() }
+function activity(id: string, kind: SpaceActivity['kind'], title: string, detail: string, href: string, actor?: string, target?: string): SpaceActivity {
+  return { id, kind, title, detail, href, actor, ...(target ? { target } : {}), createdAt: new Date().toISOString() }
 }
 
 function recentActivity(current: SpacesState, spaceId: string, next: SpaceActivity): SpacesState {
@@ -118,16 +119,43 @@ export function useSpaces(account: AccountUser | null) {
           next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'completion', 'Deliverable completed', `${selectedMember.name} completed “${updatedItem.title}”.`, destinationForCard(card), selectedMember.name))
           if (card.type === 'project') {
             const nextMilestone = card.subtasks.find((item) => !item.done)
-            if (nextMilestone?.assignee) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'assignment', 'Milestone ready for handoff', `${nextMilestone.assignee}, “${nextMilestone.title}” is ready after the completed milestone.`, destinationForCard(card), selectedMember.name))
+            if (nextMilestone?.assignee) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'assignment', 'Milestone ready for handoff', `${nextMilestone.assignee}, “${nextMilestone.title}” is ready after the completed milestone.`, destinationForCard(card), selectedMember.name, nextMilestone.assignee))
           }
         }
       }
       if (action.type === 'update-item') {
         const priorItem = itemForAction(before, action)
         const card = after.cards.find((candidate) => (candidate.type === 'task' || candidate.type === 'project') && candidate.id === action.cardId)
-        if (card && action.item.assignee && priorItem?.assignee !== action.item.assignee) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'assignment', 'Assignment updated', `${selectedMember.name} assigned “${action.item.title}” to ${action.item.assignee}.`, destinationForCard(card), selectedMember.name))
+        if (card && action.item.assignee && priorItem?.assignee !== action.item.assignee) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'assignment', 'Assignment updated', `${selectedMember.name} assigned “${action.item.title}” to ${action.item.assignee}.`, destinationForCard(card), selectedMember.name, action.item.assignee))
         const priorComments = priorItem?.comments?.length ?? 0
-        if (card && (action.item.comments?.length ?? 0) > priorComments) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'comment', 'New inline comment', `${selectedMember.name} added a comment to “${action.item.title}”.`, destinationForCard(card), selectedMember.name))
+        if (card && (action.item.comments?.length ?? 0) > priorComments) {
+          const latestComment = action.item.comments?.at(-1)
+          const mentions = latestComment ? mentionedMembers(latestComment.body, selectedSpace.members).filter((candidate) => candidate.name !== selectedMember.name) : []
+          next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'comment', 'New inline comment', `${selectedMember.name} added a comment to “${action.item.title}”.`, destinationForCard(card), selectedMember.name))
+          for (const mentioned of mentions) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'comment', 'You were mentioned', `${selectedMember.name} mentioned you in “${action.item.title}”.`, destinationForCard(card), selectedMember.name, mentioned.name))
+        }
+        const changedRemarks = card?.type === 'project' && action.item.remarks && action.item.remarks !== priorItem?.remarks
+        const changedNote = card?.type === 'task' && action.item.note && action.item.note !== priorItem?.note
+        if (card && (changedRemarks || changedNote)) {
+          const mentionText = action.item.remarks ?? action.item.note ?? ''
+          for (const mentioned of mentionedMembers(mentionText, selectedSpace.members).filter((candidate) => candidate.name !== selectedMember.name)) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'comment', 'You were mentioned', `${selectedMember.name} mentioned you in “${action.item.title}”.`, destinationForCard(card), selectedMember.name, mentioned.name))
+        }
+      }
+      if (action.type === 'update-note') {
+        const beforeNote = before.cards.find((candidate): candidate is NoteCard => candidate.type === 'note' && candidate.id === action.id)
+        const afterNote = after.cards.find((candidate): candidate is NoteCard => candidate.type === 'note' && candidate.id === action.id)
+        if (beforeNote && afterNote) {
+          const beforeText = [beforeNote.title, beforeNote.body, beforeNote.context].join('\n')
+          const afterText = [afterNote.title, afterNote.body, afterNote.context].join('\n')
+          if (beforeText !== afterText) for (const mentioned of mentionedMembers(afterText, selectedSpace.members).filter((candidate) => candidate.name !== selectedMember.name)) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'note', 'You were mentioned in Space Notes', `${selectedMember.name} mentioned you in “${afterNote.title || 'an untitled note'}”.`, destinationForCard(afterNote), selectedMember.name, mentioned.name))
+        }
+      }
+      if (action.type === 'update-card') {
+        const priorCard = before.cards.find((candidate) => candidate.id === action.card.id)
+        const reactionAdded = (action.card.reactions?.length ?? 0) > (priorCard?.reactions?.length ?? 0)
+        const acknowledgementChanged = action.card.type === 'event' && priorCard?.type === 'event' && JSON.stringify(action.card.acknowledgements) !== JSON.stringify(priorCard.acknowledgements)
+        if (reactionAdded) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'comment', 'Quick reaction added', `${selectedMember.name} reacted to “${action.card.title}”.`, destinationForCard(action.card), selectedMember.name))
+        if (acknowledgementChanged) next = recentActivity(next, selectedSpace.id, activity(makeId('activity'), 'member', 'Event response updated', `${selectedMember.name} responded to “${action.card.title}”.`, destinationForCard(action.card), selectedMember.name))
       }
       return next
     })
@@ -218,6 +246,19 @@ export function useSpaces(account: AccountUser | null) {
     return { ...current, spaces: current.spaces.map((candidate) => candidate.id === spaceId ? { ...candidate, members } : candidate) }
   }), [])
 
+  const hydratePresence = useCallback((spaceId: string, entries: SpacePresence[]) => setState((current) => {
+    const space = current.spaces.find((candidate) => candidate.id === spaceId)
+    if (!space || space.kind !== 'shared') return current
+    const byEmail = new Map(entries.map((entry) => [entry.email.toLocaleLowerCase(), entry]))
+    const byName = new Map(entries.map((entry) => [entry.name, entry]))
+    const members = space.members.map((candidate) => {
+      const presence = (candidate.email ? byEmail.get(candidate.email.toLocaleLowerCase()) : undefined) ?? byName.get(candidate.name)
+      return presence ? { ...candidate, presence: presence.presence, status: presence.status } : candidate
+    })
+    if (JSON.stringify(members) === JSON.stringify(space.members)) return current
+    return { ...current, spaces: current.spaces.map((candidate) => candidate.id === spaceId ? { ...candidate, members } : candidate) }
+  }), [])
+
   const hydrateSpace = useCallback((spaceId: string, remote: Pick<Space, 'name' | 'color' | 'icon'>) => setState((current) => {
     const local = current.spaces.find((candidate) => candidate.id === spaceId)
     if (!local || local.kind !== 'shared') return current
@@ -237,11 +278,11 @@ export function useSpaces(account: AccountUser | null) {
   const addActivity = useCallback((entry: Omit<SpaceActivity, 'id' | 'createdAt'>) => setState((current) => {
     const active = currentSpace(current)
     if (active.kind !== 'shared') return current
-    return recentActivity(current, active.id, activity(makeId('activity'), entry.kind, entry.title, entry.detail, entry.href, entry.actor))
+    return recentActivity(current, active.id, activity(makeId('activity'), entry.kind, entry.title, entry.detail, entry.href, entry.actor, entry.target))
   }), [])
 
   const activityFeed = state.activity[space.id] ?? []
-  return useMemo(() => ({ state, workspace, space, member, members: space.members, activity: activityFeed, canEdit: editable, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, invite, changeRole, removeMember, hydrateMembers, hydrateSpace, hydrateActivity, addActivity }), [state, workspace, space, member, activityFeed, editable, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, invite, changeRole, removeMember, hydrateMembers, hydrateSpace, hydrateActivity, addActivity])
+  return useMemo(() => ({ state, workspace, space, member, members: space.members, activity: activityFeed, canEdit: editable, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, invite, changeRole, removeMember, hydrateMembers, hydratePresence, hydrateSpace, hydrateActivity, addActivity }), [state, workspace, space, member, activityFeed, editable, storageAvailable, dispatch, selectSpace, joinByCode, joinByInvite, createSpace, updateSpace, invite, changeRole, removeMember, hydrateMembers, hydratePresence, hydrateSpace, hydrateActivity, addActivity])
 }
 
 export type SpacesController = ReturnType<typeof useSpaces>

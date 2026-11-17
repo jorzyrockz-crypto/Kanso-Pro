@@ -4,7 +4,7 @@ import { isValidDate } from './journey'
 
 export const NOTIFICATIONS_KEY = 'kanso-pro:notifications:v1'
 export const MAX_NOTIFICATIONS = 60
-export type NotificationKind = 'event' | 'task' | 'project' | 'update'
+export type NotificationKind = 'event' | 'task' | 'project' | 'update' | 'team'
 export interface PlannerNotification {
   id: string
   kind: NotificationKind
@@ -35,7 +35,7 @@ export interface NotificationState {
 export const defaultPreferences = (): NotificationPreferences => ({ phone: false, badges: true, quiet: true, quietStart: '19:00', quietEnd: '06:00', events: true, tasks: true, projects: true })
 export const emptyNotifications = (): NotificationState => ({ version: 1, initialized: false, seen: {}, items: [], pendingPhone: [], preferences: defaultPreferences() })
 export const validTime = (time: unknown): time is string => typeof time === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)
-export const safeNotificationPath = (value: unknown): value is string => typeof value === 'string' && value.length < 4096 && /^\/(?:notifications|settings(?:#about)?|calendar(?:\/[^/?#]+)?|tasks(?:\/[^/?#]+)?|projects(?:\/[^/?#]+)?)$/.test(value)
+export const safeNotificationPath = (value: unknown): value is string => typeof value === 'string' && value.length < 4096 && /^\/(?:notifications|settings(?:#about)?|calendar(?:\/[^/?#]+)?|tasks(?:\/[^/?#]+)?|projects?(?:\/[^/?#]+)?|journal(?:\/[^/?#]+)?)$/.test(value)
 
 /** A notification must not silently replace an unfinished form in this window. */
 export function confirmNotificationNavigation(event?: Pick<MouseEvent, 'button' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>): boolean {
@@ -50,7 +50,7 @@ export function parseNotifications(raw: string | null): NotificationState | null
     if (!value || value.version !== 1 || typeof value.initialized !== 'boolean' || !Array.isArray(value.items) || !value.preferences || !value.seen || typeof value.seen !== 'object' || Array.isArray(value.seen)) return null
     const p = value.preferences
     if (!['phone', 'badges', 'quiet', 'events', 'tasks', 'projects'].every(key => typeof p[key as keyof NotificationPreferences] === 'boolean') || !validTime(p.quietStart) || !validTime(p.quietEnd) || p.quietStart === p.quietEnd) return null
-    const items = value.items.filter(item => item && typeof item.id === 'string' && item.id.length < 4096 && ['event', 'task', 'project', 'update'].includes(item.kind) && typeof item.title === 'string' && typeof item.detail === 'string' && safeNotificationPath(item.href) && Number.isFinite(item.createdAt) && Number.isFinite(new Date(item.createdAt).getTime()) && typeof item.read === 'boolean')
+    const items = value.items.filter(item => item && typeof item.id === 'string' && item.id.length < 4096 && ['event', 'task', 'project', 'update', 'team'].includes(item.kind) && typeof item.title === 'string' && typeof item.detail === 'string' && safeNotificationPath(item.href) && Number.isFinite(item.createdAt) && Number.isFinite(new Date(item.createdAt).getTime()) && typeof item.read === 'boolean')
       .map(item => ({ id: item.id, kind: item.kind, title: item.title.slice(0, 240), detail: item.detail.slice(0, 400), href: item.href, createdAt: item.createdAt, read: item.read }))
     return {
       version: 1, initialized: value.initialized,

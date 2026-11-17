@@ -1,13 +1,15 @@
 import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, ChevronDown, Clock3, Eye, EyeOff, Landmark, X } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
-import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, ProjectCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
+import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, NoteCard, ProjectCard, TaskCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
 import { composerOptions, composerPath, destinationPath, pageForPath, WORKSPACE_PATHS, WORKSPACE_TYPES } from './lib/navigation'
 import { useSpaces } from './lib/useSpaces'
 import { cardAssignedTo } from './lib/spaces'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
+import { useSpacePresence } from './lib/useSpacePresence'
+import { useActivityUnread } from './lib/useActivityUnread'
 import { removeJournalAttachment } from './lib/journalAttachments'
 import { googleSyncUser } from './lib/workspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
@@ -55,6 +57,15 @@ type TimelineWindow = { start: string; end: string }
 function currentLocalDate() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function presenceStatus(pathname: string) {
+  const page = pageForPath(pathname).page
+  if (page === 'calendar') return 'Reviewing the calendar'
+  if (page === 'tasks') return 'Working through tasks'
+  if (page === 'project') return 'Reviewing project milestones'
+  if (page === 'journal') return 'Writing in Space Notes'
+  return 'Reviewing the Journey Stream'
 }
 
 function timelineWindowFor(cards: JourneyCard[]): TimelineWindow {
@@ -134,7 +145,7 @@ function sourceSummary(source: CalendarSource) {
     : `${source.entries.length} dated ${source.entries.length === 1 ? 'entry' : 'entries'}`
 }
 
-function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, cloudSyncEnabled, month, onFilter, onScopeChange, onSourceEnabled }: {
+function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, cloudSyncEnabled, month, onFilter, onScopeChange, onSourceEnabled, onSpaceUpdate, canEdit }: {
   calendarSources: CalendarSource[]
   count: number
   filter: Filter
@@ -146,8 +157,12 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
   onFilter: (type: Filter) => void
   onScopeChange: (scope: 'all' | 'assigned') => void
   onSourceEnabled: (sourceId: string, enabled: boolean) => void
+  onSpaceUpdate: (body: string) => void
+  canEdit: boolean
 }) {
   const [openMenu, setOpenMenu] = useState<'filter' | 'sources' | null>(null)
+  const [spaceUpdateOpen, setSpaceUpdateOpen] = useState(false)
+  const [spaceUpdate, setSpaceUpdate] = useState('')
   const [condensed, setCondensed] = useState(false)
   const scrollBeforeCompact = useRef<number | null>(null)
   const activeFilter = filters.find((item) => item.type === filter)!
@@ -175,6 +190,13 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
     return () => cancelAnimationFrame(frame)
   }, [condensed])
   const shownSources = calendarSources.filter((source) => source.enabled).length
+  const submitSpaceUpdate = (event: FormEvent) => {
+    event.preventDefault()
+    if (!spaceUpdate.trim()) return
+    onSpaceUpdate(spaceUpdate.trim())
+    setSpaceUpdate('')
+    setSpaceUpdateOpen(false)
+  }
 
   return <header className={`stream-header ${condensed && !openMenu ? 'is-condensed' : ''}`}>
     <div className="header-main">
@@ -199,6 +221,7 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
           </div>
         </StreamMenu>
         <TeamScopeToggle scope={scope} memberName={memberName} onChange={onScopeChange} compact />
+        {shared && <div className="space-update-control"><button type="button" className="space-update-trigger" disabled={!canEdit} aria-expanded={spaceUpdateOpen} onClick={() => setSpaceUpdateOpen((open) => !open)}>Space update</button>{spaceUpdateOpen && <form className="space-update-form" onSubmit={submitSpaceUpdate}><label className="sr-only" htmlFor="space-update">Share a Space update</label><input id="space-update" autoFocus maxLength={360} value={spaceUpdate} onChange={(event) => setSpaceUpdate(event.target.value)} placeholder="Share a short update…" /><button type="submit" className="button button-accent">Post</button></form>}</div>}
         <div className="stream-reference-controls">
           <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<><span className="source-summary-label">Calendar sources</span><span className="source-summary-label-compact">Sources</span><span className="stream-dropdown-count">{shownSources} <span className="source-summary-shown">shown</span></span></>}>
             <div className="stream-sources-heading"><strong>Calendar sources</strong><span>Choose what appears as reference-only entries.</span></div>
@@ -244,7 +267,7 @@ export default function App() {
   const { workspace: state, dispatch, space, member, members, activity: teamActivity, canEdit, storageAvailable } = spaces
   const calendarSources = useCalendarSources(DEPED_SY_2026_2027_ENTRIES, DEPED_LEGISLATED_ACTIVITY_RULES)
   const firestoreUserId = googleSyncUser(account.user)
-  const workspaceSync = useWorkspaceSync(account.user, state, dispatch, space, spaces.hydrateMembers, spaces.hydrateSpace, teamActivity, spaces.hydrateActivity)
+  const workspaceSync = useWorkspaceSync(account.user, state, dispatch, space, spaces.hydrateMembers, spaces.hydrateSpace, teamActivity, spaces.hydrateActivity, spaces.hydratePresence)
   const appearance = useAppearance()
   const pwa = usePwa()
   const cloudSaveState: CloudSaveState = !workspaceSync.enabled
@@ -256,6 +279,8 @@ export default function App() {
         : workspaceSync.ready ? 'synced' : 'connecting'
   const notifications = useNotifications(state.cards)
   const location = useLocation()
+  const unreadActivity = useActivityUnread(space.id, teamActivity, member.name, location.pathname)
+  useSpacePresence(account.user, space, member, pwa.online, presenceStatus(location.pathname))
   const navigate = useNavigate()
   const navigationType = useNavigationType()
   const calendarMatch = useMatch('/calendar/:cardId?')
@@ -271,6 +296,7 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; id: number; kind?: 'error'; href?: string; label?: string; action?: 'update'; notificationId?: string } | null>(null)
   const announcedUpdate = useRef('')
   const shownUpdatedRelease = useRef('')
+  const knownTeamActivity = useRef(new Map<string, Set<string>>())
   useEffect(() => { setTeamScope('all') }, [space.id])
   useEffect(() => {
     const query = new URLSearchParams(location.search)
@@ -286,6 +312,19 @@ export default function App() {
   useEffect(() => {
     if (notifications.announcement) setToast({ ...notifications.announcement, id: Date.now(), label: 'View' })
   }, [notifications.announcement])
+  useEffect(() => {
+    const known = knownTeamActivity.current.get(space.id)
+    if (!known) {
+      knownTeamActivity.current.set(space.id, new Set(teamActivity.map((entry) => entry.id)))
+      return
+    }
+    for (const entry of teamActivity) {
+      if (known.has(entry.id)) continue
+      known.add(entry.id)
+      if (entry.actor === member.name || (entry.target && entry.target !== member.name)) continue
+      notifications.addCollaboration(space.id, entry)
+    }
+  }, [teamActivity, space.id, member.name, notifications.addCollaboration])
   useEffect(() => {
     if (!pwa.updatedNotice || shownUpdatedRelease.current === pwa.updatedNotice) return
     // A completed update deserves a calm arrival, not a transient toast. Return to the
@@ -518,6 +557,13 @@ export default function App() {
     navigate('/', { replace: true, state: { focusCardId: card.id } })
     setToast({ message: 'A new chapter, added to your journey.', id: Date.now() })
   }
+  const createSpaceUpdate = (body: string) => {
+    if (!canEdit || !body.trim()) return
+    const card: NoteCard = { id: `note-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`, type: 'note', title: 'Space update', body: body.trim().slice(0, 360), tags: ['space-update'], pinned: false, date: currentLocalDate(), side: 'right', context: `Shared update from ${member.name}`, category: 'Space Update', authoredBy: member.name, lastEditedBy: member.name, updatedAt: new Date().toISOString(), isCustom: true }
+    dispatch({ type: 'add-card', card })
+    setFilter('all')
+    setToast({ message: 'Space update shared with the team.', id: Date.now() })
+  }
   const updateJourneyCard = (card: EventCard | TaskCard | ProjectCard) => {
     if (!canEdit) return
     dispatch({ type: 'update-card', card })
@@ -561,14 +607,14 @@ export default function App() {
     <AppSplash />
     {location.pathname === '/' ? <MonthBackdrop month={timelineMonth} view="timeline" /> : calendarVisible ? <MonthBackdrop month={calendarMonth} view="calendar" /> : null}
     <a className="skip-link" href="#main-content">Skip to page content</a>
-    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} syncEnabled={workspaceSync.enabled} updateReady={pwa.updateReady} notifications={notifications} activity={teamActivity} space={space} spaces={spaces.state.spaces} members={members} currentMember={member} canEdit={canEdit} onSelectSpace={spaces.selectSpace} onCreateSpace={spaces.createSpace} onUpdateSpace={spaces.updateSpace} onInvite={spaces.invite} onChangeRole={spaces.changeRole} onRemoveMember={spaces.removeMember} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={openComposer} canEdit={canEdit} /></>}
+    {signInLayout ? <><SignInHeader titlebar={titlebar} />{updateBanner}</> : <><AppHeader titlebar={titlebar} artworkVisible={artworkVisible} appearance={appearance} online={pwa.online} syncEnabled={workspaceSync.enabled} updateReady={pwa.updateReady} notifications={notifications} activity={teamActivity} space={space} spaces={spaces.state.spaces} members={members} currentMember={member} canEdit={canEdit} onSelectSpace={spaces.selectSpace} onCreateSpace={spaces.createSpace} onUpdateSpace={spaces.updateSpace} onInvite={spaces.invite} onChangeRole={spaces.changeRole} onRemoveMember={spaces.removeMember} account={account} storageAvailable={storageAvailable} onSignOut={signOutFromProfile} />{updateBanner}<BottomNavigation onCompose={openComposer} canEdit={canEdit} unreadActivity={unreadActivity} /></>}
     {!storageAvailable && <div className="storage-alert" role="alert"><Clock3 size="0.9375rem" /><span>Device storage is unavailable. Changes will last only for this session.</span></div>}
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} />
+          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} onSpaceUpdate={createSpaceUpdate} canEdit={canEdit} />
           <Timeline cards={scopedWorkCards} entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
-            rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} />
+            rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} currentMember={member} canEdit={canEdit} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}
           element={<WorkspacePage page={page} cards={state.cards} calendarSources={calendarSources.sources} dispatch={dispatch} onNavigate={openDestination} onCompose={openComposer} onDeleteCard={deleteJourneyCard} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} journalUserId={firestoreUserId} space={space} currentMember={member} members={members} scope={teamScope} onScopeChange={setTeamScope} canEdit={canEdit} />} />)}

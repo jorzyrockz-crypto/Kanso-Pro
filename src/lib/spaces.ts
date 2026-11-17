@@ -7,10 +7,10 @@ export const PERSONAL_SPACE_ID = 'personal'
 export const LOCAL_MEMBER_ID = 'local-owner'
 
 const sharedMembers: SpaceMember[] = [
-  { id: LOCAL_MEMBER_ID, name: 'You', role: 'owner', presence: 'online' },
-  { id: 'member-santos', name: 'J. Santos', role: 'editor', presence: 'online' },
-  { id: 'member-chair', name: 'Grade Level Chair', role: 'editor', presence: 'away' },
-  { id: 'member-office', name: 'Oquendo ES Office', role: 'viewer', presence: 'offline' },
+  { id: LOCAL_MEMBER_ID, name: 'You', role: 'owner', presence: 'online', status: 'Reviewing the plan' },
+  { id: 'member-santos', name: 'J. Santos', role: 'editor', presence: 'online', status: 'Reviewing Q1 milestones' },
+  { id: 'member-chair', name: 'Grade Level Chair', role: 'editor', presence: 'away', status: 'Away from the Space' },
+  { id: 'member-office', name: 'Oquendo ES Office', role: 'viewer', presence: 'offline', status: 'Last active earlier' },
 ]
 
 function joinCode() {
@@ -57,6 +57,7 @@ function isMember(value: unknown): value is SpaceMember {
     && ['owner', 'editor', 'viewer'].includes(String(member.role))
     && ['online', 'away', 'offline'].includes(String(member.presence))
     && (member.email === undefined || typeof member.email === 'string')
+    && (member.status === undefined || (typeof member.status === 'string' && member.status.length <= 120))
 }
 
 function isSpace(value: unknown): value is Space {
@@ -79,6 +80,7 @@ function isActivity(value: unknown): value is SpaceActivity {
   const entry = value as Record<string, unknown>
   return typeof entry.id === 'string' && typeof entry.title === 'string' && typeof entry.detail === 'string'
     && typeof entry.href === 'string' && typeof entry.createdAt === 'string'
+    && (entry.target === undefined || (typeof entry.target === 'string' && entry.target.length <= 120))
     && ['invite', 'assignment', 'completion', 'comment', 'note', 'member'].includes(String(entry.kind))
 }
 

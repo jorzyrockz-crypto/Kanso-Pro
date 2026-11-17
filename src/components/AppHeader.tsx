@@ -116,7 +116,7 @@ function SpaceSwitcher({ space, spaces, syncEnabled, onSelectSpace, onCreateSpac
 function MemberStack({ members }: { members: SpaceMember[] }) {
   const visible = members.filter((member) => member.presence !== 'offline').concat(members.filter((member) => member.presence === 'offline')).slice(0, 4)
   return <div className="space-member-stack" aria-label={`Space members: ${members.map((member) => member.name).join(', ')}`}>
-    {visible.map((member) => <span key={member.id} className={`space-member presence-${member.presence}`} title={`${member.name} · ${member.role} · ${member.presence}`}><Avatar name={member.name} /><i aria-hidden="true" /></span>)}
+    {visible.map((member) => <span key={member.id} className={`space-member presence-${member.presence}`} title={`${member.name} · ${member.status || member.role} · ${member.presence === 'online' ? 'Active now' : member.presence}`}><Avatar name={member.name} /><i aria-hidden="true" /><span className="space-member-status" role="tooltip"><strong>{member.name}</strong>{member.status || (member.presence === 'online' ? 'Active in this Space' : member.presence === 'away' ? 'Away for now' : 'Offline')}</span></span>)}
     {members.length > visible.length && <span className="space-member-more">+{members.length - visible.length}</span>}
   </div>
 }

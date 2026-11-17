@@ -297,6 +297,11 @@
     :root[data-theme='dark'] .timeline-preview-dialog.is-project { --preview-accent: #c5bbfa; --preview-soft: #302d49; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-note { --preview-accent: #f3b2c9; --preview-soft: #3b2940; }
     :root[data-theme='dark'] .timeline-preview-dialog.is-source { --preview-accent: #efd293; --preview-soft: #38301f; }
+    :root[data-theme='dark'] .space-member-status, :root[data-theme='dark'] .space-update-form, :root[data-theme='dark'] .calendar-quick-add { border-color: #3c5870; background: #172c3f; color: #c8d8e5; }
+    :root[data-theme='dark'] .space-member-status strong { color: #e2edf4; }
+    :root[data-theme='dark'] .space-update-trigger, :root[data-theme='dark'] .quick-reactions > button, :root[data-theme='dark'] .event-acknowledgements > button, :root[data-theme='dark'] .calendar-quick-add > div button, :root[data-theme='dark'] .studio-mention-row { border-color: #3d5a72; background: #193247; color: #bfd0df; }
+    :root[data-theme='dark'] .quick-reactions > button.is-reacted, :root[data-theme='dark'] .event-acknowledgements > button.is-active, :root[data-theme='dark'] .calendar-quick-add > div button.is-active { border-color: #4f8eae; background: #193d53; color: #98d7f7; }
+    :root[data-theme='dark'] .space-update-form input, :root[data-theme='dark'] .calendar-quick-add input, :root[data-theme='dark'] .mention-chips > button, :root[data-theme='dark'] .studio-mention-row > button { border-color: #405e75; background: #1a3348; color: #e0ebf4; }
   }
   @media (max-width: 960px) and (min-width: 761px), (max-width: 420px) {
     .appearance-options { gap: 0.5rem; }

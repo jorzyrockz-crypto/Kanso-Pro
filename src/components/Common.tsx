@@ -83,7 +83,7 @@ export function AddChecklistItem({ onAdd, placeholder = 'Add an item…', label 
 export function TeamScopeToggle({ scope, memberName, onChange, compact = false }: { scope: 'all' | 'assigned'; memberName: string; onChange: (scope: 'all' | 'assigned') => void; compact?: boolean }) {
   return <div className={`team-scope-toggle ${compact ? 'is-compact' : ''}`} role="group" aria-label="Team workload scope">
     <button type="button" className={scope === 'all' ? 'is-active' : ''} aria-pressed={scope === 'all'} onClick={() => onChange('all')}>All Team</button>
-    <button type="button" className={scope === 'assigned' ? 'is-active' : ''} aria-pressed={scope === 'assigned'} onClick={() => onChange('assigned')}>Assigned to Me<span className="sr-only">, {memberName}</span></button>
+    <button type="button" className={scope === 'assigned' ? 'is-active' : ''} aria-pressed={scope === 'assigned'} onClick={() => onChange('assigned')}>My Work<span className="sr-only">, {memberName}</span></button>
   </div>
 }
 

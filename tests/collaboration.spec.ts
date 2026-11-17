@@ -32,8 +32,8 @@ test('Spaces keep local team work separate and let owners configure shared works
 
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('button', { name: 'All Team', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: /Assigned to Me/ }).click()
-  await expect(page.getByRole('button', { name: /Assigned to Me/ })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: /My Work/ }).click()
+  await expect(page.getByRole('button', { name: /My Work/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'All Team', exact: true }).click()
   await page.getByRole('button', { name: 'Edit milestone 2', exact: true }).click()
   await page.getByLabel('Milestone 2 assignee', { exact: true }).selectOption('J. Santos')
@@ -41,6 +41,16 @@ test('Spaces keep local team work separate and let owners configure shared works
   await page.getByRole('button', { name: /Notifications/ }).click()
   await expect(page.getByRole('dialog', { name: 'Notifications' })).toContainText('Assignment updated')
   await page.keyboard.press('Escape')
+  const reaction = page.getByRole('button', { name: 'Add 👍 reaction', exact: true }).first()
+  await reaction.click()
+  await expect(page.getByRole('button', { name: /Remove 👍 reaction/ }).first()).toHaveAttribute('aria-pressed', 'true')
+
+  await page.goto('/calendar?date=2026-11-15')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByRole('button', { name: 'Task', exact: true }).click()
+  await page.getByPlaceholder('Task title').fill('Draft the family invitation')
+  await page.getByRole('button', { name: /Add to Nov 15/ }).click()
+  await expect(page.getByText('Draft the family invitation', { exact: true })).toBeVisible()
 
   await page.goto('/tasks/task-grades')
   await page.getByRole('button', { name: 'Add comment', exact: true }).first().click()
@@ -49,6 +59,6 @@ test('Spaces keep local team work separate and let owners configure shared works
   await expect(page.getByText('I can take the first pass this afternoon.', { exact: true })).toBeVisible()
 
   await page.goto('/journal')
-  await expect(page.getByText('Team Notes · this device', { exact: true })).toBeVisible()
-  await expect(page.getByText(/shared team note/i).first()).toBeVisible()
+  await expect(page.getByText('Space Notes · this device', { exact: true })).toBeVisible()
+  await expect(page.getByText(/Space Note/i).first()).toBeVisible()
 })

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Dispatch } from 'react'
 import type { AccountUser } from './account'
 import { emptyWorkspace, googleSyncUser, isStarterWorkspace, mergeInitialWorkspace, workspaceChangesSince, workspaceFingerprint } from './workspaceSync'
-import type { JourneyAction, JourneyState, Space, SpaceActivity, SpaceMember } from '../types'
+import type { JourneyAction, JourneyState, Space, SpaceActivity, SpaceMember, SpacePresence } from '../types'
 
 type FirestoreClient = typeof import('./firestore')
 
@@ -19,7 +19,7 @@ export interface WorkspaceSyncStatus {
   unavailable: boolean
 }
 
-export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, onSpace?: (spaceId: string, updates: Pick<Space, 'name' | 'color' | 'icon'>) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void): WorkspaceSyncStatus {
+export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, onSpace?: (spaceId: string, updates: Pick<Space, 'name' | 'color' | 'icon'>) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void, onPresence?: (spaceId: string, entries: SpacePresence[]) => void): WorkspaceSyncStatus {
   const uid = googleSyncUser(account)
   const [ready, setReady] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
@@ -27,7 +27,9 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
   const membersCallbackRef = useRef(onMembers)
   const spaceCallbackRef = useRef(onSpace)
   const activityCallbackRef = useRef(onActivity)
-  const sentActivityRef = useRef('')
+  const presenceCallbackRef = useRef(onPresence)
+  const sentActivityIdsRef = useRef(new Set<string>())
+  const remoteActivityIdsRef = useRef(new Set<string>())
   const clientRef = useRef<FirestoreClient | null>(null)
   const remoteRef = useRef<JourneyState | null>(null)
   const initializedRef = useRef(false)
@@ -41,6 +43,7 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
   membersCallbackRef.current = onMembers
   spaceCallbackRef.current = onSpace
   activityCallbackRef.current = onActivity
+  presenceCallbackRef.current = onPresence
 
   useEffect(() => {
     const retryPending = () => setRetry((value) => value + 1)
@@ -57,7 +60,8 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
     applyingRemoteRef.current = ''
     awaitingRemoteHydrationRef.current = false
     pendingFingerprintRef.current = ''
-    sentActivityRef.current = ''
+    sentActivityIdsRef.current = new Set()
+    remoteActivityIdsRef.current = new Set()
     if (!uid) return
     const switchedGoogleUser = priorGoogleUserRef.current !== null && priorGoogleUserRef.current !== uid
     priorGoogleUserRef.current = uid
@@ -72,7 +76,11 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
         setUnavailable(false)
         if (space.kind === 'shared' && remote.members) membersCallbackRef.current?.(space.id, remote.members)
         if (space.kind === 'shared' && remote.space) spaceCallbackRef.current?.(space.id, remote.space)
-        if (space.kind === 'shared' && remote.activity) activityCallbackRef.current?.(space.id, remote.activity)
+        if (space.kind === 'shared' && remote.activity) {
+          remote.activity.forEach((entry) => remoteActivityIdsRef.current.add(entry.id))
+          activityCallbackRef.current?.(space.id, remote.activity)
+        }
+        if (space.kind === 'shared' && remote.presence) presenceCallbackRef.current?.(space.id, remote.presence)
         const local = stateRef.current
         const localIsStarter = isStarterWorkspace(local)
         if (!initializedRef.current) {
@@ -158,16 +166,24 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
   }, [state, ready, uid, retry, space.id, space.kind])
 
   useEffect(() => {
-    if (!uid || !clientRef.current || space.kind !== 'shared') return
+    const localRole = space.members.find((member) => member.id === 'local-owner')?.role
+    if (!uid || !clientRef.current || space.kind !== 'shared' || localRole !== 'owner') return
     void clientRef.current.writeSpaceMembers(uid, space).catch(() => setUnavailable(true))
   }, [uid, space])
 
   useEffect(() => {
-    const newest = activity[0]
-    if (!uid || !clientRef.current || space.kind !== 'shared' || !newest || sentActivityRef.current === newest.id) return
-    sentActivityRef.current = newest.id
-    void clientRef.current.writeSpaceActivity(uid, { id: space.id, kind: space.kind }, newest).catch(() => { sentActivityRef.current = ''; setUnavailable(true) })
-  }, [uid, space.id, space.kind, activity])
+    if (!ready || !uid || !clientRef.current || space.kind !== 'shared') return
+    const pending = activity.filter((entry) => !remoteActivityIdsRef.current.has(entry.id) && !sentActivityIdsRef.current.has(entry.id))
+    if (!pending.length) return
+    const client = clientRef.current
+    for (const entry of pending) {
+      sentActivityIdsRef.current.add(entry.id)
+      void client.writeSpaceActivity(uid, { id: space.id, kind: space.kind }, entry).catch(() => {
+        sentActivityIdsRef.current.delete(entry.id)
+        setUnavailable(true)
+      })
+    }
+  }, [ready, uid, space.id, space.kind, activity])
 
   return { enabled: !!uid, ready, unavailable }
 }
