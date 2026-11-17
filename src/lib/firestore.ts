@@ -2,7 +2,7 @@ import { collection, deleteDoc, doc, getDoc, getFirestore, increment, initialize
 import type { Firestore, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { firebaseApp } from './firebase'
 import { parseSavedState } from './store'
-import type { JournalAttachment, JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember, SpacePresence } from '../types'
+import type { JournalAttachment, JourneyCard, JourneyState, Space, SpaceActivity, SpaceMember, SpaceNotice, SpacePresence } from '../types'
 import { isSpaceColor, isSpaceIcon } from './spaceAppearance'
 
 const WORKSPACE_ID = 'default'
@@ -22,6 +22,8 @@ try {
   database = getFirestore(firebaseApp)
 }
 
+export type RemoteSpaceMetadata = Pick<Space, 'name' | 'color' | 'icon'> & { notice: SpaceNotice | null }
+
 export interface RemoteWorkspaceSnapshot {
   exists: boolean
   state: JourneyState
@@ -31,7 +33,7 @@ export interface RemoteWorkspaceSnapshot {
   pendingWrites: boolean
   /** Shared-space metadata; authorization remains a Firestore rules concern. */
   members?: SpaceMember[]
-  space?: Pick<Space, 'name' | 'color' | 'icon'>
+  space?: RemoteSpaceMetadata
   activity?: SpaceActivity[]
   presence?: SpacePresence[]
 }
@@ -79,7 +81,10 @@ function cleanCard(value: Record<string, unknown>): JourneyCard | null {
   const { revision: _revision, updatedAt: _updatedAt, updatedBy: _updatedBy, deletedAt, ...card } = value
   if (deletedAt) return null
   const parsed = parseSavedState(JSON.stringify({ version: 1, bezel: false, cards: [card] }))
-  return parsed?.cards[0] ?? null
+  const parsedCard = parsed?.cards[0] ?? null
+  // Prior releases represented a shared broadcast as a normal dated Note. Keep those
+  // documents inert during cloud hydration so they cannot re-enter the Journey Stream.
+  return parsedCard?.type === 'note' && parsedCard.title === 'Space update' && parsedCard.category === 'Space Update' && parsedCard.tags.includes('space-update') ? null : parsedCard
 }
 
 function remoteMembers(value: unknown): SpaceMember[] | undefined {
@@ -87,19 +92,39 @@ function remoteMembers(value: unknown): SpaceMember[] | undefined {
   const members = value.flatMap((candidate): SpaceMember[] => {
     if (!candidate || typeof candidate !== 'object') return []
     const item = candidate as Record<string, unknown>
-    if (typeof item.id !== 'string' || typeof item.name !== 'string' || !['owner', 'editor', 'viewer'].includes(String(item.role))) return []
+    if (typeof item.id !== 'string' || typeof item.name !== 'string' || !['owner', 'lead', 'editor', 'viewer'].includes(String(item.role))) return []
     return [{ id: item.id, name: item.name, ...(typeof item.email === 'string' ? { email: item.email } : {}), role: item.role as SpaceMember['role'], presence: 'offline', ...(typeof item.status === 'string' ? { status: item.status.slice(0, 120) } : {}) }]
   })
   return members.length ? members : undefined
 }
 
-function remoteSpace(value: Record<string, unknown>): Pick<Space, 'name' | 'color' | 'icon'> | undefined {
+function remoteNotice(value: unknown): Omit<SpaceNotice, 'acknowledgements'> | null {
+  if (!value || typeof value !== 'object') return null
+  const notice = value as Record<string, unknown>
+  if (typeof notice.id !== 'string' || !notice.id || notice.id.length > 180
+    || typeof notice.body !== 'string' || !notice.body.trim() || notice.body.length > 360
+    || typeof notice.postedBy !== 'string' || !notice.postedBy || notice.postedBy.length > 120
+    || typeof notice.postedAt !== 'string' || Number.isNaN(Date.parse(notice.postedAt))) return null
+  return { id: notice.id, body: notice.body, postedBy: notice.postedBy, postedAt: notice.postedAt }
+}
+
+function remoteSpace(value: Record<string, unknown>): RemoteSpaceMetadata | undefined {
   if (typeof value.name !== 'string' || !value.name.trim()) return undefined
+  const notice = remoteNotice(value.notice)
   return {
     name: value.name.slice(0, 80),
     ...(isSpaceColor(value.color) ? { color: value.color } : {}),
     ...(isSpaceIcon(value.icon) ? { icon: value.icon } : {}),
+    notice: notice ? { ...notice, acknowledgements: [] } : null,
   }
+}
+
+function remoteNoticeAcknowledgements(entries: QueryDocumentSnapshot[], noticeId: string | undefined): string[] {
+  if (!noticeId) return []
+  return [...new Set(entries.flatMap((entry) => {
+    const data = entry.data()
+    return data.noticeId === noticeId && typeof data.email === 'string' && data.email.length <= 254 ? [data.email.toLocaleLowerCase()] : []
+  }))]
 }
 
 function remoteActivity(entries: QueryDocumentSnapshot[]): SpaceActivity[] {
@@ -139,11 +164,14 @@ export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefine
   let cardsPendingWrites = false
   let activityData: QueryDocumentSnapshot[] = []
   let presenceData: QueryDocumentSnapshot[] = []
+  let noticeAcknowledgementData: QueryDocumentSnapshot[] = []
 
   const publish = () => {
     if (!workspaceData || !cardData) return
     const deletedCardIds = cardData.filter((entry) => !!entry.data().deletedAt).map((entry) => entry.id)
     const parsedCards = cardData.map((entry) => cleanCard(entry.data())).filter((card): card is JourneyCard => !!card)
+    const spaceMetadata = remoteSpace(workspaceData)
+    const notice = spaceMetadata?.notice
     onValue({
       exists: workspaceExists || cardData.length > 0,
       state: { version: 1, bezel: workspaceData.bezel === true, cards: parsedCards.sort((a, b) => a.id.localeCompare(b.id)) },
@@ -151,7 +179,7 @@ export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefine
       fromCache: workspaceFromCache || cardsFromCache,
       pendingWrites: workspacePendingWrites || cardsPendingWrites,
       members: remoteMembers(workspaceData.members),
-      space: remoteSpace(workspaceData),
+      space: spaceMetadata && { ...spaceMetadata, notice: notice ? { ...notice, acknowledgements: remoteNoticeAcknowledgements(noticeAcknowledgementData, notice.id) } : null },
       activity: remoteActivity(activityData),
       presence: remotePresence(presenceData),
     })
@@ -181,7 +209,13 @@ export function subscribeWorkspace(uid: string, space: FirestoreSpace | undefine
       publish()
     }, onError)
     : () => {}
-  return () => { unsubscribeWorkspace(); unsubscribeCards(); unsubscribeActivity(); unsubscribePresence() }
+  const unsubscribeNoticeAcknowledgements = space?.kind === 'shared'
+    ? onSnapshot(collection(workspace, 'noticeAcknowledgements'), { includeMetadataChanges: true }, (snapshot) => {
+      noticeAcknowledgementData = [...snapshot.docs]
+      publish()
+    }, onError)
+    : () => {}
+  return () => { unsubscribeWorkspace(); unsubscribeCards(); unsubscribeActivity(); unsubscribePresence(); unsubscribeNoticeAcknowledgements() }
 }
 
 async function writeCardBatch(uid: string, cards: JourneyCard[], space?: FirestoreSpace) {
@@ -243,6 +277,7 @@ export async function writeSpaceMembers(uid: string, space: Space) {
     members: space.members.map(({ id, name, email, role, status }) => ({ id, name, ...(email ? { email } : {}), role, ...(status ? { status: status.slice(0, 120) } : {}) })),
     memberEmails: space.members.flatMap((member) => member.email ? [member.email.toLocaleLowerCase()] : []),
     ownerEmails: space.members.flatMap((member) => member.id === space.ownerId && member.email ? [member.email.toLocaleLowerCase()] : []),
+    noticeLeadEmails: space.members.flatMap((member) => member.role === 'lead' && member.email ? [member.email.toLocaleLowerCase()] : []),
     editorEmails: space.members.flatMap((member) => member.role !== 'viewer' && member.email ? [member.email.toLocaleLowerCase()] : []),
     updatedAt: serverTimestamp(),
   }, { merge: true })
@@ -253,6 +288,25 @@ export async function writeSpaceMembers(uid: string, space: Space) {
 export async function writeSpaceActivity(uid: string, space: FirestoreSpace, entry: SpaceActivity) {
   if (space.kind !== 'shared') return
   await setDoc(doc(workspaceRef(uid, space), 'activity', entry.id), { ...entry })
+}
+
+/** The single notice is parent metadata, never a dated Journey card. Acknowledgements live
+ * in self-authored child documents so members cannot rewrite the announcement itself. */
+export async function writeSpaceNotice(uid: string, space: FirestoreSpace, notice: SpaceNotice | undefined) {
+  if (space.kind !== 'shared') return
+  await setDoc(workspaceRef(uid, space), {
+    notice: notice ? { id: notice.id, body: notice.body, postedBy: notice.postedBy, postedAt: notice.postedAt } : null,
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+}
+
+export async function writeSpaceNoticeAcknowledgement(uid: string, email: string, space: FirestoreSpace, noticeId: string) {
+  if (space.kind !== 'shared') return
+  await setDoc(doc(workspaceRef(uid, space), 'noticeAcknowledgements', uid), {
+    noticeId,
+    email: email.toLocaleLowerCase(),
+    acknowledgedAt: serverTimestamp(),
+  })
 }
 
 /** Presence is a short-lived client heartbeat, never membership or authorization metadata. */

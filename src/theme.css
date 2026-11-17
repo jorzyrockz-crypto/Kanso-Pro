@@ -300,6 +300,13 @@
     :root[data-theme='dark'] .space-member-status, :root[data-theme='dark'] .space-update-form, :root[data-theme='dark'] .calendar-quick-add { border-color: #3c5870; background: #172c3f; color: #c8d8e5; }
     :root[data-theme='dark'] .space-member-status strong { color: #e2edf4; }
     :root[data-theme='dark'] .space-update-trigger, :root[data-theme='dark'] .quick-reactions > button, :root[data-theme='dark'] .event-acknowledgements > button, :root[data-theme='dark'] .calendar-quick-add > div button, :root[data-theme='dark'] .studio-mention-row { border-color: #3d5a72; background: #193247; color: #bfd0df; }
+    :root[data-theme='dark'] .pinned-space-notice { border-color: #3d6a85; background: radial-gradient(circle at 100% 0%, rgb(90 180 224 / 14%), transparent 38%), #173349; box-shadow: 0 .5rem 1.25rem rgb(0 0 0 / 20%), inset 0 1px 0 rgb(219 244 255 / 5%); }
+    :root[data-theme='dark'] .pinned-space-notice-icon { color: #9edafa; background: #20465e; }
+    :root[data-theme='dark'] .pinned-space-notice-heading > span, :root[data-theme='dark'] .pinned-space-notice-label, :root[data-theme='dark'] .pinned-space-notice-toggle { color: #9edafa; }
+    :root[data-theme='dark'] .pinned-space-notice-heading > small, :root[data-theme='dark'] .pinned-space-notice-actions > span, :root[data-theme='dark'] .pinned-space-notice-count, :root[data-theme='dark'] .pinned-space-notice-dismiss, :root[data-theme='dark'] .pinned-space-notice-clear { color: #b6ccdc; }
+    :root[data-theme='dark'] .pinned-space-notice p { color: #e1edf6; }
+    :root[data-theme='dark'] .pinned-space-notice-ack { border-color: #4b7894; color: #b7e5fb; background: #1d4058; }
+    :root[data-theme='dark'] .pinned-space-notice-ack.is-acknowledged { border-color: #397963; color: #a7e8cb; background: #183e36; }
     :root[data-theme='dark'] .quick-reactions > button.is-reacted, :root[data-theme='dark'] .event-acknowledgements > button.is-active, :root[data-theme='dark'] .calendar-quick-add > div button.is-active { border-color: #4f8eae; background: #193d53; color: #98d7f7; }
     :root[data-theme='dark'] .space-update-form input, :root[data-theme='dark'] .calendar-quick-add input, :root[data-theme='dark'] .mention-chips > button, :root[data-theme='dark'] .studio-mention-row > button { border-color: #405e75; background: #1a3348; color: #e0ebf4; }
   }

@@ -19,7 +19,7 @@ export interface WorkspaceSyncStatus {
   unavailable: boolean
 }
 
-export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, onSpace?: (spaceId: string, updates: Pick<Space, 'name' | 'color' | 'icon'>) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void, onPresence?: (spaceId: string, entries: SpacePresence[]) => void): WorkspaceSyncStatus {
+export function useWorkspaceSync(account: AccountUser | null, state: JourneyState, dispatch: Dispatch<JourneyAction>, space: Space, onMembers?: (spaceId: string, members: SpaceMember[]) => void, onSpace?: (spaceId: string, updates: Pick<Space, 'name' | 'color' | 'icon'> & { notice: Space['notice'] | null }) => void, activity: SpaceActivity[] = [], onActivity?: (spaceId: string, entries: SpaceActivity[]) => void, onPresence?: (spaceId: string, entries: SpacePresence[]) => void): WorkspaceSyncStatus {
   const uid = googleSyncUser(account)
   const [ready, setReady] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
@@ -37,6 +37,8 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
   const awaitingRemoteHydrationRef = useRef(false)
   const pendingFingerprintRef = useRef('')
   const priorGoogleUserRef = useRef<string | null>(null)
+  const sentNoticeRef = useRef('')
+  const sentAcknowledgementRef = useRef('')
   const [retry, setRetry] = useState(0)
 
   stateRef.current = state
@@ -62,6 +64,8 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
     pendingFingerprintRef.current = ''
     sentActivityIdsRef.current = new Set()
     remoteActivityIdsRef.current = new Set()
+    sentNoticeRef.current = ''
+    sentAcknowledgementRef.current = ''
     if (!uid) return
     const switchedGoogleUser = priorGoogleUserRef.current !== null && priorGoogleUserRef.current !== uid
     priorGoogleUserRef.current = uid
@@ -75,7 +79,11 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
         if (!active || remote.fromCache) return
         setUnavailable(false)
         if (space.kind === 'shared' && remote.members) membersCallbackRef.current?.(space.id, remote.members)
-        if (space.kind === 'shared' && remote.space) spaceCallbackRef.current?.(space.id, remote.space)
+        if (space.kind === 'shared' && remote.space) {
+          const notice = remote.space.notice
+          sentNoticeRef.current = notice ? JSON.stringify({ id: notice.id, body: notice.body, postedBy: notice.postedBy, postedAt: notice.postedAt }) : 'cleared'
+          spaceCallbackRef.current?.(space.id, remote.space)
+        }
         if (space.kind === 'shared' && remote.activity) {
           remote.activity.forEach((entry) => remoteActivityIdsRef.current.add(entry.id))
           activityCallbackRef.current?.(space.id, remote.activity)
@@ -170,6 +178,32 @@ export function useWorkspaceSync(account: AccountUser | null, state: JourneyStat
     if (!uid || !clientRef.current || space.kind !== 'shared' || localRole !== 'owner') return
     void clientRef.current.writeSpaceMembers(uid, space).catch(() => setUnavailable(true))
   }, [uid, space])
+
+  useEffect(() => {
+    const role = space.members.find((member) => member.id === 'local-owner')?.role
+    if (!ready || !uid || !clientRef.current || space.kind !== 'shared' || (role !== 'owner' && role !== 'lead')) return
+    const notice = space.notice
+    const fingerprint = notice ? JSON.stringify({ id: notice.id, body: notice.body, postedBy: notice.postedBy, postedAt: notice.postedAt }) : 'cleared'
+    if (sentNoticeRef.current === fingerprint) return
+    sentNoticeRef.current = fingerprint
+    void clientRef.current.writeSpaceNotice(uid, { id: space.id, kind: space.kind }, notice).catch(() => {
+      sentNoticeRef.current = ''
+      setUnavailable(true)
+    })
+  }, [ready, uid, space])
+
+  useEffect(() => {
+    const email = account?.email?.trim().toLocaleLowerCase()
+    const notice = space.notice
+    if (!ready || !uid || !clientRef.current || space.kind !== 'shared' || !email || !notice?.acknowledgements.includes(email)) return
+    const fingerprint = `${notice.id}:${email}`
+    if (sentAcknowledgementRef.current === fingerprint) return
+    sentAcknowledgementRef.current = fingerprint
+    void clientRef.current.writeSpaceNoticeAcknowledgement(uid, email, { id: space.id, kind: space.kind }, notice.id).catch(() => {
+      sentAcknowledgementRef.current = ''
+      setUnavailable(true)
+    })
+  }, [ready, uid, account?.email, space])
 
   useEffect(() => {
     if (!ready || !uid || !clientRef.current || space.kind !== 'shared') return
