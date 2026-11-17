@@ -59,9 +59,11 @@ service cloud.firestore {
     }
 
     function isSpaceEditor(spaceId) {
-      return signedInGoogle()
-        && request.auth.token.email != null
-        && get(/databases/$(database)/documents/spaces/$(spaceId)).data.editorEmails.hasAny([request.auth.token.email.lower()]);
+      // Owners retain edit access while existing documents are hydrated with editorEmails.
+      return isSpaceOwner(spaceId)
+        || (signedInGoogle()
+          && request.auth.token.email != null
+          && get(/databases/$(database)/documents/spaces/$(spaceId)).data.editorEmails.hasAny([request.auth.token.email.lower()]));
     }
 
     // Shared-space membership is email-scoped. The parent document carries workspace
