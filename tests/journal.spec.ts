@@ -63,6 +63,19 @@ test('Journal uses a three-column library board and a single-column studio rail 
   await expect(page.getByRole('button', { name: 'Add photo', exact: true })).toBeDisabled()
 })
 
+test('Journal hero matches the task and project workspace banner measure on large screens', async ({ page }) => {
+  await page.setViewportSize({ width: 1564, height: 856 })
+  await page.goto('/journal')
+  const journalHero = page.locator('.journal-hero')
+  await expect(journalHero).toBeVisible()
+  const journalBox = await journalHero.boundingBox()
+
+  await page.goto('/tasks')
+  const taskBox = await page.locator('.workspace-hero').boundingBox()
+  expect(journalBox!.width).toBeCloseTo(taskBox!.width, 0)
+  expect(journalBox!.x).toBeCloseTo(taskBox!.x, 0)
+})
+
 test('Journal editor keeps the writing surface readable on phones and tablets', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/journal/note-lesson')
