@@ -10,7 +10,7 @@ const openNewCard = async (page: import('@playwright/test').Page) => {
   await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('button', { name: 'New card', exact: true }).click()
 }
 
-test('no initial flood or permission prompt; due reminders group, badge, link and mark read', async ({ page, context }) => {
+test('no initial flood; due reminders group, badge, link and mark read', async ({ page, context }) => {
   await context.grantPermissions([])
   const firebase = await mockFirebase(context)
   const state = createInitialState()
@@ -133,9 +133,9 @@ test.describe('touch notification preferences', () => {
     await page.getByLabel('From', { exact: true }).fill('20:00')
     await expect(other.getByLabel('From', { exact: true })).toHaveValue('20:00')
     await expect(page.getByLabel('Until', { exact: true })).toHaveValue('06:00')
-    await page.getByRole('checkbox', { name: /^Phone notifications/ }).click()
-    await expect(page.getByRole('status').filter({ hasText: 'Phone notifications need' })).toBeVisible()
-    await expect(page.getByRole('checkbox', { name: /^Phone notifications/ })).not.toBeChecked()
+    await page.getByRole('checkbox', { name: /^Browser notifications/ }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Browser notifications need' })).toBeVisible()
+    await expect(page.getByRole('checkbox', { name: /^Browser notifications/ })).not.toBeChecked()
     expect(await page.evaluate(key => localStorage.getItem(key), STORAGE_KEY)).toBe(saved)
     await page.getByRole('link', { name: 'Kanso Pro home', exact: true }).click()
     await page.goBack()

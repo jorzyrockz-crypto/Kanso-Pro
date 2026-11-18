@@ -16,6 +16,10 @@ async function ready(page: Page) {
 
 test('manifest, transparent branding, maskable icons, and install affordance', async ({ page, context }) => {
   const firebase = await mockFirebase(context)
+  await page.addInitScript(() => Object.defineProperty(window, 'Notification', { configurable: true, value: class {
+    static permission = 'default'
+    static async requestPermission() { document.body.dataset.askedPermission = 'true'; return 'denied' }
+  } }))
   await ready(page)
   const cdp = await context.newCDPSession(page)
   const manifest = await cdp.send('Page.getAppManifest')
@@ -66,17 +70,11 @@ test('manifest, transparent branding, maskable icons, and install affordance', a
   expect(activeVersion).toBe(version)
   await page.getByRole('button', { name: 'Check for updates', exact: true }).click()
   await expect(page.locator('.pwa-update')).toContainText('Kanso Pro is up to date.')
+  await expect(page.locator('body')).toHaveAttribute('data-asked-permission', 'true')
   await page.getByRole('button', { name: /^Notifications(?:,|$)/ }).click()
   await page.getByRole('dialog', { name: 'Notifications' }).getByRole('link', { name: 'Open notification settings', exact: true }).click()
-  await page.evaluate(() => Object.defineProperty(window, 'Notification', { configurable: true, value: class {
-    static permission = 'default'
-    static async requestPermission() { document.body.dataset.askedPermission = 'true'; return 'denied' }
-  } }))
-  await expect(page.locator('body')).not.toHaveAttribute('data-asked-permission')
-  await page.getByRole('checkbox', { name: /^Phone notifications/ }).click()
-  await expect(page.locator('body')).toHaveAttribute('data-asked-permission', 'true')
-  await expect(page.getByRole('status').filter({ hasText: 'Notifications are blocked' })).toBeVisible()
-  await expect(page.getByRole('checkbox', { name: /^Phone notifications/ })).not.toBeChecked()
+  await expect(page.getByRole('status').filter({ hasText: 'Browser notifications are blocked' })).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: /^Browser notifications/ })).not.toBeChecked()
 
   expect(firebase.requests).toEqual([])
   expect(firebase.unexpectedRequests).toEqual([])

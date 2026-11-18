@@ -62,6 +62,35 @@ export function useNotifications(cards: JourneyCard[]) {
     return queue.current
   }, [])
 
+  const preferences = useCallback((patch: Partial<NotificationPreferences>) => {
+    // Reflect a native control immediately; serialize persistence/cross-tab merges separately.
+    const optimistic = { ...memory.current, preferences: { ...memory.current.preferences, ...patch } }
+    memory.current = optimistic
+    setState(optimistic)
+    return change(current => ({ ...current, preferences: { ...current.preferences, ...patch } }))
+  }, [change])
+
+  const requestBrowserPermission = useCallback(async (onOpen = false) => {
+    if (!phoneSupported || permissionNow() !== 'default') return
+    setFeedback('')
+    try {
+      const result = await Notification.requestPermission()
+      setPermission(result)
+      await preferences({ phone: result === 'granted' })
+      if (result === 'denied') setFeedback('Browser notifications are blocked. Allow them for this site in your browser or Windows settings, then try again.')
+      else if (result !== 'granted') setFeedback(onOpen ? 'Browser notification permission was not granted. You can enable it later in Notifications.' : 'Permission was not granted. You can keep using the bell without browser notifications.')
+    } catch {
+      setPermission(permissionNow())
+      setFeedback(onOpen ? 'Your browser did not show the notification request. You can enable it later in Notifications.' : 'This browser could not enable notifications. The in-app bell remains available.')
+    }
+  }, [phoneSupported, preferences])
+
+  // Requested once on a supported production launch, as chosen for Windows/browser banners.
+  // Browsers can still suppress an automatic prompt; the Notifications controls remain available.
+  useEffect(() => {
+    if (permission === 'default') void requestBrowserPermission(true)
+  }, [permission, requestBrowserPermission])
+
   const evaluate = useCallback(() => change(async current => {
     const now = new Date()
     const result = reconcileReminders(current, cardsRef.current, now)
@@ -118,23 +147,15 @@ export function useNotifications(cards: JourneyCard[]) {
     } catch { /* Badging is optional and does not imply notification permission. */ }
   }, [unread, state.preferences.badges])
 
-  const preferences = (patch: Partial<NotificationPreferences>) => {
-    // Reflect a native control immediately; serialize persistence/cross-tab merges separately.
-    const optimistic = { ...memory.current, preferences: { ...memory.current.preferences, ...patch } }
-    memory.current = optimistic
-    setState(optimistic)
-    return change(current => ({ ...current, preferences: { ...current.preferences, ...patch } }))
-  }
   const phone = async (enabled: boolean) => {
     setFeedback('')
     if (!enabled) { await preferences({ phone: false }); return }
-    if (!phoneSupported) { setFeedback('Phone notifications need a supported, secure production app. In-app reminders still work.'); return }
-    try {
-      const result = await Notification.requestPermission() // Directly from the user’s click; never on startup.
-      setPermission(result)
-      await preferences({ phone: result === 'granted' })
-      if (result !== 'granted') setFeedback(result === 'denied' ? 'Notifications are blocked. Allow notifications for this site in your browser or system settings, then try again. On iPhone/iPad, use the installed Home Screen app.' : 'Permission was not granted. You can keep using the bell without phone notifications.')
-    } catch { setFeedback('This browser could not enable phone notifications. The in-app bell remains available.') }
+    if (!phoneSupported) { setFeedback('Browser notifications need a supported, secure production app. In-app reminders still work.'); return }
+    const currentPermission = permissionNow()
+    setPermission(currentPermission)
+    if (currentPermission === 'granted') { await preferences({ phone: true }); return }
+    if (currentPermission === 'denied') { await preferences({ phone: false }); setFeedback('Browser notifications are blocked. Allow them for this site in your browser or Windows settings, then try again.'); return }
+    await requestBrowserPermission()
   }
   const markRead = useCallback((id?: string) => change(current => ({ ...current, items: current.items.map(item => !id || item.id === id ? { ...item, read: true } : item), pendingPhone: id ? current.pendingPhone.filter(value => value !== id) : [] })), [change])
   const addUpdate = useCallback((version: string, title: string) => change(current => addNotifications(current, [{ id: `update:${version}`, kind: 'update', title: 'A new version of Kanso Pro is ready', detail: title, href: '/settings#about', createdAt: Date.now(), read: false }])), [change])
