@@ -63,7 +63,7 @@ The supplied web configuration is the default in `src/lib/firebase.ts`, so an `.
 
 All Firebase web configuration values, including the web API key, are public client metadata shipped in the browser bundle. They are not a substitute for enabled providers, authorized domains, security rules, or API-key restrictions. **Never** put a service-account JSON, private key, Admin SDK credential, or other server secret in any `VITE_` variable.
 
-The app remains a static Vite build with the existing Vercel SPA fallback. For a GitHub Pages project site, build with `VITE_APP_BASE_PATH=/Kanso-Pro/` and authorize the exact GitHub Pages host (for example, `owner.github.io`) in Firebase Authentication; browser authorization is host-based, not path-based. No server function or deployment is needed for the frontend code change. Authentication requires internet access to Firebase, but existing local planning remains usable if those requests fail. No Vercel deployment is performed here.
+The app remains a static Vite build with the existing Vercel SPA fallback. For a GitHub Pages project site, the checked-in Pages workflow builds with `VITE_APP_BASE_PATH=/Kanso-Pro/`; authorize the exact GitHub Pages host (for example, `owner.github.io`) in Firebase Authentication because browser authorization is host-based, not path-based. No server function is needed for the frontend code change. Authentication requires internet access to Firebase, but existing local planning remains usable if those requests fail. This does not deploy Vercel.
 
 The package override for `@grpc/grpc-js` pins a patched compatible 1.x release. Kanso Pro loads `firebase/firestore` only after a Google-authenticated session is present; the Firestore chunk is not part of guest startup.
 

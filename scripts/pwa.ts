@@ -34,6 +34,27 @@ function writeManifestForBase(output: string, base: string) {
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
+/** GitHub Pages serves this document for unmatched project-site routes instead of an SPA rewrite. */
+function writeProjectSite404(output: string, base: string) {
+  if (base === '/') return
+  const fallback = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Opening Kanso Pro…</title></head>
+<body><p>Opening Kanso Pro…</p><script>
+(() => {
+  const base = ${JSON.stringify(base)}
+  const current = new URL(window.location.href)
+  if (current.pathname === base.slice(0, -1)) { window.location.replace(new URL(base + current.search + current.hash, current.origin).href); return }
+  if (!current.pathname.startsWith(base)) return
+  const route = current.pathname.slice(base.length - 1) + current.search + current.hash
+  const target = new URL(base, current.origin)
+  target.searchParams.set('__kanso_route', route)
+  window.location.replace(target.href)
+})()
+</script></body></html>
+`
+  writeFileSync(join(output, '404.html'), fallback)
+}
+
 export function kansoPwa(): Plugin {
   let root = ''
   let output = ''
@@ -68,6 +89,7 @@ export function kansoPwa(): Plugin {
       const index = join(output, 'index.html')
       writeFileSync(index, readFileSync(index, 'utf8').replace('__KANSO_APP_VERSION__', appVersion))
       writeManifestForBase(output, base)
+      writeProjectSite404(output, base)
       const worker = template.replace('__CACHE_PREFIX__', `kanso-pro-shell-${scopedCacheNamespace(base)}-`)
         .replace('__APP_BASE_PATH__', base)
         .replace('__APP_INDEX_URL__', appUrl(base, 'index.html'))
