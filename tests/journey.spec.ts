@@ -215,7 +215,7 @@ test('the bottom create action follows the active workspace', async ({ page }) =
 })
 
 test('preview dialogs browse nearby timeline entries with desktop buttons and touch swipes', async ({ page }) => {
-  await card(page, 'evt-holiday').getByRole('button', { name: /Preview details for/ }).click()
+  await card(page, 'evt-holiday').locator('.card-open').click({ position: { x: 10, y: 10 } })
   const dialog = page.getByRole('dialog')
   const title = dialog.getByRole('heading', { level: 2 })
   const firstTitle = await title.textContent()
@@ -230,6 +230,28 @@ test('preview dialogs browse nearby timeline entries with desktop buttons and to
   await expect(title).not.toHaveText(firstTitle!)
   await dialog.getByRole('button', { name: 'Previous preview', exact: true }).click()
   await expect(title).toHaveText(firstTitle!)
+})
+
+test('a long press opens event actions while a normal tap keeps the event preview flow', async ({ page }) => {
+  const eventCard = card(page, 'evt-oquendo')
+  const surface = eventCard.locator('.card-open')
+  await surface.dispatchEvent('pointerdown', { button: 0, pointerType: 'touch', pointerId: 1, clientX: 140, clientY: 210 })
+  await page.waitForTimeout(575)
+  const actions = page.getByRole('dialog', { name: 'Faculty Alignment & Curriculum Sync', exact: true })
+  await expect(actions.getByRole('button', { name: 'Going', exact: true })).toBeVisible()
+  await expect(actions.getByRole('button', { name: 'Noted', exact: true })).toBeVisible()
+  await expect(actions.getByRole('button', { name: 'Preview event', exact: true })).toBeVisible()
+  await expect(actions.getByRole('link', { name: 'View Calendar details', exact: true })).toBeVisible()
+  await actions.getByRole('button', { name: 'Going', exact: true }).click()
+  await expect(actions).toHaveCount(0)
+  await expect.poll(async () => page.evaluate((key) => {
+    const state = JSON.parse(localStorage.getItem(key)!) as { cards: Array<{ id: string; acknowledgements?: Array<{ member: string; response: string }> }> }
+    return state.cards.find((entry) => entry.id === 'evt-oquendo')?.acknowledgements
+  }, STORAGE_KEY)).toEqual([{ member: 'You', response: 'going' }])
+
+  await eventCard.getByRole('button', { name: 'Event actions for Faculty Alignment & Curriculum Sync', exact: true }).click()
+  await page.getByRole('button', { name: 'Preview event', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Faculty Alignment & Curriculum Sync', exact: true })).toContainText('A complete preview of this card')
 })
 
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {
@@ -486,9 +508,17 @@ for (const type of ['event', 'task', 'project', 'note'] as const) {
     expect(dates[1]).toBe('Thursday, November 5, 2026')
     await custom.locator('.card-open').click({ position: { x: 10, y: 10 } })
     const path = { event: 'calendar', task: 'tasks', project: 'projects', note: 'journal' }[type]
-    await expect(page).toHaveURL(new RegExp(`/${path}/${type}-[^/]+$`))
-    await page.reload()
-    if (type === 'event') await expect(content(page).getByRole('heading', { name: 'My new event card', exact: true })).toBeVisible()
+    if (type === 'event') {
+      await expect(page.getByRole('dialog', { name: 'My new event card', exact: true })).toBeVisible()
+      await page.getByRole('button', { name: 'Close card preview', exact: true }).click()
+      await custom.getByRole('button', { name: 'Event actions for My new event card', exact: true }).click()
+      await page.getByRole('link', { name: 'View Calendar details', exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`/${path}/${type}-[^/]+$`))
+      await expect(content(page).getByRole('heading', { name: 'My new event card', exact: true })).toBeVisible()
+    } else {
+      await expect(page).toHaveURL(new RegExp(`/${path}/${type}-[^/]+$`))
+      await page.reload()
+    }
     if (type === 'task' || type === 'project') await expect(content(page).getByRole('checkbox')).toHaveCount(2)
     if (type === 'note') await expect(content(page).getByLabel('Your reflection', { exact: true })).toHaveText('An idea worth keeping.')
     await timeline(page)
