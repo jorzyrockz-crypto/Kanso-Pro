@@ -3,7 +3,7 @@ import { createInitialState, STORAGE_KEY } from '../src/data'
 import { CALENDAR_SOURCES_STORAGE_KEY } from '../src/lib/calendarSources'
 
 test('desktop Timeline keeps a planning desk beside the Journey Stream', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.setViewportSize({ width: 1280, height: 844 })
   await page.goto('/')
 
   const stream = page.locator('#journey-stream')
@@ -11,11 +11,14 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   await expect(rail).toBeVisible()
   await expect(rail.locator('.desktop-rail-heading-mark')).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'At a glance', exact: true })).toBeVisible()
-  await expect(rail.getByRole('heading', { name: 'Task lists to finish', exact: true })).toBeVisible()
+  await expect(rail.getByRole('heading', { name: 'Next commitment', exact: true })).toBeVisible()
   expect(await rail.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain('gradient')
   expect(await rail.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none')
   await expect(rail.getByRole('heading', { name: 'Carry forward', exact: true })).toBeVisible()
-  await expect(rail.getByRole('button', { name: 'Task list', exact: true })).toBeVisible()
+  await expect(rail.locator('.desktop-rail-section')).toHaveCount(3)
+  const reviewRollover = rail.getByRole('link', { name: /carried forward/i })
+  await expect(reviewRollover).toHaveAttribute('href', '#dawn-rollover')
+  await expect(rail.getByRole('button', { name: /Move .* to today/ })).toHaveCount(0)
 
   const header = page.locator('.stream-header')
   const filterTrigger = page.getByRole('button', { name: 'Filter journey cards: All Stream', exact: true })
@@ -33,19 +36,15 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   expect(headerBox!.x + headerBox!.width).toBeLessThanOrEqual(railBox!.x)
   expect(Math.abs(headerBox!.y - railBox!.y)).toBeLessThanOrEqual(1)
   expect(streamBox!.x + streamBox!.width).toBeLessThanOrEqual(railBox!.x)
+  expect(railBox!.y + railBox!.height).toBeLessThanOrEqual(844)
   expect(viewport).toBeLessThanOrEqual(1280)
 
-  const moveToToday = rail.getByRole('button', { name: /Move .* to today/ }).first()
-  const moveActionName = await moveToToday.getAttribute('aria-label')
-  expect(moveActionName).not.toBeNull()
-  await moveToToday.click()
-  await expect(rail.getByRole('button', { name: moveActionName! })).toHaveCount(0)
-
-  await rail.getByRole('button', { name: 'Task list', exact: true }).click()
-  await expect(page).toHaveURL(/\/new\?type=task&date=/)
+  await reviewRollover.click()
+  await expect(page).toHaveURL(/#dawn-rollover$/)
+  await expect(page.locator('#dawn-rollover')).toBeInViewport()
 })
 
-test('Planning Desk keeps Today task lists out of the separate focus list', async ({ page }) => {
+test('Planning Desk limits its pinned summary to one now item, one next item, and one decision link', async ({ page }) => {
   const state = createInitialState()
   state.cards = state.cards.map((card) => card.id === 'task-grades' ? { ...card, date: '2026-11-15' } : card.id === 'task-prep' ? { ...card, quiet: false, date: '2026-11-16' } : card)
   await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') })
@@ -55,10 +54,13 @@ test('Planning Desk keeps Today task lists out of the separate focus list', asyn
 
   const rail = page.getByRole('complementary', { name: 'Desktop planning summary', exact: true })
   const today = rail.locator('section[aria-labelledby="desktop-today-title"]')
-  const focus = rail.locator('section[aria-labelledby="desktop-focus-title"]')
+  const next = rail.locator('section[aria-labelledby="desktop-next-title"]')
+  const attention = rail.locator('section[aria-labelledby="desktop-triage-title"]')
+  await expect(today.getByRole('link')).toHaveCount(1)
   await expect(today.getByRole('link', { name: /Finalize Advisory Class Record/ })).toHaveCount(1)
-  await expect(focus.getByRole('link', { name: /Finalize Advisory Class Record/ })).toHaveCount(0)
-  await expect(focus.getByRole('link', { name: /Weekly Classroom Supply Inventory/ })).toHaveCount(1)
+  await expect(next.getByRole('link')).toHaveCount(1)
+  await expect(attention.getByRole('link', { name: /carried forward/i })).toHaveCount(1)
+  await expect(rail.locator('.desktop-rail-section')).toHaveCount(3)
 })
 
 test('Timeline project cards keep progress, next milestone, due state, and an open-project link together', async ({ page }) => {
