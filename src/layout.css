@@ -470,9 +470,11 @@
   .journal-hero .hero-stat { min-width: auto; padding: .4375rem .625rem; border-color: var(--theme-border, #dce8ee); border-radius: .6875rem; background: var(--theme-surface-muted, #f6fbfd); }
   .journal-hero .hero-stat > span { color: var(--theme-text-secondary, #6b8495); font-size: .4375rem; }
   .journal-hero .hero-stat > strong { color: var(--theme-text-primary, #36536a); font-size: 1rem; }
-  .journal-composer-surface .journal-title-input { margin-top: 1rem; border-bottom-color: var(--theme-border, #e5edf1); color: var(--theme-text-primary, #283f50); font-family: var(--sans); font-size: clamp(1.25rem, 2.8vw, 2rem); font-weight: 750; line-height: 1.25; }
+  .journal-composer-surface .journal-title-row { margin-top: 1rem; border-bottom-color: var(--theme-border, #e5edf1); }
+  .journal-composer-surface .journal-title-input { color: var(--theme-text-primary, #283f50); font-family: var(--sans); font-size: clamp(1.25rem, 2.8vw, 2rem); font-weight: 750; line-height: 1.25; }
   .journal-composer-surface .journal-editor-meta { padding-bottom: .6875rem; border-bottom: 1px solid var(--theme-border, #edf1f3); }
-  .journal-composer-surface .studio-rich-editor { min-height: clamp(18rem, 42dvh, 32rem); }
+  /* Keep an inviting writing surface on desktop without making a short reflection look unfinished. */
+  .journal-composer-surface .studio-rich-editor { min-height: clamp(15rem, 30dvh, 24rem); }
   .journal-composer-dock .studio-toolbar { margin: 0; }
   @media (max-width: 1080px) {
     .journal-editor-panel .journal-editor { padding: clamp(.875rem, 3.5vw, 1.375rem); }

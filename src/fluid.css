@@ -35,6 +35,8 @@
     .application > .page-outlet :is(a, button, [role='tab'], input, textarea, select, label, p, small),
     .bottom-bar :is(a, button, [role='tab']) { font-size: max(.75rem, 12px); }
     .application > .page-outlet :is(input, textarea, select) { font-size: max(.8125rem, 13px); }
+    /* The Journal title is editorial content, not compact field chrome. */
+    .application > .page-outlet .journal-composer-surface .journal-title-input { font-size: clamp(1.5rem, 2.5vw, 2rem); }
   }
 
   @media screen and (pointer: coarse) and (min-width: 640px) and (min-height: 600px) {
