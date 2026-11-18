@@ -32,6 +32,10 @@ test('Spaces keep local team work separate and let owners configure shared works
   await expect(settings).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Switch workspace, current space: Curriculum Studio/ })).toBeVisible()
 
+  await page.goto('/new?type=event')
+  await expect(page.getByLabel('Calendar or organization', { exact: false })).toHaveValue('Curriculum Studio')
+  await expect(page.getByLabel('Organizer', { exact: false })).toHaveValue('You')
+
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('button', { name: 'All Team', exact: true })).toBeVisible()
   await page.getByRole('button', { name: /My Work/ }).click()

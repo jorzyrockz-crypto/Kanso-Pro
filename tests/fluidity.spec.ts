@@ -83,6 +83,36 @@ test.describe('touch-aware fluid layout', () => {
     }
   })
 
+  test('workspace selectors and scope controls stay side by side on portrait tablet and standard phone widths', async ({ page, context }) => {
+    await mockFirebase(context)
+    for (const [width, height] of [[834, 1194], [480, 900], [375, 812]]) {
+      await page.setViewportSize({ width, height })
+      for (const path of ['/journal', '/tasks', '/projects']) {
+        await page.goto(path)
+        await settle(page)
+        const controls = await page.locator('.workspace-control-row').evaluate((row) => {
+          const selector = row.querySelector('.workspace-selector')!.getBoundingClientRect()
+          const scope = row.querySelector('.team-scope-toggle')!.getBoundingClientRect()
+          return { selectorTop: selector.top, selectorBottom: selector.bottom, scopeTop: scope.top, scopeBottom: scope.bottom, overflow: document.documentElement.scrollWidth > innerWidth }
+        })
+        expect(controls.scopeBottom, `${path} at ${width}px`).toBeGreaterThan(controls.selectorTop)
+        expect(controls.scopeTop, `${path} at ${width}px`).toBeLessThan(controls.selectorBottom)
+        expect(controls.overflow, `${path} at ${width}px`).toBe(false)
+      }
+    }
+
+    await page.setViewportSize({ width: 360, height: 812 })
+    await page.goto('/journal')
+    await settle(page)
+    const narrowControls = await page.locator('.workspace-control-row').evaluate((row) => {
+      const selector = row.querySelector('.workspace-selector')!.getBoundingClientRect()
+      const scope = row.querySelector('.team-scope-toggle')!.getBoundingClientRect()
+      return { selectorBottom: selector.bottom, scopeTop: scope.top, overflow: document.documentElement.scrollWidth > innerWidth }
+    })
+    expect(narrowControls.scopeTop).toBeGreaterThan(narrowControls.selectorBottom)
+    expect(narrowControls.overflow).toBe(false)
+  })
+
   test('sidebar reading position still selects the correct month when rotating the Timeline', async ({ page, context }) => {
     await mockFirebase(context)
     const state = createInitialState()

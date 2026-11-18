@@ -15,10 +15,11 @@ const typeGuides: Record<CardType, { title: string; description: string }> = {
   note: { title: 'A private reflection', description: 'Use Journal for a thought, recording, or image you want to keep.' },
 }
 
-export function Composer({ options, cards, members = ['You'], editingCard, onCancel, onCreate, onUpdate }: {
+export function Composer({ options, cards, members = ['You'], eventDefaults, editingCard, onCancel, onCreate, onUpdate }: {
   options: ComposerOptions
   cards: JourneyCard[]
   members?: string[]
+  eventDefaults?: { owner: string; organization: string }
   editingCard?: EventCard | TaskCard | ProjectCard
   onCancel: () => void
   onCreate: (card: JourneyCard) => void
@@ -39,7 +40,7 @@ export function Composer({ options, cards, members = ['You'], editingCard, onCan
     ...(editingCard.type === 'event' ? { owner: editingCard.owner, organization: editingCard.organization, location: editingCard.location, occasion: editingCard.occasion ?? 'auto' } : {}),
   } : {
     type: options.type ?? 'event', title: '', date: options.date ?? FOCUS_DATE,
-    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: 'You', organization: '', location: '', occasion: 'auto', team: members[0] ?? 'You',
+    context: '', time: '09:00', endTime: '', allDay: true, dueDate: options.date ?? FOCUS_DATE, details: '', owner: eventDefaults?.owner || 'You', organization: eventDefaults?.organization || 'Personal Calendar', location: '', occasion: 'auto', team: members[0] ?? 'You',
   })
   const [error, setError] = useState('')
   const update = <K extends keyof NewCardInput>(key: K, value: NewCardInput[K]) => {

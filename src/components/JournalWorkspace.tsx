@@ -427,10 +427,12 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDelete
   }, [wantsNewTextEntry, notes.length, canEdit])
 
   return <div className="workspace-content journal-workspace-content">
-    {selected ? <><div className="workspace-selector journal-selector"><label htmlFor="journal-entry-select">Journal entry</label><select id="journal-entry-select" value={selected.id} onChange={(event) => onNavigate({ page: 'journal', cardId: event.target.value })}>
-      {[...notes].sort((first, second) => updated(second).getTime() - updated(first).getTime()).map((note) => <option key={note.id} value={note.id}>{displayTitle(note)}</option>)}
-    </select></div>
+    {selected ? <><div className="workspace-control-row">
+      <div className="workspace-selector journal-selector"><label htmlFor="journal-entry-select">Journal entry</label><select id="journal-entry-select" value={selected.id} onChange={(event) => onNavigate({ page: 'journal', cardId: event.target.value })}>
+        {[...notes].sort((first, second) => updated(second).getTime() - updated(first).getTime()).map((note) => <option key={note.id} value={note.id}>{displayTitle(note)}</option>)}
+      </select></div>
       <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
+    </div>
       <JournalHero note={selected} entryCount={notes.length} shared={shared} cloudSaveState={cloudSaveState} />
       <JournalEntrySwitcher notes={notes} selected={selected} onCreate={create} canEdit={canEdit} />
       <div className="workspace-desktop-split journal-workspace-split"><section className="workspace-panel journal-editor-panel"><JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} firestoreUserId={firestoreUserId} canEdit={canEdit} shared={shared} space={space} members={members} currentMember={currentMember} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} /></section>
