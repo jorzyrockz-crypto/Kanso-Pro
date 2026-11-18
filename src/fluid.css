@@ -73,7 +73,8 @@
     .navigation-note { display: block; margin: auto 1rem 0; padding-top: 1.5rem; border-top: 1px solid var(--theme-border, #d5e4ee); color: var(--theme-text-secondary, #59788f); font-family: var(--serif); font-size: 1rem; font-style: italic; line-height: 1.5; }
     .bottom-bar.is-collapsed { gap: 1.25rem; padding-right: .625rem; padding-left: .625rem; }
     .bottom-bar.is-collapsed .sidebar-heading { justify-content: center; }
-    .bottom-bar.is-collapsed .navigation-eyebrow, .bottom-bar.is-collapsed .bottom-nav-link > span { position: absolute; width: .0625rem; height: .0625rem; padding: 0; margin: -.0625rem; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    /* Each navigation icon is wrapped in a span so its unread marker can be positioned reliably. Hide only the text label when collapsed. */
+    .bottom-bar.is-collapsed .navigation-eyebrow, .bottom-bar.is-collapsed .bottom-nav-link > span:not(.bottom-nav-icon) { position: absolute; width: .0625rem; height: .0625rem; padding: 0; margin: -.0625rem; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     .bottom-bar.is-collapsed .bottom-nav-link { justify-content: center; gap: 0; padding: .75rem .5rem; }
     .bottom-bar.is-collapsed .bottom-nav-link.is-active::before { left: -.625rem; }
     .bottom-bar.is-collapsed .navigation-note { display: none; }
