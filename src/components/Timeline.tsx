@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Folder, Landmark, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronDown, ChevronRight, Eye, FileText, Flag, Folder, Landmark, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react'
@@ -12,7 +12,7 @@ import { legislatedActivityIllustration } from '../lib/legislatedActivityVisuals
 import { TimelineCardPreview } from './TimelineCardPreview'
 import { EventContextMenu } from './EventContextMenu'
 import { QuickReactions } from './QuickReactions'
-import { toggleReaction } from '../lib/collaboration'
+import { acknowledgementCount, toggleReaction } from '../lib/collaboration'
 
 function useReveal() {
   const ref = useRef<HTMLElement>(null)
@@ -91,6 +91,16 @@ function CardFrame({ card, className = '', highlight, children, artwork, dispatc
   )
 }
 
+function EventAcknowledgementIndicator({ card, memberName }: { card: EventCard; memberName: string }) {
+  const response = card.acknowledgements?.find((entry) => entry.member === memberName)?.response
+  if (!response) return null
+  const going = response === 'going'
+  const count = acknowledgementCount(card.acknowledgements, response)
+  const label = `You marked this event as ${going ? 'going' : 'noted'}${count > 1 ? `. ${count} people responded ${going ? 'going' : 'noted'}.` : '.'}`
+  const Icon = going ? Check : Eye
+  return <span className={`badge event-acknowledgement-indicator is-${response}`} role="status" aria-label={label} title={label}><Icon size=".6875rem" aria-hidden="true" />{going ? 'Going' : 'Noted'}</span>
+}
+
 function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch, currentMember, canEdit }: { card: EventCard; highlight: boolean; onPreview: () => void; onContextMenu: () => void; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
   const theme = resolveOccasion(card)
   if (theme !== 'none') return (
@@ -99,7 +109,7 @@ function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch,
         <span className="badge occasion-event-badge">{card.holiday ? <Flag size="0.6875rem" /> : <CalendarDays size="0.6875rem" />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
         <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
       </div>
-      <span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span>
+      <div className="event-status-line"><span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
       <div className="occasion-event-copy"><h3>{card.title}</h3>{card.context && <p className="card-caption">{card.context}</p>}</div>
       <div className="card-footer occasion-event-footer"><span><CalendarDays size="0.6875rem" />Connected to Calendar</span><span className="footer-link">Open Schedule<ArrowRight size="0.75rem" /></span></div>
     </CardFrame>
@@ -113,7 +123,7 @@ function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch,
           <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1rem" /></button>
         </div>
       </div>
-      <span className="badge all-day-badge"><CalendarDays size="0.6875rem" />ALL DAY</span>
+      <div className="event-status-line"><span className="badge all-day-badge"><CalendarDays size="0.6875rem" />ALL DAY</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
       <h3>{card.title}</h3>
       <p className="card-caption truncate">{card.context}</p>
       <div className="card-footer holiday-footer">
@@ -125,7 +135,7 @@ function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch,
   return (
     <CardFrame card={card} highlight={highlight} className="standard-event-card" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
       <div className="card-topline event-topline">
-        <span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span>
+        <div className="event-topline-status"><span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
         <div className="person-actions">
           <span className="person-pill"><Avatar name={card.owner} /><span>{card.owner}</span></span>
           <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>

@@ -276,7 +276,12 @@
   .holiday-footer { border-color: rgb(255 255 255 / 19%); color: #d9eeff; font-size: 0.5625rem; margin-top: 0.875rem; }
   .standard-event-card { border-left: 4px solid #3b82f6; }
   .event-topline { gap: 0.3125rem; }
+  .event-topline-status, .event-status-line { display: inline-flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: 0.3125rem; }
   .event-time { flex-shrink: 0; font-size: 0.6875rem; font-weight: 800; color: var(--theme-blue, #3271da); letter-spacing: -0.0125rem; white-space: nowrap; }
+  .event-acknowledgement-indicator { flex: 0 0 auto; border-color: #a8d8c2; background: var(--theme-green-soft, #eaf8f1); color: var(--theme-green, #237a60); font-size: 0.5rem; letter-spacing: 0.025rem; }
+  .event-acknowledgement-indicator.is-noted { border-color: #b8d9e9; background: var(--theme-blue-soft, #eaf5fc); color: var(--theme-blue, #276fa8); }
+  .holiday-card .event-status-line { margin-top: 0.5rem; }
+  .holiday-card .event-acknowledgement-indicator { border-color: rgb(255 255 255 / 22%); background: rgb(9 20 62 / 50%); color: #d8f1ff; }
   .standard-event-card h3 { margin-bottom: 0.9375rem; }
   .standard-event-card:hover h3 { color: var(--theme-blue, #2563eb); }
   .event-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5625rem; }

@@ -21,6 +21,7 @@
   .illustrated-event-card .card-menu { width: 2.75rem; height: 2.75rem; color: #fff; background: rgb(8 20 37 / 55%); border: 1px solid rgb(255 255 255 / 20%); }
   .illustrated-event-card .card-menu:hover { background: #263e56; }
   .occasion-event-time { display: inline-flex; padding: 0.1875rem 0.4375rem; border: 1px solid rgb(255 255 255 / 18%); border-radius: 1.25rem; background: rgb(8 20 37 / 55%); color: #fff; font-size: 0.53125rem; line-height: 1.5; font-weight: 750; letter-spacing: 0.025rem; }
+  .illustrated-event-card .event-acknowledgement-indicator { border-color: rgb(255 255 255 / 20%); background: rgb(8 20 37 / 55%); color: #e4f6ff; }
   .occasion-event-copy { max-width: 74%; margin-top: 0.5625rem; }
   .occasion-event-copy h3 { color: #fff; font-size: 1rem; line-height: 1.5; font-weight: 800; text-shadow: 0 1px 3px rgb(5 17 29 / 25%); }
   .illustrated-event-card:hover h3 { color: #fff; }

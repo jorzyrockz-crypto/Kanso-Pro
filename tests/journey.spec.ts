@@ -248,6 +248,13 @@ test('a long press opens event actions while a normal tap keeps the event previe
     const state = JSON.parse(localStorage.getItem(key)!) as { cards: Array<{ id: string; acknowledgements?: Array<{ member: string; response: string }> }> }
     return state.cards.find((entry) => entry.id === 'evt-oquendo')?.acknowledgements
   }, STORAGE_KEY)).toEqual([{ member: 'You', response: 'going' }])
+  const acknowledgement = eventCard.getByRole('status', { name: 'You marked this event as going.', exact: true })
+  await expect(acknowledgement).toBeVisible()
+  await expect(acknowledgement.locator('svg')).toHaveCount(1)
+
+  await eventCard.getByRole('button', { name: 'Event actions for Faculty Alignment & Curriculum Sync', exact: true }).click()
+  await page.getByRole('button', { name: 'Noted', exact: true }).click()
+  await expect(eventCard.getByRole('status', { name: 'You marked this event as noted.', exact: true })).toBeVisible()
 
   await eventCard.getByRole('button', { name: 'Event actions for Faculty Alignment & Curriculum Sync', exact: true }).click()
   await page.getByRole('button', { name: 'Preview event', exact: true }).click()
