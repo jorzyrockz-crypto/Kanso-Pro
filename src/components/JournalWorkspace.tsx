@@ -405,10 +405,6 @@ function JournalEditor({ note, dispatch, storageAvailable, cloudSaveState, fires
   </section>
 }
 
-function JournalEntrySwitcher({ notes, selected, onCreate, canEdit }: { notes: NoteCard[]; selected: NoteCard; onCreate: (kind: JournalNoteKind) => void; canEdit: boolean }) {
-  return <div className="journal-mobile-switcher"><details><summary><span><span className="eyebrow">Journal entries</span><strong>{displayTitle(selected)}</strong></span><ChevronDown size=".9375rem" aria-hidden="true" /></summary><div className="journal-mobile-switcher-drawer"><NoteList notes={notes} selectedId={selected.id} compact /></div></details><button type="button" className="icon-button" disabled={!canEdit} aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".9375rem" /></button></div>
-}
-
 function JournalEntryBrowser({ notes, selected, firestoreUserId, onCreate, canEdit, shared }: { notes: NoteCard[]; selected: NoteCard; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void; canEdit: boolean; shared: boolean }) {
   return <section className="journal-entry-browser" aria-label="Journal entries"><div className="journal-entry-browser-heading"><div><span className="eyebrow">{shared ? 'Shared notes' : 'Your entries'}</span><h3>{shared ? 'Space Notes' : 'Journal entries'}</h3><span className="count-label">{notes.length} {notes.length === 1 ? 'entry' : 'entries'}</span></div><button type="button" className="icon-button" disabled={!canEdit} aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".8125rem" /></button></div>
     <NoteList notes={notes} selectedId={selected.id} compact />
@@ -446,7 +442,6 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDelete
       <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
     </div>
       <JournalHero note={selected} entryCount={notes.length} shared={shared} cloudSaveState={cloudSaveState} />
-      <JournalEntrySwitcher notes={notes} selected={selected} onCreate={create} canEdit={canEdit} />
       <div className="workspace-desktop-split journal-workspace-split"><section className="workspace-panel journal-editor-panel"><JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} firestoreUserId={firestoreUserId} canEdit={canEdit} shared={shared} space={space} members={members} currentMember={currentMember} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} /></section>
         <aside className="workspace-desktop-aside journal-workspace-aside" aria-label="Journal context"><section className="workspace-insight-card journal-insight-card"><span className="eyebrow"><FileText size={11} />Journal entry</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Entry date</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Category</dt><dd>{selected.category || 'Personal'}</dd></div><div><dt>Tags</dt><dd>{selected.tags.length ? selected.tags.map((tag) => `#${tag}`).join(', ') : 'No tags yet'}</dd></div><div><dt>Reminder</dt><dd>{selected.reminderAt ? formatDate(selected.reminderAt.slice(0, 10), { month: 'short', day: 'numeric' }) : 'No reminder'}</dd></div></dl></section>
           <JournalEntryBrowser notes={notes} selected={selected} firestoreUserId={firestoreUserId} onCreate={create} canEdit={canEdit} shared={shared} />
