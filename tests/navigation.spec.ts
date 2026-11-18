@@ -75,6 +75,21 @@ test('primary navigation stays fixed and reachable in portrait, landscape, and s
   expect(more.height).toBeGreaterThanOrEqual(40)
 })
 
+test('collapsed desktop navigation keeps its page icons available', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 1024 })
+  await page.goto('/')
+  const nav = navigation(page)
+  await page.getByRole('button', { name: 'Collapse navigation sidebar', exact: true }).click()
+  await expect(page.locator('.bottom-bar')).toHaveClass(/is-collapsed/)
+  await expect(nav.locator('.bottom-nav-icon > svg')).toHaveCount(5)
+  const icons = await nav.locator('.bottom-nav-icon > svg').evaluateAll((elements) => elements.map((element) => {
+    const { width, height } = element.getBoundingClientRect()
+    return { width, height, display: getComputedStyle(element).display, visibility: getComputedStyle(element).visibility }
+  }))
+  expect(icons.every((icon) => icon.width > 0 && icon.height > 0 && icon.display !== 'none' && icon.visibility !== 'hidden')).toBe(true)
+  await expect(nav.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible()
+})
+
 test('safe-area changes reserve matching space for page content and keep the footer above the bar', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/journal/note-observation')

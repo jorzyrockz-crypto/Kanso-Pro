@@ -65,7 +65,23 @@ test('Journal keeps the active editor first on phones with a compact entry switc
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.locator('.journal-mobile-switcher')).toBeVisible()
-  await expect(page.getByRole('textbox', { name: 'Your reflection', exact: true })).toBeVisible()
+  const title = page.getByLabel('Note title', { exact: true })
+  const toolbar = page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })
+  const reflection = page.getByRole('textbox', { name: 'Your reflection', exact: true })
+  await expect(title).toBeVisible()
+  await expect(toolbar).toBeVisible()
+  await expect(reflection).toBeVisible()
+  await expect(page.locator('.studio-note-details')).not.toHaveAttribute('open', '')
+  await expect(page.locator('.studio-media-disclosure')).not.toHaveAttribute('open', '')
+  expect(await title.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(await toolbar.evaluate((element) => element.getBoundingClientRect().top))
+  expect(await toolbar.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(await reflection.evaluate((element) => element.getBoundingClientRect().top))
+
+  await page.locator('.studio-note-details > summary').click()
+  await expect(page.getByLabel('Tags, separated by commas', { exact: true })).toBeVisible()
+  await page.locator('.studio-media-disclosure > summary').click()
+  await expect(page.getByRole('button', { name: 'Record voice', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add photo', exact: true })).toBeVisible()
+
   const switcher = page.locator('.journal-mobile-switcher')
   await switcher.locator('summary').click()
   await expect(switcher.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
@@ -76,6 +92,24 @@ test('Journal keeps the active editor first on phones with a compact entry switc
   await expect(page).toHaveURL(/\/journal\/note-/)
   await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-15')
   await expect(page.getByLabel('Your reflection', { exact: true })).toBeFocused()
+})
+
+test('Journal keeps shared-note mentions progressive on phones without removing member mentions', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+
+  await page.getByRole('button', { name: /Switch workspace, current space: Personal Space/ }).click()
+  await page.getByRole('option', { name: /Curriculum Planning/ }).click()
+  await page.goto('/journal')
+
+  const mentions = page.locator('.studio-mention-details')
+  await expect(mentions).not.toHaveAttribute('open', '')
+  await mentions.locator('summary').click()
+  await expect(mentions).toHaveAttribute('open', '')
+  const colleague = mentions.getByRole('button', { name: '@J. Santos', exact: true })
+  await expect(colleague).toBeVisible()
+  await colleague.click()
+  await expect(page.getByRole('textbox', { name: 'Your reflection', exact: true })).toContainText('@J. Santos')
 })
 
 test('Journal aligns its hero and desktop work/context split with Tasks and Projects', async ({ page }) => {
@@ -97,7 +131,8 @@ test('Journal aligns its hero and desktop work/context split with Tasks and Proj
 
   await page.setViewportSize({ width: 768, height: 1024 })
   await page.goto('/journal/note-lesson')
-  await expect(page.locator('.studio-note-details')).toHaveAttribute('open', '')
+  await expect(page.locator('.studio-note-details')).not.toHaveAttribute('open', '')
+  await expect(page.locator('.studio-media-disclosure')).not.toHaveAttribute('open', '')
   await expect(page.locator('.journal-mobile-switcher')).toBeVisible()
   expect(await page.locator('.journal-editor-detail').evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(650)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

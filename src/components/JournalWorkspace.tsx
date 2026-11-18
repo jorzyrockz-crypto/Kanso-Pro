@@ -117,10 +117,10 @@ function localDate() {
 }
 
 function MetadataFields({ note, dispatch, canEdit }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; canEdit: boolean }) {
-  // On a phone the writing surface should appear in the first viewport; supporting fields remain one tap away.
-  const [open, setOpen] = useState(() => !window.matchMedia('(max-width: 767px)').matches)
+  // In the compact Journal layout the writing surface should appear first; supporting fields remain one tap away.
+  const [open, setOpen] = useState(() => !window.matchMedia('(max-width: 1080px)').matches)
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
-  return <details className="studio-note-details" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}><summary>Entry details</summary><div className="journal-metadata-fields">
+  return <details className="studio-note-details" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}><summary><span>Entry details</span><small>Tags, category & reminder</small><ChevronDown size=".8125rem" aria-hidden="true" /></summary><div className="journal-metadata-fields">
     <label><Tag size=".75rem" />Tags<input aria-label="Tags, separated by commas" disabled={!canEdit} value={note.tags.join(', ')} placeholder="e.g. personal, ideas" onChange={(event) => update({ tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12) })} /></label>
     <label><span aria-hidden="true">⌂</span>Category<select aria-label="Note category" disabled={!canEdit} value={note.category ?? 'Personal'} onChange={(event) => update({ category: event.target.value })}>{categoryOptions.map((category) => <option key={category}>{category}</option>)}</select></label>
     <label><Clock3 size=".75rem" />Reminder<input aria-label="Note reminder" type="datetime-local" disabled={!canEdit} value={note.reminderAt ?? ''} onChange={(event) => update({ reminderAt: event.target.value })} /></label>
@@ -254,6 +254,8 @@ function StudioRecorder({ note, onSaved, onClose }: { note: NoteCard; onSaved: (
 
 function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, canEdit, space }: { note: NoteCard; firestoreUserId: string | null; onAddAttachment: (attachment: JournalAttachment) => void; onEmbed: (attachment: JournalAttachment) => void; canEdit: boolean; space: Pick<Space, 'id' | 'kind'> }) {
   const fileInput = useRef<HTMLInputElement>(null)
+  // Keep the full tray visible in the desktop workspace; compact layouts use a one-line disclosure until it is needed.
+  const [open, setOpen] = useState(() => note.noteKind === 'voice' || !window.matchMedia('(max-width: 1080px)').matches)
   const [recorderOpen, setRecorderOpen] = useState(note.noteKind === 'voice')
   const [message, setMessage] = useState('')
   const [dropActive, setDropActive] = useState(false)
@@ -284,25 +286,30 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
     else setMessage('Drop an image file to add it to this journal entry.')
   }
   const attachments = allAttachments(note)
-  return <section className="studio-media-tools" aria-labelledby="studio-attachments-title">
-    <div className="studio-media-heading"><div><span className="eyebrow">Capture tray</span><h2 id="studio-attachments-title">Voice memos & photos</h2></div><div className="studio-media-actions"><button type="button" className="button button-soft" disabled={!canEdit} onClick={() => setRecorderOpen((open) => !open)}><Mic size=".8125rem" />{recorderOpen ? 'Hide recorder' : 'Record voice'}</button><button type="button" className="button button-soft" disabled={!firestoreUserId || !canEdit} title={firestoreUserId ? 'Add a photo' : 'Sign in with Google to add a photo'} onClick={chooseImage}><Camera size=".8125rem" />Add photo</button></div></div>
-    <input ref={fileInput} className="sr-only" aria-label="Choose a photo to attach" type="file" accept="image/*" capture="environment" onChange={onFile} />
-    <div className="studio-mobile-capture" aria-label="Quick capture"><button type="button" aria-label="Quick record voice" disabled={!canEdit} onClick={() => setRecorderOpen((open) => !open)}><Mic size=".875rem" />Voice</button><button type="button" aria-label="Quick add photo" disabled={!firestoreUserId || !canEdit} onClick={chooseImage}><Camera size=".875rem" />Photo</button></div>
-    {recorderOpen && <StudioRecorder note={note} onSaved={onAddAttachment} onClose={() => setRecorderOpen(false)} />}
-    <div className={`studio-photo-dropzone ${dropActive ? 'is-dragging' : ''} ${firestoreUserId ? '' : 'is-disabled'}`} onDragOver={(event) => { event.preventDefault(); if (firestoreUserId) setDropActive(true) }} onDragLeave={() => setDropActive(false)} onDrop={onDrop}>
-      <ImagePlus size="1rem" /><span>{firestoreUserId ? 'Drop a photo here, or use Add photo. Images are optimized before private Firestore storage.' : 'Google sign-in is required for private Firestore photo journal entries.'}</span>
-    </div>
-    {attachments.length > 0 && <div className="studio-attachment-list">{attachments.map((attachment) => <AttachmentTile key={attachment.id} attachment={attachment} firestoreUserId={firestoreUserId} onEmbed={onEmbed} space={space} />)}</div>}
-    {message && <p className="journal-attachment-feedback" role="status">{message}</p>}
+  return <section className="studio-media-tools" aria-label="Capture tray">
+    <details className="studio-media-disclosure" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}>
+      <summary><span><span className="eyebrow">Capture</span><strong>Voice memo & photo</strong></span><ChevronDown size=".875rem" aria-hidden="true" /></summary>
+      <div className="studio-media-content">
+        <div className="studio-media-heading"><div><span className="eyebrow">Capture tray</span><h2>Voice memos & photos</h2></div><div className="studio-media-actions"><button type="button" className="button button-soft" disabled={!canEdit} onClick={() => setRecorderOpen((visible) => !visible)}><Mic size=".8125rem" />{recorderOpen ? 'Hide recorder' : 'Record voice'}</button><button type="button" className="button button-soft" disabled={!firestoreUserId || !canEdit} title={firestoreUserId ? 'Add a photo' : 'Sign in with Google to add a photo'} onClick={chooseImage}><Camera size=".8125rem" />Add photo</button></div></div>
+        <input ref={fileInput} className="sr-only" aria-label="Choose a photo to attach" type="file" accept="image/*" capture="environment" onChange={onFile} />
+        {recorderOpen && <StudioRecorder note={note} onSaved={onAddAttachment} onClose={() => setRecorderOpen(false)} />}
+        <div className={`studio-photo-dropzone ${dropActive ? 'is-dragging' : ''} ${firestoreUserId ? '' : 'is-disabled'}`} onDragOver={(event) => { event.preventDefault(); if (firestoreUserId) setDropActive(true) }} onDragLeave={() => setDropActive(false)} onDrop={onDrop}>
+          <ImagePlus size="1rem" /><span>{firestoreUserId ? 'Drop a photo here, or use Add photo. Images are optimized before private Firestore storage.' : 'Google sign-in is required for private Firestore photo journal entries.'}</span>
+        </div>
+        {attachments.length > 0 && <div className="studio-attachment-list">{attachments.map((attachment) => <AttachmentTile key={attachment.id} attachment={attachment} firestoreUserId={firestoreUserId} onEmbed={onEmbed} space={space} />)}</div>}
+        {message && <p className="journal-attachment-feedback" role="status">{message}</p>}
+      </div>
+    </details>
   </section>
 }
-
 function StudioTool({ label, children, onClick, disabled = false }: { label: string; children: ReactNode; onClick: () => void; disabled?: boolean }) {
   return <button type="button" className="studio-tool" aria-label={label} title={label} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={onClick}>{children}</button>
 }
 
 function StudioRichEditor({ note, dispatch, firestoreUserId, canEdit, space, members, currentMember }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; firestoreUserId: string | null; canEdit: boolean; space: Pick<Space, 'id' | 'kind'>; members: SpaceMember[]; currentMember: SpaceMember }) {
   const editor = useRef<HTMLDivElement>(null)
+  // Shared-note mentions are supportive controls, so keep them tucked away in the compact Journal layout until needed.
+  const [mentionsOpen, setMentionsOpen] = useState(() => !window.matchMedia('(max-width: 1080px)').matches)
   const storedRichText = sanitizeJournalRichText(note.richText ?? initialJournalRichText(note.body))
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   useEffect(() => {
@@ -364,7 +371,7 @@ function StudioRichEditor({ note, dispatch, firestoreUserId, canEdit, space, mem
       <StudioTool label="Bold" onClick={() => command('bold')}><Bold size=".8125rem" /></StudioTool><StudioTool label="Italic" onClick={() => command('italic')}><Italic size=".8125rem" /></StudioTool><StudioTool label="Underline" onClick={() => command('underline')}><Underline size=".8125rem" /></StudioTool><StudioTool label="Highlight" onClick={() => command('hiliteColor', '#fff0a8')}><Highlighter size=".8125rem" /></StudioTool><span className="studio-toolbar-divider" aria-hidden="true" />
       <StudioTool label="Heading 1" onClick={() => formatBlock('h1')}><Heading1 size=".8125rem" /></StudioTool><StudioTool label="Heading 2" onClick={() => formatBlock('h2')}><Heading2 size=".8125rem" /></StudioTool><StudioTool label="Quote" onClick={() => formatBlock('blockquote')}><Quote size=".8125rem" /></StudioTool><StudioTool label="Bulleted list" onClick={() => command('insertUnorderedList')}><List size=".8125rem" /></StudioTool><StudioTool label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered size=".8125rem" /></StudioTool><StudioTool label="Checklist" onClick={addChecklist}><ListChecks size=".8125rem" /></StudioTool><StudioTool label="Code block" onClick={() => formatBlock('pre')}><Code2 size=".8125rem" /></StudioTool><StudioTool label="Add link" onClick={addLink}><Link2 size=".8125rem" /></StudioTool><StudioTool label="Clear formatting" onClick={() => { command('removeFormat'); formatBlock('p') }}><Eraser size=".8125rem" /></StudioTool>
     </div>
-    {space.kind === 'shared' && <div className="studio-mention-row" aria-label="Mention a Space member"><span>Notify</span>{members.filter((member) => member.name !== currentMember.name).slice(0, 5).map((member) => <button type="button" disabled={!canEdit} key={member.id} onClick={() => mention(member.name)}>@{member.name}</button>)}</div>}
+    {space.kind === 'shared' && <details className="studio-mention-details" open={mentionsOpen} onToggle={(event) => setMentionsOpen((event.currentTarget as HTMLDetailsElement).open)}><summary><span>Notify people</span><small>Mention a Space member</small><ChevronDown size=".8125rem" aria-hidden="true" /></summary><div className="studio-mention-row" aria-label="Mention a Space member"><span>Notify</span>{members.filter((member) => member.name !== currentMember.name).slice(0, 5).map((member) => <button type="button" disabled={!canEdit} key={member.id} onClick={() => mention(member.name)}>@{member.name}</button>)}</div></details>}
     <div ref={editor} id="journal-body" className="studio-rich-editor" contentEditable={canEdit} role="textbox" aria-label="Your reflection" aria-multiline="true" data-placeholder="Write your reflection, capture a decision, or build a checklist…" suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: storedRichText }} onInput={commit} onBlur={commit} onPaste={onPaste} onDrop={onEditorDrop} onClick={onEditorClick} />
     <StudioMediaTools note={note} firestoreUserId={firestoreUserId} onAddAttachment={addAttachment} onEmbed={embed} canEdit={canEdit} space={space} />
   </>

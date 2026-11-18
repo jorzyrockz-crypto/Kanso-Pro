@@ -366,7 +366,7 @@ function DesktopPlanningRail({ cards, today, rolloverCandidates, dispatch, onCom
   }
 
   return <aside className="desktop-planning-rail" aria-label="Desktop planning summary">
-    <div className="desktop-rail-heading"><span className="eyebrow">Planning desk</span><h2>At a glance</h2><p>Keep the next decision close while you move through your timeline.</p></div>
+    <div className="desktop-rail-heading"><span className="desktop-rail-heading-mark" aria-hidden="true"><CalendarDays size="1.125rem" /></span><div><span className="eyebrow">Planning desk</span><h2>At a glance</h2><p>Keep the next decision close while you move through your timeline.</p></div></div>
     <section className="desktop-rail-section" aria-labelledby="desktop-today-title">
       <div className="desktop-rail-section-heading"><span className="desktop-rail-section-icon"><CalendarDays size=".8125rem" /></span><div><span>Today</span><h3 id="desktop-today-title">{formatDate(today, { weekday: 'long', month: 'short', day: 'numeric' })}</h3></div></div>
       {todayCards.length ? <div className="desktop-rail-list">{todayCards.slice(0, 3).map((card) => <DesktopRailItem key={card.id} card={card} detail={card.type === 'task' ? taskDetail(card) : card.type === 'project' ? `Project due · ${progress(card.subtasks).percent}% complete` : formatTime(card.time) || 'All-day event'} />)}</div> : <p className="desktop-rail-empty">No personal cards scheduled. Keep the space open or add what matters.</p>}
