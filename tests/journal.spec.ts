@@ -18,6 +18,9 @@ test('Journal opens directly into its task/project-style workspace and creates t
   await expect(entries.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
   await expect(page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'View on timeline', exact: true })).toBeVisible()
+  const titleRow = page.locator('.journal-title-row')
+  await expect(page.locator('.journal-detail-topbar')).toHaveCount(0)
+  await expect(titleRow.getByRole('button', { name: 'Delete journal entry', exact: true })).toBeVisible()
   await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('Classroom Observation Reflections & Peer Feedback')
   await expect(page.locator('.studio-back-to-notes')).toHaveCount(0)
 
@@ -59,14 +62,15 @@ test('Journal creates and selects today’s blank entry when no entries exist', 
   await expect(page.locator('.journal-hero .hero-stat')).toContainText('1')
 })
 
-test('Journal keeps the active editor first on phones with a compact entry switcher and contextual details', async ({ page }) => {
+test('Journal keeps the active editor first on phones without a duplicate entry switcher', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') })
   await page.goto('/journal')
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await expect(page.locator('.journal-mobile-switcher')).toBeVisible()
+  await expect(page.locator('.journal-mobile-switcher')).toHaveCount(0)
+  await expect(page.getByLabel('Journal entry', { exact: true })).toBeVisible()
   const title = page.getByLabel('Note title', { exact: true })
   const toolbar = page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })
   const reflection = page.getByRole('textbox', { name: 'Your reflection', exact: true })
@@ -84,16 +88,7 @@ test('Journal keeps the active editor first on phones with a compact entry switc
   await expect(page.getByRole('button', { name: 'Record voice', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Add photo', exact: true })).toBeVisible()
 
-  const switcher = page.locator('.journal-mobile-switcher')
-  await switcher.locator('summary').click()
-  await expect(switcher.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
-  await expect(switcher.getByRole('link', { name: /Open Text journal entry:/ }).first()).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-
-  await switcher.getByRole('button', { name: 'Create text journal entry', exact: true }).click()
-  await expect(page).toHaveURL(/\/journal\/note-/)
-  await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-15')
-  await expect(page.getByLabel('Your reflection', { exact: true })).toBeFocused()
 })
 
 test('Journal composer stays fluid across phone, tablet, laptop, and desktop widths', async ({ page }) => {
@@ -139,7 +134,8 @@ test('Journal keeps shared-note mentions progressive on phones without removing 
   await page.getByRole('option', { name: /Curriculum Planning/ }).click()
   await page.goto('/journal')
 
-  await expect(page.getByText('Shared Space Note', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Space Notes studio', { exact: true })).toBeVisible()
+  await expect(page.locator('.journal-detail-topbar')).toHaveCount(0)
   const mentions = page.locator('.studio-mention-details')
   await expect(mentions).not.toHaveAttribute('open', '')
   await mentions.locator('summary').click()
@@ -158,6 +154,11 @@ test('Journal aligns its hero and desktop work/context split with Tasks and Proj
   expect(await journalHero.getByRole('heading').evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))).toBeLessThan(22)
   const journalBox = await journalHero.boundingBox()
   const journalEditor = page.locator('.journal-editor-panel')
+  const title = page.getByLabel('Note title', { exact: true })
+  expect(await title.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(24)
+  expect((await page.locator('.journal-title-row').boundingBox())!.height).toBeLessThan(120)
+  const writingSurface = page.locator('.studio-rich-editor')
+  expect((await writingSurface.boundingBox())!.height).toBeLessThan(320)
   const journalContext = page.getByRole('complementary', { name: 'Journal context', exact: true })
   await expect(journalContext.getByRole('heading', { name: 'At a glance', exact: true })).toBeVisible()
   expect((await journalEditor.boundingBox())!.x + (await journalEditor.boundingBox())!.width).toBeLessThanOrEqual((await journalContext.boundingBox())!.x)
@@ -172,7 +173,8 @@ test('Journal aligns its hero and desktop work/context split with Tasks and Proj
   await page.goto('/journal/note-lesson')
   await expect(page.locator('.studio-note-details')).not.toHaveAttribute('open', '')
   await expect(page.locator('.studio-media-disclosure')).not.toHaveAttribute('open', '')
-  await expect(page.locator('.journal-mobile-switcher')).toBeVisible()
+  await expect(page.locator('.journal-mobile-switcher')).toHaveCount(0)
+  await expect(page.getByLabel('Journal entry', { exact: true })).toBeVisible()
   expect(await page.locator('.journal-editor-detail').evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(650)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })

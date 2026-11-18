@@ -70,6 +70,7 @@ function isCard(value: unknown): value is JourneyCard {
     || !['left', 'right'].includes(String(card.side)) || !isString(card.context)
     || (card.quiet !== undefined && typeof card.quiet !== 'boolean')
     || (card.backlog !== undefined && typeof card.backlog !== 'boolean')
+    || (card.pinned !== undefined && typeof card.pinned !== 'boolean')
     || (card.isCustom !== undefined && typeof card.isCustom !== 'boolean')
     || (card.authoredBy !== undefined && !isString(card.authoredBy))
     || (card.lastEditedBy !== undefined && !isString(card.lastEditedBy))

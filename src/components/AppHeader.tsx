@@ -6,6 +6,7 @@ import type { AppearanceController } from '../lib/useAppearance'
 import type { AccountController } from '../lib/useAccount'
 import type { NotificationsController } from '../lib/useNotifications'
 import type { Space, SpaceActivity, SpaceColor, SpaceIcon, SpaceMember, SpaceRole } from '../types'
+import { appAssetPath } from '../lib/appBase'
 import { useChromeHeight } from '../lib/useChromeHeight'
 import { MoreMenu } from './ProfileMenu'
 import { NotificationMenu } from './NotificationMenu'
@@ -14,7 +15,7 @@ import { SpaceGlyph, spaceAccentStyle } from './SpaceVisual'
 import { WorkspaceSettingsDialog } from './WorkspaceSettingsDialog'
 
 export function KansoMark({ size = 24 }: { size?: number }) {
-  return <img className="kanso-icon" src="/icons/icon-96.png" width={size} height={size} alt="" aria-hidden="true" decoding="async" />
+  return <img className="kanso-icon" src={appAssetPath('icons/icon-96.png')} width={size} height={size} alt="" aria-hidden="true" decoding="async" />
 }
 
 const modeDetails = {

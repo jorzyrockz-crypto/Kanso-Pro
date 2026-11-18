@@ -4,14 +4,45 @@ import { join, relative, resolve } from 'node:path'
 import type { Plugin } from 'vite'
 
 /** Small, dependency-free app-shell precache. Hash the actual build, not a manual version. */
+function scopedCacheNamespace(base: string) {
+  if (base === '/') return 'root'
+  // A readable directory name alone can collide (for example /team-a/ and /team/a/).
+  // Retain it for diagnostics and append a path hash so two project sites never reuse caches.
+  const label = base.slice(1, -1).replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'site'
+  const identity = createHash('sha256').update(base).digest('hex').slice(0, 12)
+  return `${label}-${identity}`
+}
+
+function appUrl(base: string, path: string) {
+  return `${base}${path.replace(/^\/+/, '')}`
+}
+
+function writeManifestForBase(output: string, base: string) {
+  const manifestPath = join(output, 'manifest.webmanifest')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    id?: string
+    start_url?: string
+    scope?: string
+    icons?: Array<{ src: string }>
+    shortcuts?: Array<{ url: string }>
+  }
+  manifest.id = base
+  manifest.start_url = base
+  manifest.scope = base
+  manifest.icons = manifest.icons?.map((icon) => ({ ...icon, src: appUrl(base, icon.src) }))
+  manifest.shortcuts = manifest.shortcuts?.map((shortcut) => ({ ...shortcut, url: appUrl(base, shortcut.url) }))
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+}
+
 export function kansoPwa(): Plugin {
   let root = ''
   let output = ''
+  let base = '/'
   return {
     name: 'kanso-pwa',
     apply: 'build',
     configResolved(config) {
-      root = config.root; output = resolve(root, config.build.outDir)
+      root = config.root; output = resolve(root, config.build.outDir); base = config.base.endsWith('/') ? config.base : `${config.base}/`
       const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
       const notes = JSON.parse(readFileSync(join(root, 'src/lib/whats-new.json'), 'utf8'))
       if (notes[0]?.version !== version || !notes[0]?.title || !notes[0]?.changes?.length) throw new Error('Add a matching, non-empty What’s new entry when changing the release version.')
@@ -23,8 +54,9 @@ export function kansoPwa(): Plugin {
       })
       const assets = files(output).filter((path) => !path.endsWith('/sw.js') && !path.endsWith('.map')).sort()
       const hash = createHash('sha256')
+      hash.update(base)
       const urls = assets.map((path) => {
-        const url = `/${relative(output, path).split('\\').join('/')}`
+        const url = appUrl(base, relative(output, path).split('\\').join('/'))
         hash.update(url).update(readFileSync(path))
         return url
       })
@@ -35,11 +67,15 @@ export function kansoPwa(): Plugin {
       const appVersion = `${version}+${id}`
       const index = join(output, 'index.html')
       writeFileSync(index, readFileSync(index, 'utf8').replace('__KANSO_APP_VERSION__', appVersion))
-      const worker = template.replace('__BUILD_ID__', id)
+      writeManifestForBase(output, base)
+      const worker = template.replace('__CACHE_PREFIX__', `kanso-pro-shell-${scopedCacheNamespace(base)}-`)
+        .replace('__APP_BASE_PATH__', base)
+        .replace('__APP_INDEX_URL__', appUrl(base, 'index.html'))
+        .replace('__BUILD_ID__', id)
         .replace('__APP_VERSION__', appVersion)
         .replace('__PRECACHE_URLS__', JSON.stringify(urls))
       writeFileSync(join(output, 'sw.js'), worker)
-      console.info(`PWA: ${urls.length} local app-shell assets prepared for offline use.`)
+      console.info(`PWA: ${urls.length} local app-shell assets prepared for offline use at ${base}.`)
     },
   }
 }

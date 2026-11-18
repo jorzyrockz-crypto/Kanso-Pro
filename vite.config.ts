@@ -12,7 +12,18 @@ function sourceRef() {
   catch { return 'main' }
 }
 
+/** Keep a project-site build inside its own GitHub Pages directory and worker scope. */
+function appBasePath() {
+  const requested = process.env.VITE_APP_BASE_PATH?.trim()
+  if (!requested || requested === '/') return '/'
+  if (!requested.startsWith('/') || requested.startsWith('//') || /[\\?#]/.test(requested)) throw new Error('VITE_APP_BASE_PATH must be a path such as /Kanso-Pro/.')
+  const segments = requested.split('/').filter(Boolean)
+  if (!segments.length || segments.some((segment) => !/^[a-z0-9._~-]+$/i.test(segment) || segment === '.' || segment === '..')) throw new Error('VITE_APP_BASE_PATH must be a URL-safe absolute path.')
+  return `/${segments.join('/')}/`
+}
+
 export default defineConfig({
+  base: appBasePath(),
   plugins: [react(), kansoPwa(), {
     name: 'kanso-appearance-before-paint',
     transformIndexHtml: {

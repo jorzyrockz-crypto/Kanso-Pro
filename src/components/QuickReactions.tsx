@@ -1,5 +1,13 @@
+import { CircleCheck, Eye, ThumbsUp } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { QuickReaction, ReactionEmoji } from '../types'
 import { REACTION_EMOJIS, reactionCount } from '../lib/collaboration'
+
+const reactionVisuals: Record<ReactionEmoji, { label: string; tone: 'like' | 'complete' | 'seen'; Icon: LucideIcon }> = {
+  '👍': { label: 'Like', tone: 'like', Icon: ThumbsUp },
+  '✅': { label: 'Complete', tone: 'complete', Icon: CircleCheck },
+  '👀': { label: 'Seen', tone: 'seen', Icon: Eye },
+}
 
 export function QuickReactions({ reactions, memberName, onReact, disabled = false, label = 'Quick reactions', compact = false }: {
   reactions?: QuickReaction[]
@@ -13,7 +21,9 @@ export function QuickReactions({ reactions, memberName, onReact, disabled = fals
     {REACTION_EMOJIS.map((emoji) => {
       const count = reactionCount(reactions, emoji)
       const reacted = reactions?.some((reaction) => reaction.member === memberName && reaction.emoji === emoji) ?? false
-      return <button key={emoji} type="button" disabled={disabled} className={reacted ? 'is-reacted' : ''} aria-pressed={reacted} aria-label={`${reacted ? 'Remove' : 'Add'} ${emoji} reaction${count ? `, ${count} total` : ''}`} onClick={() => onReact(emoji)}><span aria-hidden="true">{emoji}</span>{count > 0 && <small>{count}</small>}</button>
+      const { Icon, label: reactionLabel, tone } = reactionVisuals[emoji]
+      const actionLabel = `${reacted ? 'Remove' : 'Add'} ${reactionLabel} reaction${count ? `, ${count} total` : ''}`
+      return <button key={emoji} type="button" disabled={disabled} className={reacted ? 'is-reacted' : ''} data-reaction={tone} aria-pressed={reacted} aria-label={actionLabel} title={actionLabel} onClick={() => onReact(emoji)}><Icon size=".875rem" aria-hidden="true" />{count > 0 && <small>{count}</small>}</button>
     })}
   </div>
 }

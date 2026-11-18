@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { APPEARANCE_STORAGE_KEY, serializeColorMode } from '../src/lib/appearance'
-import type { ColorMode } from '../src/lib/appearance'
+import { APPEARANCE_STORAGE_KEY, serializeAppearancePreferences, serializeColorMode } from '../src/lib/appearance'
+import type { BackgroundGradient, ColorMode } from '../src/lib/appearance'
 import { LEGACY_STORAGE_KEY, STORAGE_KEY, createInitialState } from '../src/data'
 import { MONTH_SCENES } from '../src/lib/months'
 import { mockFirebase } from './helpers/firebase'
@@ -11,6 +11,7 @@ import type { FirebaseHarness } from './helpers/firebase'
 test.use({ timezoneId: 'UTC', colorScheme: 'light' })
 const root = (page: Page) => page.locator('html')
 const mode = (page: Page, label: 'Light' | 'Dark' | 'Auto') => page.getByRole('radio', { name: label, exact: true })
+const background = (page: Page, label: 'Sky' | 'Dawn' | 'Lagoon' | 'Twilight') => page.getByRole('radio', { name: label, exact: true })
 const saved = (page: Page) => page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)
 const audit = async (page: Page) => {
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
@@ -18,6 +19,9 @@ const audit = async (page: Page) => {
 }
 async function seedMode(page: Page, value: ColorMode) {
   await page.addInitScript(({ key, raw }) => { localStorage.setItem(key, raw) }, { key: APPEARANCE_STORAGE_KEY, raw: serializeColorMode(value) })
+}
+async function seedAppearance(page: Page, mode: ColorMode, selectedBackground: BackgroundGradient) {
+  await page.addInitScript(({ key, raw }) => { localStorage.setItem(key, raw) }, { key: APPEARANCE_STORAGE_KEY, raw: serializeAppearancePreferences({ mode, background: selectedBackground }) })
 }
 async function expectScheme(page: Page, scheme: 'light' | 'dark', preference?: ColorMode) {
   await expect(root(page)).toHaveAttribute('data-theme', scheme)
@@ -57,10 +61,12 @@ for (const system of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: system })
     await page.goto('/settings#appearance')
     await expect(mode(page, 'Auto')).toBeChecked()
+    await expect(background(page, 'Sky')).toBeChecked()
+    await expect(root(page)).toHaveAttribute('data-background', 'sky')
     await expectScheme(page, system, 'auto')
     await expectSurface(page, '.settings-section, .topbar, .bottom-navigation', system)
     await expect(page.getByRole('group', { name: 'Color mode', exact: true })).toContainText('including when it changes')
-    await expect(page.getByRole('switch')).toHaveCount(0)
+    await expect(page.locator('#appearance').getByRole('switch')).toHaveCount(0)
     await expect(page.locator('.appearance-status')).toHaveText(`Auto · ${system === 'dark' ? 'Dark' : 'Light'} appearance on this device`)
     expect(JSON.parse((await saved(page))!).cards).toHaveLength(8)
     expect(Object.keys(JSON.parse((await saved(page))!)).sort()).toEqual(['bezel', 'cards', 'version'])
@@ -97,8 +103,29 @@ test('Auto responds live while explicit modes ignore device changes and restore 
   expect(await saved(page)).toBe(before)
 })
 
-test('the saved scheme is applied in the head before React, with no light-first render', async ({ page }) => {
-  await seedMode(page, 'dark')
+test('gradient selections update the canvas, persist across reloads, and sync without changing the color mode', async ({ page, context }) => {
+  await page.goto('/settings#appearance')
+  await background(page, 'Lagoon').check()
+  await expect(root(page)).toHaveAttribute('data-background', 'lagoon')
+  await expect(mode(page, 'Auto')).toBeChecked()
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), APPEARANCE_STORAGE_KEY)).toEqual({ version: 2, mode: 'auto', background: 'lagoon' })
+  const lagoonCanvas = await page.locator('body').evaluate((element) => getComputedStyle(element).backgroundImage)
+  expect(lagoonCanvas).toContain('rgba(167, 243, 232, 0.68)')
+  await page.reload()
+  await expect(background(page, 'Lagoon')).toBeChecked()
+  await expect(root(page)).toHaveAttribute('data-background', 'lagoon')
+
+  const other = await context.newPage()
+  await other.goto('/settings#appearance')
+  await background(other, 'Twilight').check()
+  await expect(root(page)).toHaveAttribute('data-background', 'twilight')
+  await expect(background(page, 'Twilight')).toBeChecked()
+  await expect(mode(page, 'Auto')).toBeChecked()
+  await other.close()
+})
+
+test('the saved gradient and scheme are applied in the head before React, with no light-first render', async ({ page }) => {
+  await seedAppearance(page, 'dark', 'twilight')
   let release!: () => void
   const gate = new Promise<void>((resolve) => { release = resolve })
   await page.route('**/src/main.tsx*', async (route) => { await gate; await route.continue() })
@@ -106,7 +133,8 @@ test('the saved scheme is applied in the head before React, with no light-first 
     await page.goto('/sign-in', { waitUntil: 'commit' })
     await expect(root(page)).toHaveAttribute('data-theme', 'dark')
     await expect(root(page)).toHaveAttribute('data-color-mode', 'dark')
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0c1724')
+    await expect(root(page)).toHaveAttribute('data-background', 'twilight')
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#211d42')
     await expect(page.locator('#root')).toBeEmpty()
     // Wait for body parsing; Vite can append an HMR cache-busting query to src.
     await expect(page.locator('script[type="module"][src^="/src/main.tsx"]')).toHaveCount(1)
@@ -117,7 +145,9 @@ test('the saved scheme is applied in the head before React, with no light-first 
     expect(order).toBe(true)
   } finally { release() }
   await expect(page.getByRole('heading', { name: 'Welcome back.', exact: true })).toBeVisible()
-  await expectScheme(page, 'dark', 'dark')
+  await expect(root(page)).toHaveAttribute('data-theme', 'dark')
+  await expect(root(page)).toHaveAttribute('data-background', 'twilight')
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#211d42')
 })
 
 test('same-origin tabs update open composer, journal, and sign-in fields without remounting or losing input', async ({ page, context }) => {
@@ -154,7 +184,7 @@ test('same-origin tabs update open composer, journal, and sign-in fields without
   await expect(page.getByLabel('Password', { exact: true })).toHaveValue('not-submitted-passphrase')
   expect(await saved(page)).toBe(edited)
   const setting = await page.evaluate((key) => localStorage.getItem(key), APPEARANCE_STORAGE_KEY)
-  expect(JSON.parse(setting!)).toEqual({ version: 1, mode: 'light' })
+  expect(JSON.parse(setting!)).toEqual({ version: 2, mode: 'light', background: 'sky' })
   expect(setting).not.toMatch(/draft@example|Night planner|passphrase/)
   expect(firebase.requests).toHaveLength(0)
   await other.close()
@@ -237,6 +267,10 @@ test('the color radio group supports native keyboard navigation and a visible se
   await expect(mode(page, 'Auto')).toBeChecked()
   await page.keyboard.press('Tab')
   await expect(mode(page, 'Auto')).not.toBeFocused()
+  await expect(background(page, 'Sky')).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+  await expect(background(page, 'Dawn')).toBeChecked()
+  await expect(root(page)).toHaveAttribute('data-background', 'dawn')
   expect(firebase.requests).toHaveLength(0)
 })
 
@@ -372,7 +406,7 @@ test('dark mode retains responsive touch targets, motion/contrast preferences, f
   await expect(mode(page, 'Dark')).toBeChecked()
   await page.emulateMedia({ forcedColors: 'none', media: 'print' })
   await expect(page.locator('.topbar:visible, .bottom-bar:visible')).toHaveCount(0)
-  await expect(page.locator('.appearance-options')).toBeHidden()
+  for (const options of await page.locator('.appearance-options').all()) await expect(options).toBeHidden()
   expect(await root(page).evaluate((element) => getComputedStyle(element).colorScheme)).toBe('light')
   expect(await page.locator('.settings-section').first().evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 255, 255)')
   await page.emulateMedia({ media: 'screen' })

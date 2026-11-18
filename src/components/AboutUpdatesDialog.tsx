@@ -1,5 +1,6 @@
 import { CheckCircle2, Github, RefreshCw, Share2, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
+import { appAssetPath, appBasePath } from '../lib/appBase'
 import type { PwaController } from '../lib/usePwa'
 import releases from '../lib/whats-new.json'
 
@@ -50,7 +51,7 @@ export function AboutUpdatesDialog({ open, onClose, pwa, justUpdated = false }: 
   if (!open) return null
 
   const share = async () => {
-    const url = window.location.origin
+    const url = new URL(appBasePath(), window.location.origin).href
     try {
       if (navigator.share) await navigator.share({ title: 'Kanso Pro', text: 'A calm planning space for the things that matter.', url })
       else if (navigator.clipboard?.writeText) {
@@ -69,7 +70,7 @@ export function AboutUpdatesDialog({ open, onClose, pwa, justUpdated = false }: 
   return <div className="about-updates-backdrop" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section ref={dialogRef} className="about-updates-dialog" role="dialog" aria-modal="true" aria-labelledby={headingId} aria-describedby={descriptionId}>
       <div className="about-updates-banner">
-        <img src="/images/kanso-pro-web-banner.jpg" alt="Kanso Pro across desktop and mobile" />
+        <img src={appAssetPath('images/kanso-pro-web-banner.jpg')} alt="Kanso Pro across desktop and mobile" />
         <button ref={closeRef} type="button" className="about-updates-close" aria-label="Close About and what’s new" onClick={onClose}><X size="1rem" aria-hidden="true" /></button>
       </div>
       <div className="about-updates-body">

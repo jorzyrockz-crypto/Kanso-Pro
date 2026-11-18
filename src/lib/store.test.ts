@@ -62,6 +62,15 @@ describe('the single journey store', () => {
     expect(deleted.cards.some((card) => card.id === event.id)).toBe(false)
     expect(deleted.cards.find((card) => card.id === 'task-grades')).toEqual(updated.cards.find((card) => card.id === 'task-grades'))
   })
+  it('persists a pin on any Journey card without changing unrelated cards', () => {
+    const state = createInitialState()
+    const task = state.cards.find((card) => card.id === 'task-grades')
+    if (!task || task.type !== 'task') throw new Error('Expected the seeded task list')
+    const next = journeyReducer(state, { type: 'update-card', card: { ...task, pinned: true } })
+    expect(next.cards.find((card) => card.id === task.id)?.pinned).toBe(true)
+    expect(next.cards.find((card) => card.id === 'proj-tos')).toEqual(state.cards.find((card) => card.id === 'proj-tos'))
+    expect(parseSavedState(JSON.stringify(next))).toEqual(next)
+  })
   it('updates the selected journal note, including deliberate empty strings', () => {
     const state = createInitialState()
     const next = journeyReducer(state, { type: 'update-note', id: 'note-lesson', title: '', body: 'A quiet idea.' })

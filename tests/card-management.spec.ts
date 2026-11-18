@@ -67,6 +67,71 @@ test('Calendar events and task cards can be edited without replacing task checkl
   await expect(page.getByRole('checkbox').nth(1)).not.toBeChecked()
 })
 
+test('Project hero gives its title editorial scale while retaining the existing actions', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/projects/proj-tos')
+
+  const hero = page.locator('.hero-project')
+  const title = hero.getByRole('heading', { level: 2 })
+  await expect(title).toBeVisible()
+  expect(await title.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(30)
+  expect(await title.evaluate((element) => Number.parseFloat(getComputedStyle(element).lineHeight))).toBeLessThan(38)
+  await expect(hero.getByRole('link', { name: 'Edit project', exact: true })).toBeVisible()
+  await expect(hero.getByRole('button', { name: 'Export / Print summary', exact: true })).toBeVisible()
+  await expect(hero.getByRole('button', { name: 'Delete project', exact: true })).toBeVisible()
+
+  const heroBox = await hero.boundingBox()
+  const titleBox = await title.boundingBox()
+  expect(titleBox!.y).toBeGreaterThan(heroBox!.y)
+  expect(titleBox!.y + titleBox!.height).toBeLessThan(heroBox!.y + heroBox!.height)
+})
+
+test('Project hero condenses its actions into one accessible icon row on phones', async ({ page }) => {
+  await page.setViewportSize({ width: 605, height: 900 })
+  await page.goto('/projects/proj-tos')
+
+  const actions = page.locator('.project-hero-actions')
+  const edit = actions.getByRole('link', { name: 'Edit project', exact: true })
+  const exportSummary = actions.getByRole('button', { name: 'Export / Print summary', exact: true })
+  const deleteProject = actions.getByRole('button', { name: 'Delete project', exact: true })
+  for (const [control, label] of [[edit, 'Edit project'], [exportSummary, 'Export / Print summary'], [deleteProject, 'Delete project']] as const) {
+    await expect(control).toBeVisible()
+    await expect(control).toHaveAttribute('aria-label', label)
+    await expect(control).toHaveAttribute('title', label)
+  }
+  await expect(actions.locator('.project-hero-action-label')).toHaveCount(3)
+  for (const index of [0, 1, 2]) await expect(actions.locator('.project-hero-action-label').nth(index)).toBeHidden()
+  expect(await actions.evaluate((element) => getComputedStyle(element).display)).toBe('grid')
+
+  const boxes = await Promise.all([edit, exportSummary, deleteProject].map((control) => control.boundingBox()))
+  expect(boxes.every(Boolean)).toBe(true)
+  expect(Math.max(...boxes.map((box) => box!.y)) - Math.min(...boxes.map((box) => box!.y))).toBeLessThan(1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('Workspace plans keep primary cards ahead of their context on phones and tablets', async ({ page }) => {
+  const workspaces = [
+    { path: '/tasks/task-grades', primary: '.checklist-panel', context: 'Task list context' },
+    { path: '/projects/proj-tos', primary: '.checklist-panel', context: 'Project context' },
+    { path: '/journal/note-lesson', primary: '.journal-editor-panel', context: 'Journal context' },
+  ]
+
+  for (const size of [{ width: 605, height: 900 }, { width: 834, height: 1024 }]) {
+    await page.setViewportSize(size)
+    for (const workspace of workspaces) {
+      await page.goto(workspace.path)
+      const primary = page.locator(workspace.primary)
+      const context = page.getByRole('complementary', { name: workspace.context, exact: true })
+      await expect(primary).toBeVisible()
+      await expect(context).toBeVisible()
+      const primaryBox = await primary.boundingBox()
+      const contextBox = await context.boundingBox()
+      expect(contextBox!.y).toBeGreaterThan(primaryBox!.y + primaryBox!.height)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    }
+  }
+})
+
 test('Project tracking keeps the next milestone visible and preserves milestones when project details change', async ({ page }) => {
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('region', { name: 'Project pulse', exact: true })).toContainText('Draft 40-item multiple choice questionnaire')
@@ -132,6 +197,7 @@ test('Calendar event cards can be deleted deliberately', async ({ page }) => {
 
 test('Journal cards remain editable and can be deleted deliberately', async ({ page }) => {
   await page.goto('/journal/note-lesson')
+  await page.locator('.studio-note-details > summary').click()
   await page.getByLabel('Journal entry date', { exact: true }).fill('2026-11-12')
   await page.getByLabel('Journal timeline context', { exact: true }).fill('Updated private context')
   await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-12')

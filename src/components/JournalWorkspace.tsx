@@ -1,4 +1,4 @@
-import { ArrowRight, Bold, Camera, ChevronDown, Clock3, Code2, Eraser, FileText, Heading1, Heading2, Highlighter, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Mic, Plus, Quote, Search, Square, Tag, Underline } from 'lucide-react'
+import { ArrowRight, Bold, Camera, ChevronDown, Clock3, Code2, Eraser, FileText, Folder, Heading1, Heading2, Highlighter, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Mic, Plus, Quote, Search, Square, Tag, Underline } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { ChangeEvent, ClipboardEvent, Dispatch, DragEvent, MouseEvent, ReactNode } from 'react'
@@ -7,7 +7,7 @@ import { blobAsDataUrl, journalImageUploadErrorMessage, optimizeJournalImage } f
 import { initialJournalRichText, journalRichTextToPlainText, journalRichTextWordCount, sanitizeJournalRichText } from '../lib/journalRichText'
 import { formatDate, makeId, shortDate } from '../lib/journey'
 import type { Destination, JournalAttachment, JournalNoteKind, JourneyAction, JourneyCard, NoteCard, Space, SpaceMember } from '../types'
-import { SaveIndicator, TeamScopeToggle } from './Common'
+import { TeamScopeToggle } from './Common'
 import { cardAssignedTo } from '../lib/spaces'
 import type { CloudSaveState } from './Common'
 import { CardDeleteAction } from './CardDeleteAction'
@@ -122,7 +122,7 @@ function MetadataFields({ note, dispatch, canEdit }: { note: NoteCard; dispatch:
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   return <details className="studio-note-details" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}><summary><span>Entry details</span><small>Tags, category & reminder</small><ChevronDown size=".8125rem" aria-hidden="true" /></summary><div className="journal-metadata-fields">
     <label><Tag size=".75rem" />Tags<input aria-label="Tags, separated by commas" disabled={!canEdit} value={note.tags.join(', ')} placeholder="e.g. personal, ideas" onChange={(event) => update({ tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12) })} /></label>
-    <label><span aria-hidden="true">⌂</span>Category<select aria-label="Note category" disabled={!canEdit} value={note.category ?? 'Personal'} onChange={(event) => update({ category: event.target.value })}>{categoryOptions.map((category) => <option key={category}>{category}</option>)}</select></label>
+    <label><Folder size=".75rem" aria-hidden="true" />Category<select aria-label="Note category" disabled={!canEdit} value={note.category ?? 'Personal'} onChange={(event) => update({ category: event.target.value })}>{categoryOptions.map((category) => <option key={category}>{category}</option>)}</select></label>
     <label><Clock3 size=".75rem" />Reminder<input aria-label="Note reminder" type="datetime-local" disabled={!canEdit} value={note.reminderAt ?? ''} onChange={(event) => update({ reminderAt: event.target.value })} /></label>
   </div><div className="journal-card-fields"><label>Entry date<input aria-label="Journal entry date" type="date" disabled={!canEdit} value={note.date} min="1900-01-01" max="2100-12-31" onChange={(event) => update({ date: event.target.value })} /></label><label>Timeline context<input aria-label="Journal timeline context" disabled={!canEdit} value={note.context} maxLength={240} placeholder="A private entry for yourself" onChange={(event) => update({ context: event.target.value })} /></label></div></details>
 }
@@ -272,7 +272,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
       setFeedback({ text: `Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`, error: false })
     } catch (error) {
       console.warn('Unable to save journal image.', error)
-      setFeedback({ text: journalImageUploadErrorMessage(error), error: true })
+      setFeedback({ text: journalImageUploadErrorMessage(error, space), error: true })
     }
   }
   const chooseImage = () => fileInput.current?.click()
@@ -382,7 +382,7 @@ function StudioRichEditor({ note, dispatch, firestoreUserId, canEdit, space, mem
   </>
 }
 
-function JournalEditor({ note, dispatch, storageAvailable, cloudSaveState, firestoreUserId, onDelete, canEdit, shared, space, members, currentMember }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; storageAvailable: boolean; cloudSaveState: CloudSaveState; firestoreUserId: string | null; onDelete: (note: NoteCard) => void; canEdit: boolean; shared: boolean; space: Pick<Space, 'id' | 'kind'>; members: SpaceMember[]; currentMember: SpaceMember }) {
+function JournalEditor({ note, dispatch, firestoreUserId, onDelete, canEdit, shared, space, members, currentMember }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; firestoreUserId: string | null; onDelete: (note: NoteCard) => void; canEdit: boolean; shared: boolean; space: Pick<Space, 'id' | 'kind'>; members: SpaceMember[]; currentMember: SpaceMember }) {
   const titleInput = useRef<HTMLTextAreaElement>(null)
   const richText = note.richText ?? initialJournalRichText(note.body)
   const words = journalRichTextWordCount(richText)
@@ -394,19 +394,14 @@ function JournalEditor({ note, dispatch, storageAvailable, cloudSaveState, fires
   }
   useEffect(() => { resizeTitle(titleInput.current) }, [note.id, note.title])
   return <section className="journal-detail journal-editor-detail" aria-label="Active journal entry">
-    <div className="journal-detail-topbar journal-compose-topbar"><span className="journal-compose-kind"><FileText size=".8125rem" aria-hidden="true" />{shared ? 'Shared Space Note' : noteLabel(note.noteKind ?? 'text')}</span><div className="journal-compose-status"><SaveIndicator available={storageAvailable} shared={shared} cloud={cloudSaveState} />{canEdit && <CardDeleteAction card={note} onDelete={() => onDelete(note)} />}</div></div>
     <section className="journal-editor journal-composer-surface" aria-label={shared ? 'Space Notes studio' : 'Journal entry studio'}>
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{shared ? `${note.authoredBy ? `Started by ${note.authoredBy} · ` : ''}${note.lastEditedBy ? `last edited by ${note.lastEditedBy}` : 'shared with this Space'}` : note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
-      <label htmlFor="journal-title" className="sr-only">Note title</label><textarea ref={titleInput} id="journal-title" className="journal-title-input" rows={1} disabled={!canEdit} value={note.title} maxLength={160} placeholder={`Untitled ${shared ? 'Space Note' : noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onInput={(event) => resizeTitle(event.currentTarget)} onChange={(event) => update({ title: event.target.value })} />
+      <div className="journal-title-row"><label htmlFor="journal-title" className="sr-only">Note title</label><textarea ref={titleInput} id="journal-title" className="journal-title-input" rows={1} disabled={!canEdit} value={note.title} maxLength={160} placeholder={`Untitled ${shared ? 'Space Note' : noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onInput={(event) => resizeTitle(event.currentTarget)} onChange={(event) => update({ title: event.target.value })} />{canEdit && <CardDeleteAction card={note} onDelete={() => onDelete(note)} iconOnly className="journal-title-delete" />}</div>
       <MetadataFields note={note} dispatch={dispatch} canEdit={canEdit} />
       <StudioRichEditor note={note} dispatch={dispatch} firestoreUserId={firestoreUserId} canEdit={canEdit} space={space} members={members} currentMember={currentMember} />
       <div className="journal-editor-footer"><span>{words} {words === 1 ? 'word' : 'words'} · {shared ? 'shared Space Note' : 'private journal studio'}</span><Link className="button button-accent" to="/" state={{ focusCardId: note.id }}>View on timeline<ArrowRight size=".8125rem" /></Link></div>
     </section>
   </section>
-}
-
-function JournalEntrySwitcher({ notes, selected, onCreate, canEdit }: { notes: NoteCard[]; selected: NoteCard; onCreate: (kind: JournalNoteKind) => void; canEdit: boolean }) {
-  return <div className="journal-mobile-switcher"><details><summary><span><span className="eyebrow">Journal entries</span><strong>{displayTitle(selected)}</strong></span><ChevronDown size=".9375rem" aria-hidden="true" /></summary><div className="journal-mobile-switcher-drawer"><NoteList notes={notes} selectedId={selected.id} compact /></div></details><button type="button" className="icon-button" disabled={!canEdit} aria-label="Create text journal entry" title="Create text journal entry" onClick={() => onCreate('text')}><Plus size=".9375rem" /></button></div>
 }
 
 function JournalEntryBrowser({ notes, selected, firestoreUserId, onCreate, canEdit, shared }: { notes: NoteCard[]; selected: NoteCard; firestoreUserId: string | null; onCreate: (kind: JournalNoteKind) => void; canEdit: boolean; shared: boolean }) {
@@ -416,7 +411,7 @@ function JournalEntryBrowser({ notes, selected, firestoreUserId, onCreate, canEd
   </section>
 }
 
-export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDeleteCard, storageAvailable, cloudSaveState, firestoreUserId, space, currentMember, members, scope, onScopeChange, canEdit }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; onDeleteCard: (card: JourneyCard) => void; storageAvailable: boolean; cloudSaveState: CloudSaveState; firestoreUserId: string | null; space: Space; currentMember: SpaceMember; members: SpaceMember[]; scope: 'all' | 'assigned'; onScopeChange: (scope: 'all' | 'assigned') => void; canEdit: boolean }) {
+export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDeleteCard, cloudSaveState, firestoreUserId, space, currentMember, members, scope, onScopeChange, canEdit }: { cards: JourneyCard[]; cardId?: string; dispatch: Dispatch<JourneyAction>; onNavigate: (destination: Destination) => void; onDeleteCard: (card: JourneyCard) => void; cloudSaveState: CloudSaveState; firestoreUserId: string | null; space: Space; currentMember: SpaceMember; members: SpaceMember[]; scope: 'all' | 'assigned'; onScopeChange: (scope: 'all' | 'assigned') => void; canEdit: boolean }) {
   const [query] = useSearchParams()
   const creationRequested = useRef(false)
   const notes = cards.filter((card): card is NoteCard => card.type === 'note' && (scope === 'all' || cardAssignedTo(card, currentMember)))
@@ -446,8 +441,7 @@ export function JournalWorkspace({ cards, cardId, dispatch, onNavigate, onDelete
       <TeamScopeToggle scope={scope} memberName={currentMember.name} onChange={onScopeChange} />
     </div>
       <JournalHero note={selected} entryCount={notes.length} shared={shared} cloudSaveState={cloudSaveState} />
-      <JournalEntrySwitcher notes={notes} selected={selected} onCreate={create} canEdit={canEdit} />
-      <div className="workspace-desktop-split journal-workspace-split"><section className="workspace-panel journal-editor-panel"><JournalEditor note={selected} dispatch={dispatch} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} firestoreUserId={firestoreUserId} canEdit={canEdit} shared={shared} space={space} members={members} currentMember={currentMember} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} /></section>
+      <div className="workspace-desktop-split journal-workspace-split"><section className="workspace-panel journal-editor-panel"><JournalEditor note={selected} dispatch={dispatch} firestoreUserId={firestoreUserId} canEdit={canEdit} shared={shared} space={space} members={members} currentMember={currentMember} onDelete={(note) => { onDeleteCard(note); onNavigate({ page: 'journal' }) }} /></section>
         <aside className="workspace-desktop-aside journal-workspace-aside" aria-label="Journal context"><section className="workspace-insight-card journal-insight-card"><span className="eyebrow"><FileText size={11} />Journal entry</span><h3>At a glance</h3><dl className="workspace-insight-list"><div><dt>Entry date</dt><dd>{shortDate(selected.date)}</dd></div><div><dt>Category</dt><dd>{selected.category || 'Personal'}</dd></div><div><dt>Tags</dt><dd>{selected.tags.length ? selected.tags.map((tag) => `#${tag}`).join(', ') : 'No tags yet'}</dd></div><div><dt>Reminder</dt><dd>{selected.reminderAt ? formatDate(selected.reminderAt.slice(0, 10), { month: 'short', day: 'numeric' }) : 'No reminder'}</dd></div></dl></section>
           <JournalEntryBrowser notes={notes} selected={selected} firestoreUserId={firestoreUserId} onCreate={create} canEdit={canEdit} shared={shared} />
           <p className="workspace-fineprint"><FileText size=".75rem" />{shared ? cloudSaveState === 'local-only' ? 'Team notes stay on this device until you continue with Google. Keep sensitive reflections in Personal Space.' : 'Team notes sync with this Space through your Google account when connected. Keep sensitive reflections in Personal Space.' : 'Text stays in your workspace. Voice stays on this device; images are private Firestore journal entries.'}</p>

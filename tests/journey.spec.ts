@@ -37,7 +37,7 @@ test.beforeEach(async ({ page }) => {
   // off here; the dedicated test below covers the product default for a new browser.
   await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 1, depedEnabled: false, legislatedEnabled: false, localSources: [] })), CALENDAR_SOURCES_STORAGE_KEY)
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Timeline', exact: true })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
 })
 
@@ -124,14 +124,15 @@ test('the verified school calendar starts on, while the Timeline keeps only its 
   }
 })
 
-test('responsive Timeline menus provide the streamlined filter, scope, and source controls on tablet and phone', async ({ page }) => {
+test('responsive Timeline controls consolidate work scope and calendars in one fluid All sources menu', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 900 })
-  const sourceTrigger = page.getByRole('button', { name: /^Calendar sources, \d+ shown$/ })
+  const sourceTrigger = page.getByRole('button', { name: /^All sources:/ })
   const filterTrigger = page.getByRole('button', { name: /^Filter journey cards:/ })
   await expect(filters(page)).toBeHidden()
   await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: All Stream')
   await expect(sourceTrigger).toBeVisible()
-  await expect(page.getByRole('group', { name: 'Team workload scope', exact: true })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Team workload scope', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('complementary', { name: 'At a glance planning desk', exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(768)
 
   await page.setViewportSize({ width: 375, height: 812 })
@@ -144,21 +145,31 @@ test('responsive Timeline menus provide the streamlined filter, scope, and sourc
   expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(sourceBox!.x)
   await filterTrigger.click()
   const filterMenu = page.getByRole('dialog', { name: 'Filter journey cards' })
-  const filterMenuBox = await filterMenu.boundingBox()
-  expect(filterMenuBox!.width).toBeLessThanOrEqual(190)
   await filterMenu.getByRole('option', { name: 'Tasks', exact: true }).click()
   await expect(filterTrigger).toHaveAccessibleName('Filter journey cards: Tasks')
   await sourceTrigger.click()
-  const sourcesMenu = page.getByRole('dialog', { name: 'Calendar sources' })
+  const sourcesMenu = page.getByRole('dialog', { name: /^All sources:/ })
   const sourcesMenuBox = await sourcesMenu.boundingBox()
-  expect(sourcesMenuBox!.width).toBeLessThanOrEqual(304)
+  expect(sourcesMenuBox!.width).toBeGreaterThanOrEqual(300)
+  expect(sourcesMenuBox!.width).toBeLessThanOrEqual(375)
+  expect(sourcesMenuBox!.y).toBeGreaterThan(sourceBox!.y + sourceBox!.height)
+  expect(Math.abs((sourcesMenuBox!.x + sourcesMenuBox!.width / 2) - 187.5)).toBeLessThanOrEqual(1)
+  expect(sourcesMenuBox!.y + sourcesMenuBox!.height).toBeLessThan(812)
+  const workScope = sourcesMenu.getByRole('radiogroup', { name: 'Show work', exact: true })
+  const allTeam = workScope.getByRole('radio', { name: /^All Team/ })
+  const myWork = workScope.getByRole('radio', { name: /^My Work/ })
+  await expect(allTeam).toHaveAttribute('aria-checked', 'true')
+  await allTeam.focus()
+  await page.keyboard.press('ArrowDown')
+  await expect(myWork).toHaveAttribute('aria-checked', 'true')
+  await expect(myWork).toBeFocused()
   const depEdSource = sourcesMenu.getByRole('checkbox', { name: 'Show DepEd Calendar in Calendar and Timeline', exact: true })
   await expect(depEdSource).toHaveAttribute('aria-checked', 'false')
   await depEdSource.click()
   await expect(sourcesMenu.getByRole('checkbox', { name: 'Hide DepEd Calendar in Calendar and Timeline', exact: true })).toHaveAttribute('aria-checked', 'true')
-  await expect(sourceTrigger).toHaveAccessibleName('Calendar sources, 1 shown')
+  await expect(sourceTrigger).toHaveAccessibleName('All sources: My Work, You; 1 calendar source shown')
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
-  await page.keyboard.press('Escape')
+  await sourcesMenu.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(sourcesMenu).not.toBeVisible()
 })
 
@@ -168,8 +179,8 @@ test('the mobile stream header compacts after scrolling while keeping its contro
   await expect(header).not.toHaveClass(/is-condensed/)
   await page.evaluate(() => window.scrollTo(0, 180))
   await expect(header).toHaveClass(/is-condensed/)
-  await expect(page.locator('.stream-sources-menu .source-summary-label-compact')).toBeVisible()
-  await expect(page.locator('.stream-sources-menu .source-summary-label-compact')).toHaveText('Sources')
+  await expect(page.locator('.stream-sources-menu .source-summary-label')).toBeVisible()
+  await expect(page.locator('.stream-sources-menu .source-summary-label')).toHaveText('All sources')
   const create = navigation(page).getByRole('button', { name: 'New card', exact: true })
   await expect(create).toBeVisible()
   const createBox = await create.boundingBox()
@@ -190,10 +201,10 @@ test('What’s new opens the update overview over the Timeline instead of a stan
   await expect(page).toHaveURL('/')
   const overview = page.getByRole('dialog', { name: 'Kanso Pro · Planning Space', exact: true })
   await expect(overview).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Timeline', exact: true })).toBeVisible()
   await overview.getByRole('button', { name: 'Close About and what’s new', exact: true }).click()
   await expect(overview).not.toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Timeline', exact: true })).toBeVisible()
 })
 
 test('Calendar keeps its monthly schedule hero clear of duplicate page chrome', async ({ page }) => {
@@ -264,7 +275,7 @@ test('a long press opens event actions while a normal tap keeps the event previe
 test('the bottom navigation opens ordinary pages with URLs, active links, titles, and a single main landmark', async ({ page }) => {
   for (const [name, path, mainName] of [
     ['Calendar', '/calendar', 'Calendar'], ['Tasks', '/tasks', 'Personal Tasks'], ['Projects', '/projects', 'Projects'], ['Journal', '/journal', 'Journal'],
-    ['Timeline', '/', 'Journey Stream'],
+    ['Timeline', '/', 'Timeline'],
   ]) {
     const link = navigation(page).getByRole('link', { name, exact: true })
     await expect(link).toHaveAttribute('href', path)

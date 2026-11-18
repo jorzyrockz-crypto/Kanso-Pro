@@ -1,10 +1,11 @@
 import { ArrowUpRight, Check, Download, Info, RefreshCw, WifiOff } from 'lucide-react'
+import { appAssetPath } from '../lib/appBase'
 import type { PwaController } from '../lib/usePwa'
 
 export function PwaSettings({ pwa, onOpenAbout }: { pwa: PwaController; onOpenAbout: () => void }) {
   return <div className="pwa-settings">
     <button type="button" className="about-settings-launcher" onClick={onOpenAbout} aria-label={pwa.updateReady ? 'Review the ready Kanso Pro update' : 'Open About and updates'}>
-      <img src="/images/kanso-pro-web-banner.jpg" alt="" />
+      <img src={appAssetPath('images/kanso-pro-web-banner.jpg')} alt="" />
       <span><small>{pwa.updateReady ? 'Update ready' : 'About & updates'}</small><strong>{pwa.updateReady ? 'A fresh version is ready to restart.' : 'See what is new in Kanso Pro.'}</strong><em>{pwa.updateReady ? 'Review update' : 'Open overview'} <ArrowUpRight size=".8125rem" aria-hidden="true" /></em></span>
     </button>
     <div className="pwa-settings-heading"><strong>Keep Kanso Pro close.</strong>{pwa.installed && <span><Check size="0.8125rem" aria-hidden="true" />Installed app</span>}</div>
