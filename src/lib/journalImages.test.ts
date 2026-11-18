@@ -7,8 +7,12 @@ describe('journal image upload feedback', () => {
     expect(journalImageUploadErrorMessage(new Error('This image is too large for private Firestore storage.'))).toBe('This photo is still too large after preparation. Choose a smaller or simpler image.')
   })
 
+  it('distinguishes Firestore access from a Google sign-in or local workspace role', () => {
+    expect(journalImageUploadErrorMessage({ code: 'permission-denied' }, { kind: 'shared' })).toBe('Your Google sign-in is active, but this shared Space has not granted this exact Google email Firestore Editor access. Ask its Owner to add that email as an Editor, then retry.')
+    expect(journalImageUploadErrorMessage({ code: 'permission-denied' }, { kind: 'personal' })).toBe('Your Google sign-in is active, so this is not a Workspace-role issue. Firestore access for this project needs attention; ask the app administrator to verify the deployed Firestore rules, then retry.')
+  })
+
   it.each([
-    ['permission-denied', 'Firestore could not save this photo because this Google account does not have access. Reconnect Google or ask a Space Owner for Editor access.'],
     ['unauthenticated', 'Your Google session expired. Sign in with Google again, then retry the photo.'],
     ['unavailable', 'Firestore cannot be reached right now. Check your connection, then retry the photo.'],
     ['resource-exhausted', 'Firestore cannot save this photo right now because its upload limit was reached. Choose a smaller image and retry.'],

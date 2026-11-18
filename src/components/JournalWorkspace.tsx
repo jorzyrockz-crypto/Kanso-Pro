@@ -272,7 +272,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
       setFeedback({ text: `Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`, error: false })
     } catch (error) {
       console.warn('Unable to save journal image.', error)
-      setFeedback({ text: journalImageUploadErrorMessage(error), error: true })
+      setFeedback({ text: journalImageUploadErrorMessage(error, space), error: true })
     }
   }
   const chooseImage = () => fileInput.current?.click()
