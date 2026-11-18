@@ -5,6 +5,22 @@ const MIN_DIMENSION = 640
 
 export class JournalImageError extends Error {}
 
+type UploadError = { code?: unknown; message?: unknown }
+
+/** Turns browser/Firebase write failures into recovery steps a person can act on. */
+export function journalImageUploadErrorMessage(error: unknown) {
+  if (error instanceof JournalImageError) return error.message
+  const detail = error && typeof error === 'object' ? error as UploadError : {}
+  const code = typeof detail.code === 'string' ? detail.code.replace(/^firestore\//, '') : ''
+  const message = typeof detail.message === 'string' ? detail.message : ''
+  if (message.includes('This image is too large for private Firestore storage.')) return 'This photo is still too large after preparation. Choose a smaller or simpler image.'
+  if (code === 'permission-denied') return 'Firestore could not save this photo because this Google account does not have access. Reconnect Google or ask a Space Owner for Editor access.'
+  if (code === 'unauthenticated') return 'Your Google session expired. Sign in with Google again, then retry the photo.'
+  if (['unavailable', 'deadline-exceeded', 'network-request-failed'].includes(code)) return 'Firestore cannot be reached right now. Check your connection, then retry the photo.'
+  if (code === 'resource-exhausted') return 'Firestore cannot save this photo right now because its upload limit was reached. Choose a smaller image and retry.'
+  return 'The photo was not saved. Check your connection and Google sign-in, then retry.'
+}
+
 function loadImage(file: File): Promise<HTMLImageElement> {
   const url = URL.createObjectURL(file)
   return new Promise((resolve, reject) => {

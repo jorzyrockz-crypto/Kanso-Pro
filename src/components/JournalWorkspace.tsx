@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { ChangeEvent, ClipboardEvent, Dispatch, DragEvent, MouseEvent, ReactNode } from 'react'
 import { getJournalAttachment, JournalAttachmentError, saveJournalAttachment } from '../lib/journalAttachments'
-import { blobAsDataUrl, JournalImageError, optimizeJournalImage } from '../lib/journalImages'
+import { blobAsDataUrl, journalImageUploadErrorMessage, optimizeJournalImage } from '../lib/journalImages'
 import { initialJournalRichText, journalRichTextToPlainText, journalRichTextWordCount, sanitizeJournalRichText } from '../lib/journalRichText'
 import { formatDate, makeId, shortDate } from '../lib/journey'
 import type { Destination, JournalAttachment, JournalNoteKind, JourneyAction, JourneyCard, NoteCard, Space, SpaceMember } from '../types'
@@ -257,11 +257,11 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
   // Keep the full tray visible in the desktop workspace; compact layouts use a one-line disclosure until it is needed.
   const [open, setOpen] = useState(() => note.noteKind === 'voice' || !window.matchMedia('(max-width: 1080px)').matches)
   const [recorderOpen, setRecorderOpen] = useState(note.noteKind === 'voice')
-  const [message, setMessage] = useState('')
+  const [feedback, setFeedback] = useState<{ text: string; error: boolean } | null>(null)
   const [dropActive, setDropActive] = useState(false)
   const addImage = async (file: File) => {
-    setMessage('')
-    if (!firestoreUserId) { setMessage('Sign in with Google before adding a Firestore image journal entry.'); return }
+    setFeedback(null)
+    if (!firestoreUserId) { setFeedback({ text: 'Sign in with Google before adding a Firestore image journal entry.', error: true }); return }
     try {
       const optimized = await optimizeJournalImage(file)
       const attachment: JournalAttachment = { id: makeId('image'), kind: 'image', storage: 'firestore', name: file.name || 'Journal image', mimeType: optimized.blob.type || 'image/webp', size: optimized.blob.size, width: optimized.width, height: optimized.height }
@@ -269,8 +269,11 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
       const { writeJournalImage } = await import('../lib/firestore')
       await writeJournalImage(firestoreUserId, attachment, dataUrl, space)
       onAddAttachment(attachment)
-      setMessage(`Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`)
-    } catch (error) { setMessage(error instanceof JournalImageError ? error.message : 'The image could not be saved to private Firestore storage.') }
+      setFeedback({ text: `Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`, error: false })
+    } catch (error) {
+      console.warn('Unable to save journal image.', error)
+      setFeedback({ text: journalImageUploadErrorMessage(error), error: true })
+    }
   }
   const chooseImage = () => fileInput.current?.click()
   const onFile = (event: ChangeEvent<HTMLInputElement>) => {
@@ -283,7 +286,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
     setDropActive(false)
     const file = [...event.dataTransfer.files].find((candidate) => candidate.type.startsWith('image/'))
     if (file) void addImage(file)
-    else setMessage('Drop an image file to add it to this journal entry.')
+    else setFeedback({ text: 'Drop an image file to add it to this journal entry.', error: true })
   }
   const attachments = allAttachments(note)
   return <section className="studio-media-tools" aria-label="Capture tray">
@@ -297,7 +300,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
           <ImagePlus size="1rem" /><span>{firestoreUserId ? 'Drop a photo here, or use Add photo. Images are optimized before private Firestore storage.' : 'Google sign-in is required for private Firestore photo journal entries.'}</span>
         </div>
         {attachments.length > 0 && <div className="studio-attachment-list">{attachments.map((attachment) => <AttachmentTile key={attachment.id} attachment={attachment} firestoreUserId={firestoreUserId} onEmbed={onEmbed} space={space} />)}</div>}
-        {message && <p className="journal-attachment-feedback" role="status">{message}</p>}
+        {feedback && <p className={feedback.error ? 'journal-attachment-error' : 'journal-attachment-feedback'} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
       </div>
     </details>
   </section>
