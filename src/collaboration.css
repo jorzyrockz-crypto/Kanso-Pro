@@ -32,10 +32,17 @@
   .pinned-space-notice-count { color: var(--theme-text-secondary, #5c788a); font-size: .53125rem; font-weight: 700; }
   .pinned-space-notice-toggle { margin-left: auto; color: var(--theme-blue, #276f96); font-size: .53125rem; }
 
-  .quick-reactions { display: inline-flex; align-items: center; gap: .1875rem; margin-top: .625rem; }
-  .quick-reactions > button { display: inline-flex; min-width: 1.875rem; min-height: 1.75rem; align-items: center; justify-content: center; gap: .125rem; padding: .125rem .3125rem; border: 1px solid var(--theme-border, #dbe7ee); border-radius: .5rem; background: var(--theme-surface-muted, #f8fbfd); font-size: .8125rem; line-height: 1; }
-  .quick-reactions > button:hover, .quick-reactions > button.is-reacted { border-color: #a8d4e9; background: var(--theme-blue-soft, #eaf6fb); transform: translateY(-.03125rem); }
-  .quick-reactions > button small { color: var(--theme-text-secondary, #516d80); font-size: .46875rem; font-weight: 800; }
+  .quick-reactions { display: inline-flex; align-items: center; gap: .25rem; margin-top: .625rem; }
+  .quick-reactions > button { display: inline-flex; min-width: 2rem; min-height: 2rem; align-items: center; justify-content: center; gap: .1875rem; padding: .3125rem .375rem; border: 1px solid var(--theme-border, #dbe7ee); border-radius: .5625rem; background: var(--theme-surface-muted, #f8fbfd); color: var(--theme-text-secondary, #516d80); line-height: 1; }
+  .quick-reactions > button > svg { flex: 0 0 auto; stroke-width: 2.15; }
+  .quick-reactions > button[data-reaction='like'] { color: #a96d18; background: #fff9ed; }
+  .quick-reactions > button[data-reaction='complete'] { color: #187a5b; background: #edf9f3; }
+  .quick-reactions > button[data-reaction='seen'] { color: #6657ac; background: #f2f0ff; }
+  .quick-reactions > button:hover, .quick-reactions > button.is-reacted { transform: translateY(-.03125rem); }
+  .quick-reactions > button[data-reaction='like']:hover, .quick-reactions > button[data-reaction='like'].is-reacted { border-color: #e6c57c; background: #fff3d9; }
+  .quick-reactions > button[data-reaction='complete']:hover, .quick-reactions > button[data-reaction='complete'].is-reacted { border-color: #9fd5bd; background: #e3f6ea; }
+  .quick-reactions > button[data-reaction='seen']:hover, .quick-reactions > button[data-reaction='seen'].is-reacted { border-color: #bdb3e9; background: #e9e6fa; }
+  .quick-reactions > button small { color: currentcolor; font-size: .46875rem; font-weight: 850; }
   .quick-reactions.is-compact { margin: 0; }
   .check-collaboration { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; }
   .check-collaboration .inline-comments { margin-right: 0; margin-bottom: .5rem; }
