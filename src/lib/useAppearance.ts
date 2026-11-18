@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
-import { APPEARANCE_STORAGE_KEY, COLOR_SCHEME_QUERY, applyColorScheme, parseColorMode, resolveColorScheme, serializeColorMode } from './appearance'
-import type { ColorMode } from './appearance'
+import { APPEARANCE_STORAGE_KEY, COLOR_SCHEME_QUERY, applyColorScheme, parseAppearancePreferences, resolveColorScheme, serializeAppearancePreferences } from './appearance'
+import type { AppearancePreferences, ColorMode } from './appearance'
 
 function systemPrefersDark() {
   try { return window.matchMedia(COLOR_SCHEME_QUERY).matches } catch { return false }
@@ -8,23 +8,24 @@ function systemPrefersDark() {
 
 /** One controller for the whole app, including guest/auth routes. No account dependency. */
 export function useAppearance() {
-  const [mode, setMode] = useState<ColorMode>(() => {
-    try { return parseColorMode(localStorage.getItem(APPEARANCE_STORAGE_KEY)) ?? 'auto' } catch { return 'auto' }
+  const [preferences, setPreferences] = useState<AppearancePreferences>(() => {
+    try { return parseAppearancePreferences(localStorage.getItem(APPEARANCE_STORAGE_KEY)) ?? { mode: 'auto', saasWhite: false } } catch { return { mode: 'auto', saasWhite: false } }
   })
   const [systemDark, setSystemDark] = useState(systemPrefersDark)
   const [storageAvailable, setStorageAvailable] = useState(true)
-  const scheme = resolveColorScheme(mode, systemDark)
+  const { mode, saasWhite } = preferences
+  const scheme = resolveColorScheme(mode, systemDark, saasWhite)
 
-  useLayoutEffect(() => { applyColorScheme(mode, systemDark) }, [mode, systemDark])
+  useLayoutEffect(() => { applyColorScheme(mode, systemDark, saasWhite) }, [mode, systemDark, saasWhite])
 
   useEffect(() => {
     try {
-      const next = serializeColorMode(mode)
+      const next = serializeAppearancePreferences(preferences)
       // Do not echo identical same-origin storage events back to other tabs.
       if (localStorage.getItem(APPEARANCE_STORAGE_KEY) !== next) localStorage.setItem(APPEARANCE_STORAGE_KEY, next)
       setStorageAvailable(true)
     } catch { setStorageAvailable(false) }
-  }, [mode])
+  }, [preferences])
 
   useEffect(() => {
     let media: MediaQueryList | undefined
@@ -42,8 +43,8 @@ export function useAppearance() {
       if (event.key !== APPEARANCE_STORAGE_KEY && event.key !== null) return
       // Ignore sessionStorage events and tolerate browsers that block the getter.
       try { if (event.storageArea && event.storageArea !== localStorage) return } catch { return }
-      const next = event.newValue === null ? 'auto' : parseColorMode(event.newValue)
-      if (next) setMode(next)
+      const next: AppearancePreferences | null = event.newValue === null ? { mode: 'auto', saasWhite: false } : parseAppearancePreferences(event.newValue)
+      if (next) setPreferences(next)
     }
     window.addEventListener('storage', sync)
     return () => {
@@ -56,7 +57,10 @@ export function useAppearance() {
     }
   }, [])
 
-  return { mode, scheme, setMode, storageAvailable }
+  const setMode = (next: ColorMode) => setPreferences(current => current.mode === next ? current : { ...current, mode: next })
+  const setSaasWhite = (next: boolean) => setPreferences(current => current.saasWhite === next ? current : { ...current, saasWhite: next })
+
+  return { mode, scheme, saasWhite, setMode, setSaasWhite, storageAvailable }
 }
 
 export type AppearanceController = ReturnType<typeof useAppearance>
