@@ -86,6 +86,29 @@ test('Project hero gives its title editorial scale while retaining the existing 
   expect(titleBox!.y + titleBox!.height).toBeLessThan(heroBox!.y + heroBox!.height)
 })
 
+test('Project hero condenses its actions into one accessible icon row on phones', async ({ page }) => {
+  await page.setViewportSize({ width: 605, height: 900 })
+  await page.goto('/projects/proj-tos')
+
+  const actions = page.locator('.project-hero-actions')
+  const edit = actions.getByRole('link', { name: 'Edit project', exact: true })
+  const exportSummary = actions.getByRole('button', { name: 'Export / Print summary', exact: true })
+  const deleteProject = actions.getByRole('button', { name: 'Delete project', exact: true })
+  for (const [control, label] of [[edit, 'Edit project'], [exportSummary, 'Export / Print summary'], [deleteProject, 'Delete project']] as const) {
+    await expect(control).toBeVisible()
+    await expect(control).toHaveAttribute('aria-label', label)
+    await expect(control).toHaveAttribute('title', label)
+  }
+  await expect(actions.locator('.project-hero-action-label')).toHaveCount(3)
+  for (const index of [0, 1, 2]) await expect(actions.locator('.project-hero-action-label').nth(index)).toBeHidden()
+  expect(await actions.evaluate((element) => getComputedStyle(element).display)).toBe('grid')
+
+  const boxes = await Promise.all([edit, exportSummary, deleteProject].map((control) => control.boundingBox()))
+  expect(boxes.every(Boolean)).toBe(true)
+  expect(Math.max(...boxes.map((box) => box!.y)) - Math.min(...boxes.map((box) => box!.y))).toBeLessThan(1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
 test('Project tracking keeps the next milestone visible and preserves milestones when project details change', async ({ page }) => {
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('region', { name: 'Project pulse', exact: true })).toContainText('Draft 40-item multiple choice questionnaire')

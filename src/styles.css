@@ -1071,7 +1071,12 @@
     .hero-project .hero-copy { flex-basis: 100%; }
     .hero-project .hero-stat { flex: 1; flex-direction: row; align-items: center; justify-content: space-between; }
     .hero-project h2 { font-size: 1.25rem; }
-    .hero-project .hero-actions { flex-basis: 100%; width: 100%; }.project-hero-actions { width: 100%; justify-content: flex-start; }.project-hero-actions > .button { flex: 0 0 auto; min-height: 2.375rem; }
+    .hero-project .hero-actions { flex-basis: 100%; width: 100%; }
+    /* Keep the three project actions reachable without turning the mobile hero into a button stack. */
+    .hero-project .project-hero-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: .5rem; }
+    .hero-project .project-hero-actions > .button { display: inline-flex; min-width: 0; min-height: 2.75rem; padding: .5rem; justify-content: center; }
+    .hero-project .project-hero-action-label { display: none; }
+    .hero-project .project-hero-actions > .card-delete-confirm { grid-column: 1 / -1; width: 100%; justify-content: center; }
     .milestone-edit-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }.project-milestone-actions { opacity: 1; }.project-milestone-toggle { padding: .75rem; }.task-item-actions { opacity: 1; }.task-check-toggle { padding: .75rem; }
     .hero-note h2 { font-size: 1.75rem; }
     .workspace-panel { padding: 1rem; border-radius: 1.1875rem; }
