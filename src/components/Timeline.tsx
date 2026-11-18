@@ -1,8 +1,8 @@
-import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronDown, ChevronRight, Eye, FileText, Flag, Folder, Landmark, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronDown, ChevronRight, Eye, FileText, Flag, Folder, Landmark, Mail, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react'
-import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, SpaceMember, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
+import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, SpaceActivity, SpaceMember, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
 import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { Avatar, ProgressBar, TypeIcon } from './Common'
 import { destinationPath } from '../lib/navigation'
@@ -362,6 +362,41 @@ function DesktopRailItem({ card, detail, trailing }: { card: Exclude<JourneyCard
   </Link>
 }
 
+function SpineActivityEnvelope({ activity, arrivalVersion, onOpen }: { activity: SpaceActivity[]; arrivalVersion: number; onOpen: (activity: SpaceActivity[]) => void }) {
+  const count = activity.length
+  const label = `${count} new teammate ${count === 1 ? 'activity' : 'activities'}. Open activity tray.`
+  return <div className="spine-activity-stop">
+    <button type="button" className={`spine-activity-envelope ${arrivalVersion ? 'is-arriving' : ''}`} onClick={() => onOpen(activity)} aria-label={label} title={label}>
+      <span className="spine-activity-envelope-icon"><Mail size="1.0625rem" aria-hidden="true" /></span>
+      <span className="spine-activity-new" aria-hidden="true">New</span>
+      {count > 1 && <span className="spine-activity-count" aria-hidden="true">{count > 9 ? '9+' : count}</span>}
+    </button>
+  </div>
+}
+
+function SpineActivityTray({ activity, onClose }: { activity: SpaceActivity[]; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    closeRef.current?.focus({ preventScroll: true })
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
+  const count = activity.length
+  return <section className="spine-activity-tray" role="dialog" aria-labelledby="spine-activity-tray-title">
+    <header className="spine-activity-tray-heading">
+      <span className="spine-activity-tray-icon"><Mail size="1rem" aria-hidden="true" /></span>
+      <div><span>Team activity</span><h2 id="spine-activity-tray-title">{count} new {count === 1 ? 'update' : 'updates'}</h2></div>
+      <button ref={closeRef} type="button" className="icon-button spine-activity-tray-close" onClick={onClose} aria-label="Close new activity tray"><X size=".9375rem" /></button>
+    </header>
+    <ol className="spine-activity-list">{activity.map((entry) => <li key={entry.id}>
+      <Link to={entry.href} onClick={onClose}><span className={`spine-activity-kind activity-${entry.kind}`}><Bell size=".8125rem" aria-hidden="true" /></span><span><strong>{entry.title}</strong><small>{entry.detail}</small><time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</time></span><ArrowRight size=".8125rem" aria-hidden="true" /></Link>
+    </li>)}</ol>
+  </section>
+}
+
 function DesktopPlanningRail({ cards, today, rolloverCandidates, dispatch, onCompose }: { cards: JourneyCard[]; today: string; rolloverCandidates: RolloverCandidate[]; dispatch: Dispatch<JourneyAction>; onCompose: (options?: ComposerOptions) => void }) {
   const scheduledCards = cards.filter((card) => !card.backlog && !card.quiet)
   const actionableCards = scheduledCards.filter((card): card is Exclude<JourneyCard, NoteCard> => card.type !== 'note')
@@ -431,7 +466,7 @@ function DawnRollover({ candidates, today, filter, dispatch }: { candidates: Rol
   </section>
 }
 
-export function Timeline({ cards, entries, filter, onCompose, dispatch, onDeleteCard, highlightId, reminderAttentionIds, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture, currentMember, canEdit }: {
+export function Timeline({ cards, entries, filter, onCompose, dispatch, onDeleteCard, highlightId, reminderAttentionIds, spineActivity, spineActivityArrivalVersion, spineActivitySpaceId, onOpenSpineActivity, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture, currentMember, canEdit }: {
   cards: JourneyCard[]
   entries: TimelineEntry[]
   filter: Filter
@@ -440,6 +475,10 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
   onDeleteCard: (card: JourneyCard) => void
   highlightId: string | null
   reminderAttentionIds: string[]
+  spineActivity: SpaceActivity[]
+  spineActivityArrivalVersion: number
+  spineActivitySpaceId: string
+  onOpenSpineActivity: (ids: string[]) => void
   containerRef: RefObject<HTMLElement | null>
   openGaps: string[]
   onToggleGap: (key: string) => void
@@ -455,12 +494,19 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
 }) {
   const [preview, setPreview] = useState<TimelineItem | null>(null)
   const [eventActions, setEventActions] = useState<EventCard | null>(null)
+  const [spineActivityTray, setSpineActivityTray] = useState<SpaceActivity[] | null>(null)
   const previewItems = useMemo(() => entries.flatMap((entry) => entry.cards), [entries])
   const reminderAttentionCardIds = useMemo(() => new Set(reminderAttentionIds), [reminderAttentionIds])
   const openPreview = useCallback((item: TimelineItem) => setPreview(item), [])
   const closePreview = useCallback(() => setPreview(null), [])
   const openEventActions = useCallback((card: EventCard) => { setPreview(null); setEventActions(card) }, [])
   const closeEventActions = useCallback(() => setEventActions(null), [])
+  useEffect(() => setSpineActivityTray(null), [spineActivitySpaceId])
+  const openSpineActivity = useCallback((activity: SpaceActivity[]) => {
+    setSpineActivityTray(activity)
+    onOpenSpineActivity(activity.map((entry) => entry.id))
+  }, [onOpenSpineActivity])
+  const closeSpineActivity = useCallback(() => setSpineActivityTray(null), [])
   const entriesForMonth = (month: string) => entries.filter((entry) => (entry.kind === 'day' ? entry.date : entry.start).startsWith(month))
   const renderEntry = (entry: TimelineEntry) => {
     if (entry.kind === 'gap') {
@@ -475,6 +521,7 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
     <div className="timeline-layout">
       <section ref={containerRef} id="journey-stream" className="timeline" aria-label="Journey timeline">
         <div className="timeline-spine" aria-hidden="true" /><div className="timeline-glow" aria-hidden="true" />
+        {spineActivityTray ? <SpineActivityTray activity={spineActivityTray} onClose={closeSpineActivity} /> : spineActivity.length > 0 && <SpineActivityEnvelope key={`${spineActivitySpaceId}-${spineActivityArrivalVersion}`} activity={spineActivity} arrivalVersion={spineActivityArrivalVersion} onOpen={openSpineActivity} />}
         <DawnRollover candidates={rolloverCandidates} today={rolloverDate} filter={filter} dispatch={dispatch} />
         {firstMonth && <TimelineBoundary key={`past-${firstMonth}`} direction="past" month={firstMonth} canLoad={canLoadPast} onLoad={onLoadPast} />}
         {months.map((month, index) => {

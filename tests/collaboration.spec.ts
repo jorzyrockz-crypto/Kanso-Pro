@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { SPACES_STORAGE_KEY } from '../src/lib/spaces'
+import { SPINE_ACTIVITY_ENVELOPE_KEY } from '../src/lib/useSpineActivityEnvelope'
 
 test('Spaces keep local team work separate and let owners configure shared workspace identity and members', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
@@ -71,6 +73,43 @@ test('Spaces keep local team work separate and let owners configure shared works
   await page.goto('/journal')
   await expect(page.getByText('Space Notes · this device', { exact: true })).toBeVisible()
   await expect(page.getByText(/Space Note/i).first()).toBeVisible()
+})
+
+test('new teammate activity arrives as an unopened envelope on the Journey Stream spine', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('/')
+  await page.getByRole('button', { name: /Switch workspace, current space: Personal Space/ }).click()
+  await page.getByRole('option', { name: /Curriculum Planning/ }).click()
+  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await page.waitForFunction(({ key, spaceId }) => {
+    const stored = localStorage.getItem(key)
+    if (!stored) return false
+    try { return Boolean(JSON.parse(stored).spaces?.[spaceId]) } catch { return false }
+  }, { key: SPINE_ACTIVITY_ENVELOPE_KEY, spaceId: 'space-curriculum-planning' })
+
+  await page.evaluate(({ key }) => {
+    const state = JSON.parse(localStorage.getItem(key)!)
+    state.activity['space-curriculum-planning'] = [{
+      id: 'activity-envelope', kind: 'assignment', title: 'Assignment updated', detail: 'J. Santos assigned “Review the parent letter” to you.', href: '/tasks/task-grades', createdAt: '2026-11-15T09:00:00.000Z', actor: 'J. Santos', target: 'You',
+    }]
+    const value = JSON.stringify(state)
+    localStorage.setItem(key, value)
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue: value, storageArea: localStorage }))
+  }, { key: SPACES_STORAGE_KEY })
+
+  const envelope = page.getByRole('button', { name: '1 new teammate activity. Open activity tray.' })
+  await expect(envelope).toBeVisible()
+  await expect(envelope).toHaveCSS('animation-name', 'spine-envelope-arrive')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(envelope).toHaveCSS('animation-name', 'none')
+  await envelope.click()
+  const tray = page.getByRole('dialog', { name: '1 new update' })
+  await expect(tray).toContainText('Assignment updated')
+  await expect(tray).toContainText('Review the parent letter')
+  await expect(envelope).toHaveCount(0)
+  await tray.getByRole('button', { name: 'Close new activity tray' }).click()
+  await expect(tray).toHaveCount(0)
+  await expect(envelope).toHaveCount(0)
 })
 
 test('a shared Space keeps one replaceable Pinned Space Notice outside the Journey Stream', async ({ page }) => {
