@@ -1,4 +1,4 @@
-import { ArrowRight, RefreshCw, X } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { PwaController } from '../lib/usePwa'
@@ -14,7 +14,7 @@ export function UpdateChrome({ pwa, signedIn, position, onOpenAbout }: { pwa: Pw
       {pwa.updateReady && <button type="button" className="titlebar-update" onClick={onOpenAbout}><RefreshCw size=".75rem" aria-hidden="true" /><span>Update ready · Review</span></button>}
     </div>
   }
-  return pwa.updateReady && surface === 'banner' && !pwa.updateDismissed ? <div className="app-update-banner" role="status"><span><RefreshCw size="1rem" /><strong>A new version is ready.</strong><button type="button" className="app-update-link" onClick={onOpenAbout}>Review update<ArrowRight size=".875rem" /></button></span><div><button type="button" className="button settings-secondary" onClick={pwa.update}>Restart</button><button type="button" className="icon-button" aria-label="Remind me about this update later" onClick={pwa.dismissUpdate}><X size="1rem" /></button></div></div> : null
+  return pwa.updateReady && surface === 'banner' ? <button type="button" className="app-update-fab" onClick={pwa.update} aria-label="Restart to update" title="Restart to update"><RefreshCw size="1rem" aria-hidden="true" /><span>Update ready</span></button> : null
 }
 
 export function WhatsNewPage({ onOpenAbout }: { onOpenAbout: () => void }) {
