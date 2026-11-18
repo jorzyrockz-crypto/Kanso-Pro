@@ -7,10 +7,12 @@ function cardName(card: JourneyCard) {
 }
 
 /** A deliberate two-step control keeps destructive card removal out of accidental taps. */
-export function CardDeleteAction({ card, onDelete, className = '' }: {
+export function CardDeleteAction({ card, onDelete, className = '', iconOnly = false }: {
   card: JourneyCard
   onDelete: (card: JourneyCard) => void
   className?: string
+  /** Use the same deliberate confirmation flow where compact editor chrome only has room for an icon. */
+  iconOnly?: boolean
 }) {
   const [confirming, setConfirming] = useState(false)
   const label = cardName(card)
@@ -21,5 +23,6 @@ export function CardDeleteAction({ card, onDelete, className = '' }: {
     <button type="button" className="button button-danger" onClick={() => onDelete(card)}><Trash2 size=".75rem" />Yes, delete {label}</button>
   </span>
 
-  return <button type="button" className={`button button-delete-card ${className}`} onClick={() => setConfirming(true)}><Trash2 size=".75rem" />Delete {label}</button>
+  const deleteLabel = `Delete ${label}`
+  return <button type="button" className={`${iconOnly ? 'icon-button card-delete-icon' : 'button button-delete-card'} ${className}`} aria-label={iconOnly ? deleteLabel : undefined} title={iconOnly ? deleteLabel : undefined} onClick={() => setConfirming(true)}><Trash2 size=".75rem" />{!iconOnly && deleteLabel}</button>
 }

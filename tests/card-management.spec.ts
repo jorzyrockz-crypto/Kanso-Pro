@@ -132,6 +132,7 @@ test('Calendar event cards can be deleted deliberately', async ({ page }) => {
 
 test('Journal cards remain editable and can be deleted deliberately', async ({ page }) => {
   await page.goto('/journal/note-lesson')
+  await page.locator('.studio-note-details > summary').click()
   await page.getByLabel('Journal entry date', { exact: true }).fill('2026-11-12')
   await page.getByLabel('Journal timeline context', { exact: true }).fill('Updated private context')
   await expect(page.getByLabel('Journal entry date', { exact: true })).toHaveValue('2026-11-12')

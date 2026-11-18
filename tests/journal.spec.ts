@@ -18,6 +18,9 @@ test('Journal opens directly into its task/project-style workspace and creates t
   await expect(entries.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
   await expect(page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'View on timeline', exact: true })).toBeVisible()
+  const titleRow = page.locator('.journal-title-row')
+  await expect(page.locator('.journal-detail-topbar')).toHaveCount(0)
+  await expect(titleRow.getByRole('button', { name: 'Delete journal entry', exact: true })).toBeVisible()
   await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('Classroom Observation Reflections & Peer Feedback')
   await expect(page.locator('.studio-back-to-notes')).toHaveCount(0)
 
@@ -131,7 +134,8 @@ test('Journal keeps shared-note mentions progressive on phones without removing 
   await page.getByRole('option', { name: /Curriculum Planning/ }).click()
   await page.goto('/journal')
 
-  await expect(page.getByText('Shared Space Note', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Space Notes studio', { exact: true })).toBeVisible()
+  await expect(page.locator('.journal-detail-topbar')).toHaveCount(0)
   const mentions = page.locator('.studio-mention-details')
   await expect(mentions).not.toHaveAttribute('open', '')
   await mentions.locator('summary').click()

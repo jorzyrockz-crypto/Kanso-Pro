@@ -507,7 +507,7 @@ export function WorkspacePage({ page, cards, calendarSources, dispatch, onNaviga
       {page === 'calendar' && <CalendarWorkspace {...props} />}
       {page === 'tasks' && <TaskWorkspace {...props} />}
       {page === 'project' && <ProjectWorkspace {...props} />}
-      {page === 'journal' && <JournalWorkspace {...props} storageAvailable={storageAvailable} cloudSaveState={cloudSaveState} firestoreUserId={journalUserId} />}
+      {page === 'journal' && <JournalWorkspace {...props} cloudSaveState={cloudSaveState} firestoreUserId={journalUserId} />}
       <div className="workspace-save-footer"><SaveIndicator available={storageAvailable} shared={space.kind === 'shared'} cloud={cloudSaveState} />
         <Link to="/" state={cardId ? { focusCardId: cardId } : null} className="text-button">View your timeline<ArrowRight size="0.75rem" /></Link>
       </div>
