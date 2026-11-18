@@ -67,12 +67,12 @@ export function NotificationMenu({ notifications: n, activity = [], spaceName, o
       </header>
       <div className="notification-menu-body">
         <label className="notification-menu-switch notification-phone-switch">
-          <span><strong>{p.phone ? 'Phone notifications are on' : 'Phone notifications are off'}</strong><small>{p.phone ? 'Kanso can alert you while it is running. Card titles stay off the lock screen.' : 'Turn them on to request permission when your device supports it.'}</small></span>
-          <input type="checkbox" checked={p.phone} aria-label="Phone notifications" onChange={(event) => void n.phone(event.target.checked)} />
+          <span><strong>{p.phone ? 'Browser notifications are on' : 'Browser notifications are off'}</strong><small>{p.phone ? 'Kanso can alert you while it is running. Card titles stay off the lock screen.' : 'Kanso requests permission when it opens on supported browsers; turn this on later if needed.'}</small></span>
+          <input type="checkbox" checked={p.phone} aria-label="Browser notifications" onChange={(event) => void n.phone(event.target.checked)} />
         </label>
         {n.feedback && <p className="notification-menu-feedback" role="status">{n.feedback}</p>}
         <section className="notification-menu-quiet" aria-labelledby={`${panelId}-quiet`}>
-          <div className="notification-menu-section-heading"><Clock3 size=".9375rem" aria-hidden="true" /><div><strong id={`${panelId}-quiet`}>Quiet hours</strong><span>{p.quiet ? `Phone alerts pause from ${p.quietStart} to ${p.quietEnd}.` : 'Keep phone alerts flowing at every hour.'}</span></div><label className="notification-mini-switch"><span className="sr-only">Pause phone notifications during quiet hours</span><input type="checkbox" checked={p.quiet} onChange={(event) => void n.preferences({ quiet: event.target.checked })} /></label></div>
+          <div className="notification-menu-section-heading"><Clock3 size=".9375rem" aria-hidden="true" /><div><strong id={`${panelId}-quiet`}>Quiet hours</strong><span>{p.quiet ? `Browser alerts pause from ${p.quietStart} to ${p.quietEnd}.` : 'Keep browser alerts flowing at every hour.'}</span></div><label className="notification-mini-switch"><span className="sr-only">Pause browser notifications during quiet hours</span><input type="checkbox" checked={p.quiet} onChange={(event) => void n.preferences({ quiet: event.target.checked })} /></label></div>
           {p.quiet && <div className="notification-menu-times"><label>From<input type="time" value={p.quietStart} onChange={(event) => time('quietStart', event.target.value)} /></label><label>Until<input type="time" value={p.quietEnd} onChange={(event) => time('quietEnd', event.target.value)} /></label></div>}
           {quietError && <p className="notification-menu-feedback" role="status">{quietError}</p>}
         </section>
