@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { APPEARANCE_STORAGE_KEY, serializeAppearancePreferences, serializeColorMode } from '../src/lib/appearance'
+import { APPEARANCE_STORAGE_KEY, serializeColorMode } from '../src/lib/appearance'
 import type { ColorMode } from '../src/lib/appearance'
 import { LEGACY_STORAGE_KEY, STORAGE_KEY, createInitialState } from '../src/data'
 import { MONTH_SCENES } from '../src/lib/months'
@@ -60,44 +60,13 @@ for (const system of ['light', 'dark'] as const) {
     await expectScheme(page, system, 'auto')
     await expectSurface(page, '.settings-section, .topbar, .bottom-navigation', system)
     await expect(page.getByRole('group', { name: 'Color mode', exact: true })).toContainText('including when it changes')
-    await expect(page.locator('#appearance').getByRole('switch')).toHaveCount(0)
+    await expect(page.getByRole('switch')).toHaveCount(0)
     await expect(page.locator('.appearance-status')).toHaveText(`Auto · ${system === 'dark' ? 'Dark' : 'Light'} appearance on this device`)
     expect(JSON.parse((await saved(page))!).cards).toHaveLength(8)
     expect(Object.keys(JSON.parse((await saved(page))!)).sort()).toEqual(['bezel', 'cards', 'version'])
     expect(firebase.requests).toHaveLength(0)
   })
 }
-
-test('SaaS white skin is an independently saved checkbox that presents a crisp light workspace', async ({ page }) => {
-  await page.goto('/settings#appearance')
-  await mode(page, 'Dark').check()
-  const skin = page.getByRole('checkbox', { name: /SaaS white skin/i })
-  await expect(skin).not.toBeChecked()
-  await skin.check()
-  await expect(skin).toBeChecked()
-  await expect(root(page)).toHaveAttribute('data-color-mode', 'dark')
-  await expect(root(page)).toHaveAttribute('data-theme', 'light')
-  await expect(root(page)).toHaveAttribute('data-saas-skin', 'white')
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#ffffff')
-  await expect(page.locator('.appearance-status')).toHaveText('SaaS white skin · Light presentation')
-  await expect.poll(() => root(page).evaluate((element) => getComputedStyle(element).colorScheme)).toBe('light')
-  expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), APPEARANCE_STORAGE_KEY))!)).toEqual({ version: 1, mode: 'dark', saasWhite: true })
-  await expectSurface(page, '.settings-section, .topbar', 'light')
-  await audit(page)
-  for (const [path, surface] of [['/tasks', '.workspace-hero, .workspace-panel'], ['/journal', '.workspace-hero, .journal-editor']] as const) {
-    await page.goto(path)
-    await expect(root(page)).toHaveAttribute('data-saas-skin', 'white')
-    await expectSurface(page, surface, 'light')
-  }
-  await page.goto('/settings#appearance')
-  await page.reload()
-  await expect(skin).toBeChecked()
-  await skin.uncheck()
-  await expect(root(page)).not.toHaveAttribute('data-saas-skin')
-  await expectScheme(page, 'dark', 'dark')
-  expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), APPEARANCE_STORAGE_KEY))!)).toEqual({ version: 1, mode: 'dark', saasWhite: false })
-  expect(firebase.requests).toHaveLength(0)
-})
 
 test('Auto responds live while explicit modes ignore device changes and restore correctly after reload', async ({ page }) => {
   await page.goto('/settings#appearance')
@@ -151,22 +120,6 @@ test('the saved scheme is applied in the head before React, with no light-first 
   await expectScheme(page, 'dark', 'dark')
 })
 
-test('the SaaS white skin is applied in the head before React, including over a saved dark preference', async ({ page }) => {
-  await page.addInitScript(({ key, raw }) => { localStorage.setItem(key, raw) }, { key: APPEARANCE_STORAGE_KEY, raw: serializeAppearancePreferences({ mode: 'dark', saasWhite: true }) })
-  let release!: () => void
-  const gate = new Promise<void>((resolve) => { release = resolve })
-  await page.route('**/src/main.tsx*', async (route) => { await gate; await route.continue() })
-  try {
-    await page.goto('/sign-in', { waitUntil: 'commit' })
-    await expect(root(page)).toHaveAttribute('data-color-mode', 'dark')
-    await expect(root(page)).toHaveAttribute('data-theme', 'light')
-    await expect(root(page)).toHaveAttribute('data-saas-skin', 'white')
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#ffffff')
-    await expect(page.locator('#root')).toBeEmpty()
-  } finally { release() }
-  await expect(page.getByRole('heading', { name: 'Welcome back.', exact: true })).toBeVisible()
-})
-
 test('same-origin tabs update open composer, journal, and sign-in fields without remounting or losing input', async ({ page, context }) => {
   await page.goto('/new?type=note')
   await page.getByLabel('Card title', { exact: false }).fill('An unfinished thought')
@@ -201,7 +154,7 @@ test('same-origin tabs update open composer, journal, and sign-in fields without
   await expect(page.getByLabel('Password', { exact: true })).toHaveValue('not-submitted-passphrase')
   expect(await saved(page)).toBe(edited)
   const setting = await page.evaluate((key) => localStorage.getItem(key), APPEARANCE_STORAGE_KEY)
-  expect(JSON.parse(setting!)).toEqual({ version: 1, mode: 'light', saasWhite: false })
+  expect(JSON.parse(setting!)).toEqual({ version: 1, mode: 'light' })
   expect(setting).not.toMatch(/draft@example|Night planner|passphrase/)
   expect(firebase.requests).toHaveLength(0)
   await other.close()
@@ -420,7 +373,6 @@ test('dark mode retains responsive touch targets, motion/contrast preferences, f
   await page.emulateMedia({ forcedColors: 'none', media: 'print' })
   await expect(page.locator('.topbar:visible, .bottom-bar:visible')).toHaveCount(0)
   await expect(page.locator('.appearance-options')).toBeHidden()
-  await expect(page.getByRole('checkbox', { name: /SaaS white skin/i })).toBeHidden()
   expect(await root(page).evaluate((element) => getComputedStyle(element).colorScheme)).toBe('light')
   expect(await page.locator('.settings-section').first().evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 255, 255)')
   await page.emulateMedia({ media: 'screen' })

@@ -1,4 +1,4 @@
-import { Check, Monitor, Moon, PanelsTopLeft, Sun } from 'lucide-react'
+import { Check, Monitor, Moon, Sun } from 'lucide-react'
 import { useId } from 'react'
 import type { AppearanceController } from '../lib/useAppearance'
 import { SaveIndicator } from './Common'
@@ -20,12 +20,7 @@ export function ColorModePicker({ appearance }: { appearance: AppearanceControll
         <span className={`appearance-preview preview-${mode}`} aria-hidden="true"><span className="preview-chrome"><i /><i /><i /></span><span className="preview-layout"><span /><span><i /><i /><i /></span></span><span className="appearance-selected"><Check size="0.75rem" /></span></span>
         <span className="appearance-option-title" id={`${id}-${mode}`}><Icon size="0.9375rem" aria-hidden="true" />{label}</span><span className="appearance-option-hint">{hint}</span>
       </label>)}</div>
-      <label className="saas-skin-option">
-        <input type="checkbox" checked={appearance.saasWhite} onChange={event => appearance.setSaasWhite(event.target.checked)} />
-        <span className="saas-skin-switch" aria-hidden="true"><span /></span>
-        <span className="saas-skin-copy"><span><PanelsTopLeft size="1rem" aria-hidden="true" />SaaS white skin</span><small>A polished white workspace with crisp surfaces and quieter color. This stays separate from your saved color-mode choice.</small></span>
-      </label>
     </fieldset>
-    <div className="settings-preference-status"><SaveIndicator available={appearance.storageAvailable} /><span role="status" className="appearance-status">{appearance.saasWhite ? 'SaaS white skin · Light presentation' : `${appearance.mode === 'auto' ? 'Auto · ' : ''}${appearance.scheme === 'dark' ? 'Dark' : 'Light'} appearance${appearance.mode === 'auto' ? ' on this device' : ' selected'}`}</span></div>
+    <div className="settings-preference-status"><SaveIndicator available={appearance.storageAvailable} /><span role="status" className="appearance-status">{appearance.mode === 'auto' ? 'Auto · ' : ''}{appearance.scheme === 'dark' ? 'Dark' : 'Light'} appearance{appearance.mode === 'auto' ? ' on this device' : ' selected'}</span></div>
   </div>
 }
