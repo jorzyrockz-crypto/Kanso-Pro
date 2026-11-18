@@ -9,8 +9,11 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   const stream = page.locator('#journey-stream')
   const rail = page.getByRole('complementary', { name: 'Desktop planning summary', exact: true })
   await expect(rail).toBeVisible()
+  await expect(rail.locator('.desktop-rail-heading-mark')).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'At a glance', exact: true })).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'Task lists to finish', exact: true })).toBeVisible()
+  expect(await rail.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain('gradient')
+  expect(await rail.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none')
   await expect(rail.getByRole('heading', { name: 'Carry forward', exact: true })).toBeVisible()
   await expect(rail.getByRole('button', { name: 'Task list', exact: true })).toBeVisible()
 
