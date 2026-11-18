@@ -189,6 +189,8 @@
     :root[data-theme='dark'] .project-next-milestone, :root[data-theme='dark'] .project-stream-footer { color: #bdcadd; }
     :root[data-theme='dark'] .project-next-milestone > svg, :root[data-theme='dark'] .project-stream-footer .footer-link { color: #d0c9ff; }
     :root[data-theme='dark'] .task-rollover-action { border-color: #397462; background: #173a35; color: #a7e8cd; }
+    :root[data-theme='dark'] .claim-pill { border-color: #397462; color: #a7e8cd; background: #173a35; }
+    :root[data-theme='dark'] .claim-pill:hover { background: #20483f; }
     :root[data-theme='dark'] .reminder-pill.is-passed { border-color: #4a5c68; background: #253441; color: #b5c3ce; }
     :root[data-theme='dark'] .task-check-item { border-color: #405d56; background: #1b2e2c; }
     :root[data-theme='dark'] .task-check-item:hover { background: #203b36; }
@@ -281,6 +283,7 @@
     :root[data-theme='dark'] .journal-editor-footer, :root[data-theme='dark'] .journal-voice-editor, :root[data-theme='dark'] .journal-image-editor { border-color: #405365; }
     :root[data-theme='dark'] .journal-insight-card { border-color: #6a4960; background: linear-gradient(135deg, #352637, #1c2c3c); }
     :root[data-theme='dark'] .journal-insight-card > .eyebrow, :root[data-theme='dark'] .journal-entry-browser-heading > .icon-button { color: #f2b4cb; }
+    :root[data-theme='dark'] .journal-hero .hero-stat > span, :root[data-theme='dark'] .studio-note-details > summary small, :root[data-theme='dark'] .studio-mention-details > summary small { color: #b8c9db; }
     :root[data-theme='dark'] .journal-entry-browser { border-color: #40596e; background: #172a3c; }
     :root[data-theme='dark'] .journal-entry-browser-heading h3 { color: #e1edf5; }
     :root[data-theme='dark'] .journal-studio-pending { border-color: #40596d; background: #172a3b; color: #bfd0df; }

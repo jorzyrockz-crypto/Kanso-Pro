@@ -61,7 +61,7 @@ test('no initial flood or permission prompt; due reminders group, badge, link an
   expect(firebase.unexpectedRequests).toEqual([])
 })
 
-test('a newly due planner reminder briefly nudges only its Journey Stream card', async ({ page, context }) => {
+test('a newly due planner reminder briefly nudges only its Timeline card', async ({ page, context }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await mockFirebase(context)
   const state = createInitialState()

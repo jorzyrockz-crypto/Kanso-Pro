@@ -20,5 +20,5 @@ test('touch devices keep the opening splash long enough for its cinematic exit',
   await expect(splash).not.toHaveClass(/is-ready/)
   await expect(splash).toHaveClass(/is-ready/, { timeout: 1_500 })
   await expect(splash).toHaveCount(0, { timeout: 1_000 })
-  await expect(page.getByRole('main', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await expect(page.getByRole('main', { name: 'Timeline', exact: true })).toBeVisible()
 })

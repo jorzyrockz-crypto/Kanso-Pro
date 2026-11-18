@@ -1,6 +1,6 @@
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, CheckSquare, ChevronDown, Clock3, Eye, EyeOff, Landmark, Pin, ThumbsUp, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, Clock3, Pin, ThumbsUp, X } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom'
 import type { ComposerOptions, Destination, EventCard, Filter, JournalAttachment, JourneyCard, ProjectCard, Space, SpaceMember, SpaceNotice, TaskCard, TimelineSourceEntry, Workspace } from './types'
 import { buildTimeline, formatDate, rolloverCandidates, shiftMonth } from './lib/journey'
@@ -40,7 +40,6 @@ import { AppSplash } from './components/AppSplash'
 import { BottomNavigation } from './components/BottomNavigation'
 import { AppFooter, NotFoundPage, PageHeader } from './components/PageHeader'
 import { RouteEffects } from './components/RouteEffects'
-import { TeamScopeToggle } from './components/Common'
 import type { CloudSaveState } from './components/Common'
 
 const filters: { type: Filter; label: string }[] = [
@@ -54,6 +53,7 @@ const TIMELINE_MIN_MONTH = '1900-01'
 const TIMELINE_MAX_MONTH = '9999-12'
 
 type TimelineWindow = { start: string; end: string }
+type TimelineGlance = { today: string; next: string }
 
 function currentLocalDate() {
   const now = new Date()
@@ -66,7 +66,7 @@ function presenceStatus(pathname: string) {
   if (page === 'tasks') return 'Working through tasks'
   if (page === 'project') return 'Reviewing project milestones'
   if (page === 'journal') return 'Writing in Space Notes'
-  return 'Reviewing the Journey Stream'
+  return 'Reviewing the Timeline'
 }
 
 function timelineWindowFor(cards: JourneyCard[]): TimelineWindow {
@@ -140,13 +140,7 @@ function StreamMenu({ children, className, icon, label, open, onOpenChange, summ
   </div>
 }
 
-function sourceSummary(source: CalendarSource) {
-  return source.recurringRules
-    ? `${source.recurringRules.length} annual observances`
-    : `${source.entries.length} dated ${source.entries.length === 1 ? 'entry' : 'entries'}`
-}
-
-function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, cloudSyncEnabled, month, onFilter, onScopeChange, onSourceEnabled, onSpaceNotice, canManageNotice, hasNotice }: {
+function StreamHeader({ calendarSources, count, filter, scope, memberName, shared, cloudSyncEnabled, month, glance, onFilter, onScopeChange, onSourceEnabled, onSpaceNotice, canManageNotice, hasNotice }: {
   calendarSources: CalendarSource[]
   count: number
   filter: Filter
@@ -155,6 +149,7 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
   shared: boolean
   cloudSyncEnabled: boolean
   month: string
+  glance: TimelineGlance
   onFilter: (type: Filter) => void
   onScopeChange: (scope: 'all' | 'assigned') => void
   onSourceEnabled: (sourceId: string, enabled: boolean) => void
@@ -199,6 +194,20 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
     setSpaceUpdate('')
     setSpaceUpdateOpen(false)
   }
+  const moveScopeFocus = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const choices: Array<'all' | 'assigned'> = ['all', 'assigned']
+    const index = choices.indexOf(scope)
+    const next = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? choices[(index + 1) % choices.length]
+      : event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? choices[(index - 1 + choices.length) % choices.length]
+        : event.key === 'Home' ? choices[0]
+          : event.key === 'End' ? choices.at(-1)!
+            : null
+    if (!next) return
+    event.preventDefault()
+    onScopeChange(next)
+    const buttons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')
+    buttons?.[choices.indexOf(next)]?.focus()
+  }
 
   return <header className={`stream-header ${condensed && !openMenu ? 'is-condensed' : ''}`}>
     <div className="header-main">
@@ -207,10 +216,11 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
           <span>{formatDate(month, { month: 'short' })}</span><strong>{formatDate(month, { year: 'numeric' })}</strong>
         </div>
         <div className="header-copy">
-          <div className="header-title-line"><h1 id="page-title">Journey Stream</h1><span className="live-badge" title={shared ? cloudSyncEnabled ? 'This Space can sync through your Google-authenticated session.' : 'This Space is currently local. Continue with Google to enable online sync.' : 'Your four workspaces stay connected on this device'}><span className="live-dot" /><span className="live-text">{shared ? cloudSyncEnabled ? 'Google Sync' : 'Local Space' : 'Live Flow'}</span></span></div>
-          <p>Your plans, progress, and reflections. All in one flow.</p>
+          <div className="header-title-line"><h1 id="page-title">Timeline</h1><span className="live-badge" title={shared ? cloudSyncEnabled ? 'This Space can sync through your Google-authenticated session.' : 'This Space is currently local. Continue with Google to enable online sync.' : 'Your four workspaces stay connected on this device'}><span className="live-dot" aria-hidden="true" /><span className="sr-only">{shared ? cloudSyncEnabled ? 'Google Sync' : 'Local Space' : 'Live Flow'}</span></span></div>
+          <p>Plans, progress, and reflections in one flow.</p>
         </div>
       </div>
+      {shared && <div className="space-update-control timeline-write-notice"><button type="button" className="space-update-trigger" disabled={!canManageNotice} title={canManageNotice ? 'Write or replace the pinned Space notice' : 'Only the Space Owner or a designated Lead can manage the pinned notice'} aria-expanded={spaceUpdateOpen} onClick={() => setSpaceUpdateOpen((open) => !open)}><Pin size=".75rem" aria-hidden="true" />Write notice</button>{spaceUpdateOpen && <form className="space-update-form" onSubmit={submitSpaceNotice}><label className="sr-only" htmlFor="space-update">{hasNotice ? 'Replace the pinned Space notice' : 'Write a pinned Space notice'}</label><input id="space-update" autoFocus maxLength={360} value={spaceUpdate} onChange={(event) => setSpaceUpdate(event.target.value)} placeholder="Share one concise notice…" /><button type="submit" className="button button-accent">{hasNotice ? 'Replace' : 'Post'}</button></form>}</div>}
     </div>
     <div className="header-bottom">
       <div className="stream-controls">
@@ -222,21 +232,29 @@ function StreamHeader({ calendarSources, count, filter, scope, memberName, share
             {filters.map(({ type, label }) => <button key={type} type="button" role="option" aria-selected={filter === type} className={filter === type ? 'is-selected' : ''} onClick={() => { onFilter(type); setOpenMenu(null) }}>{type !== 'all' && <span className={`filter-dot dot-${type}`} aria-hidden="true" />}<span>{label}</span>{type === 'all' && <span className="stream-dropdown-option-count">{count}</span>}{filter === type && <Check size=".875rem" aria-hidden="true" />}</button>)}
           </div>
         </StreamMenu>
-        <TeamScopeToggle scope={scope} memberName={memberName} onChange={onScopeChange} compact />
-        {shared && <div className="space-update-control"><button type="button" className="space-update-trigger" disabled={!canManageNotice} title={canManageNotice ? 'Post or replace the pinned Space notice' : 'Only the Space Owner or a designated Lead can manage the pinned notice'} aria-expanded={spaceUpdateOpen} onClick={() => setSpaceUpdateOpen((open) => !open)}>{hasNotice ? 'Edit notice' : 'Pinned notice'}</button>{spaceUpdateOpen && <form className="space-update-form" onSubmit={submitSpaceNotice}><label className="sr-only" htmlFor="space-update">{hasNotice ? 'Replace the pinned Space notice' : 'Post a pinned Space notice'}</label><input id="space-update" autoFocus maxLength={360} value={spaceUpdate} onChange={(event) => setSpaceUpdate(event.target.value)} placeholder="Share one concise notice…" /><button type="submit" className="button button-accent">{hasNotice ? 'Replace' : 'Post'}</button></form>}</div>}
         <div className="stream-reference-controls">
-          <StreamMenu className="stream-sources-menu" label={`Calendar sources, ${shownSources} shown`} icon={<Landmark size=".8125rem" aria-hidden="true" />} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<><span className="source-summary-label">Calendar sources</span><span className="source-summary-label-compact">Sources</span><span className="stream-dropdown-count">{shownSources} <span className="source-summary-shown">shown</span></span></>}>
-            <div className="stream-sources-heading"><strong>Calendar sources</strong><span>Choose what appears as reference-only entries.</span></div>
-            <div className="stream-sources-list" role="group" aria-label="Calendar sources">
-              {calendarSources.map((source) => <button key={source.id} type="button" role="checkbox" aria-checked={source.enabled} aria-label={`${source.enabled ? 'Hide' : 'Show'} ${source.label} in Calendar and Timeline`} className={source.enabled ? 'is-shown' : ''} onClick={() => onSourceEnabled(source.id, !source.enabled)}>
-                <span className="stream-source-check" aria-hidden="true">{source.enabled ? <CheckSquare size="1rem" /> : <span />}</span>
-                <span className="stream-source-copy"><strong>{source.label}</strong><small>{sourceSummary(source)}</small></span>
-                <span className="stream-source-action">{source.enabled ? <><Eye size=".75rem" aria-hidden="true" />Shown</> : <><EyeOff size=".75rem" aria-hidden="true" />Hidden</>}</span>
-              </button>)}
-            </div>
+          <StreamMenu className="stream-sources-menu" label={`All sources: ${scope === 'all' ? 'All Team' : `My Work, ${memberName}`}; ${shownSources} calendar ${shownSources === 1 ? 'source' : 'sources'} shown`} open={openMenu === 'sources'} onOpenChange={(open) => setOpenMenu(open ? 'sources' : null)} summary={<><span className="source-summary-label">All sources</span><span className="source-summary-divider" aria-hidden="true">·</span><span className="source-summary-count">{shownSources}</span></>}>
+            <section className="stream-source-section" role="radiogroup" aria-label="Show work">
+              <span className="stream-source-section-label">Show work</span>
+              <button type="button" role="radio" aria-checked={scope === 'all'} className={scope === 'all' ? 'is-selected' : ''} onClick={() => onScopeChange('all')} onKeyDown={moveScopeFocus}><span className="stream-source-radio" aria-hidden="true" /><span>All Team</span></button>
+              <button type="button" role="radio" aria-checked={scope === 'assigned'} className={scope === 'assigned' ? 'is-selected' : ''} onClick={() => onScopeChange('assigned')} onKeyDown={moveScopeFocus}><span className="stream-source-radio" aria-hidden="true" /><span>My Work</span></button>
+            </section>
+            <section className="stream-source-section stream-calendar-source-section" role="group" aria-label="Calendar sources">
+              <span className="stream-source-section-label">Calendars</span>
+              <div className="stream-sources-list">
+                {calendarSources.map((source) => <button key={source.id} type="button" role="checkbox" aria-checked={source.enabled} aria-label={`${source.enabled ? 'Hide' : 'Show'} ${source.label} in Calendar and Timeline`} className={source.enabled ? 'is-shown' : ''} onClick={() => onSourceEnabled(source.id, !source.enabled)}>
+                  <span className="stream-source-check" aria-hidden="true">{source.enabled && <Check size=".875rem" strokeWidth={3} />}</span>
+                  <span>{source.label}</span>
+                </button>)}
+              </div>
+            </section>
+            <div className="stream-sources-footer"><button type="button" className="stream-sources-done" onClick={() => setOpenMenu(null)}>Done</button></div>
           </StreamMenu>
         </div>
       </div>
+      <aside className="timeline-glance" aria-label="At a glance planning desk">
+        <span><strong>Today</strong><small>{glance.today}</small></span><span><strong>Next up</strong><small>{glance.next}</small></span>
+      </aside>
     </div>
   </header>
 }
@@ -422,7 +440,7 @@ export default function App() {
   const [showJumpToday, setShowJumpToday] = useState(false)
   const [pendingToday, setPendingToday] = useState<string | null>(null)
   // Retired Space-update Notes remain only as inert legacy data; never let them return to
-  // the Journey Stream while older cloud documents finish their natural lifecycle.
+  // the Timeline while older cloud documents finish their natural lifecycle.
   const journeyCards = useMemo(() => state.cards.filter((card) => !(card.type === 'note' && card.title === 'Space update' && card.category === 'Space Update' && card.tags.includes('space-update'))), [state.cards])
   const [timelineWindow, setTimelineWindow] = useState<TimelineWindow>(() => timelineWindowFor(journeyCards))
   const cardTimelineWindow = useMemo(() => timelineWindowFor(journeyCards), [journeyCards])
@@ -447,6 +465,18 @@ export default function App() {
   const overdueCards = useMemo(() => rolloverCandidates(scopedWorkCards, today), [scopedWorkCards, today])
   const defaultMonth = entries.find((entry) => entry.kind === 'day')?.date.slice(0, 7) ?? timelineWindow.start
   const timelineMonth = visibleTimelineMonth && visibleTimelineMonth >= timelineWindow.start && visibleTimelineMonth <= timelineWindow.end ? visibleTimelineMonth : defaultMonth
+  const timelineGlance = useMemo<TimelineGlance>(() => {
+    const items = [
+      ...scopedWorkCards.filter((card) => !card.quiet && !card.backlog).map((card) => ({ date: card.date, endDate: undefined, title: card.title })),
+      ...timelineSourceEntries.map((entry) => ({ date: entry.date, endDate: entry.endDate, title: entry.title })),
+    ].sort((first, second) => first.date.localeCompare(second.date) || first.title.localeCompare(second.title))
+    const todayItems = items.filter((item) => item.date <= today && (item.endDate ?? item.date) >= today)
+    const next = items.find((item) => item.date > today)
+    return {
+      today: todayItems.length ? `${todayItems.length} ${todayItems.length === 1 ? 'plan' : 'plans'} today` : 'All clear today',
+      next: next ? `${next.title || 'Untitled plan'} · ${formatDate(next.date, { month: 'short', day: 'numeric' })}` : 'Nothing scheduled next',
+    }
+  }, [scopedWorkCards, timelineSourceEntries, today])
 
   useEffect(() => {
     setTimelineWindow((current) => ({
@@ -670,7 +700,7 @@ export default function App() {
     <div className="page-outlet">
       <Routes>
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
-          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} onSpaceNotice={postSpaceNotice} canManageNotice={canManageNotice} hasNotice={!!space.notice} />
+          <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} glance={timelineGlance} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} onSpaceNotice={postSpaceNotice} canManageNotice={canManageNotice} hasNotice={!!space.notice} />
           {space.kind === 'shared' && space.notice && <PinnedSpaceNotice notice={space.notice} acknowledgementId={account.user?.email?.trim().toLocaleLowerCase() || member.id} canManage={canManageNotice} onAcknowledge={acknowledgeSpaceNotice} onClear={clearSpaceNotice} />}
           <Timeline cards={scopedWorkCards} entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} reminderAttentionIds={notifications.reminderAttentionIds} spineActivity={spineActivity.unopened} spineActivityArrivalVersion={spineActivity.arrivalVersion} spineActivitySpaceId={space.id} onOpenSpineActivity={spineActivity.open} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} currentMember={member} canEdit={canEdit} />

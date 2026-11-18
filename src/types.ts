@@ -123,7 +123,7 @@ interface BaseCard {
   /** Display attribution for shared-space cards. Personal cards may omit it. */
   authoredBy?: string
   lastEditedBy?: string
-  /** Fast, low-noise acknowledgement reactions shown in the Journey Stream. */
+  /** Fast, low-noise acknowledgement reactions shown in the Timeline. */
   reactions?: QuickReaction[]
 }
 

@@ -75,12 +75,12 @@ test('Spaces keep local team work separate and let owners configure shared works
   await expect(page.getByText(/Space Note/i).first()).toBeVisible()
 })
 
-test('new teammate activity arrives as an unopened envelope on the Journey Stream spine', async ({ page }) => {
+test('new teammate activity arrives as an unopened envelope on the Timeline spine', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/')
   await page.getByRole('button', { name: /Switch workspace, current space: Personal Space/ }).click()
   await page.getByRole('option', { name: /Curriculum Planning/ }).click()
-  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Timeline', exact: true })).toBeVisible()
   await page.waitForFunction(({ key, spaceId }) => {
     const stored = localStorage.getItem(key)
     if (!stored) return false
@@ -112,14 +112,14 @@ test('new teammate activity arrives as an unopened envelope on the Journey Strea
   await expect(envelope).toHaveCount(0)
 })
 
-test('a shared Space keeps one replaceable Pinned Space Notice outside the Journey Stream', async ({ page }) => {
+test('a shared Space keeps one replaceable Pinned Space Notice outside the Timeline', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/')
   await expect(page.getByText('Pinned Space Notice', { exact: true })).toHaveCount(0)
 
   await page.getByRole('button', { name: /Switch workspace, current space: Personal Space/ }).click()
   await page.getByRole('option', { name: /Curriculum Planning/ }).click()
-  const noticeAction = page.getByRole('button', { name: 'Pinned notice', exact: true })
+  const noticeAction = page.getByRole('button', { name: 'Write notice', exact: true })
   await noticeAction.click()
   await page.getByPlaceholder('Share one concise notice…').fill('Please review the family-conference plan before lunch.')
   await page.getByRole('button', { name: 'Post', exact: true }).click()
@@ -131,7 +131,7 @@ test('a shared Space keeps one replaceable Pinned Space Notice outside the Journ
   expect(noticeBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height)
   expect(noticeBox!.y + noticeBox!.height).toBeLessThanOrEqual(timelineBox!.y)
 
-  await page.getByRole('button', { name: 'Edit notice', exact: true }).click()
+  await page.getByRole('button', { name: 'Write notice', exact: true }).click()
   await page.getByPlaceholder('Share one concise notice…').fill('Family-conference plan is confirmed for Friday.')
   await page.getByRole('button', { name: 'Replace', exact: true }).click()
   await expect(notice).toContainText('Family-conference plan is confirmed for Friday.')
@@ -143,8 +143,8 @@ test('a shared Space keeps one replaceable Pinned Space Notice outside the Journ
   await page.getByRole('button', { name: 'Show', exact: true }).click()
   await expect(notice).toContainText('Family-conference plan is confirmed for Friday.')
   await page.setViewportSize({ width: 375, height: 812 })
-  await expect(page.getByRole('button', { name: 'Edit notice', exact: true })).toBeVisible()
-  await expect(page.getByRole('group', { name: 'Team workload scope', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Write notice', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^All sources:/ })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
 
   await page.getByRole('button', { name: /Switch workspace, current space: Curriculum Planning/ }).click()

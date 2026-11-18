@@ -83,7 +83,7 @@ function cleanCard(value: Record<string, unknown>): JourneyCard | null {
   const parsed = parseSavedState(JSON.stringify({ version: 1, bezel: false, cards: [card] }))
   const parsedCard = parsed?.cards[0] ?? null
   // Prior releases represented a shared broadcast as a normal dated Note. Keep those
-  // documents inert during cloud hydration so they cannot re-enter the Journey Stream.
+  // documents inert during cloud hydration so they cannot re-enter the Timeline.
   return parsedCard?.type === 'note' && parsedCard.title === 'Space update' && parsedCard.category === 'Space Update' && parsedCard.tags.includes('space-update') ? null : parsedCard
 }
 

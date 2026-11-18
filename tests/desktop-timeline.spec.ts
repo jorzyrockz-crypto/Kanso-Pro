@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { createInitialState, STORAGE_KEY } from '../src/data'
 import { CALENDAR_SOURCES_STORAGE_KEY } from '../src/lib/calendarSources'
 
-test('desktop Timeline keeps a planning desk beside the Journey Stream', async ({ page }) => {
+test('desktop Timeline keeps a planning desk beside the stream', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 844 })
   await page.goto('/')
 
@@ -24,13 +24,13 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
 
   const header = page.locator('.stream-header')
   const filterTrigger = page.getByRole('button', { name: 'Filter journey cards: All Stream', exact: true })
-  const sourceTrigger = page.getByRole('button', { name: /^Calendar sources, \d+ shown$/ })
+  const sourceTrigger = page.getByRole('button', { name: /^All sources: All Team; \d+ calendar sources? shown$/ })
   await expect(header.getByRole('navigation', { name: 'Filter journey cards' })).toBeHidden()
   await expect(filterTrigger).toBeVisible()
   await expect(sourceTrigger).toBeVisible()
-  const [filterBox, scopeBox, sourceBox] = await Promise.all([filterTrigger.boundingBox(), page.getByRole('group', { name: 'Team workload scope', exact: true }).boundingBox(), sourceTrigger.boundingBox()])
-  expect(Math.abs(filterBox!.y - scopeBox!.y)).toBeLessThanOrEqual(1)
-  expect(Math.abs(scopeBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
+  await expect(header.getByRole('complementary', { name: 'At a glance planning desk', exact: true })).toBeVisible()
+  const [filterBox, sourceBox] = await Promise.all([filterTrigger.boundingBox(), sourceTrigger.boundingBox()])
+  expect(Math.abs(filterBox!.y - sourceBox!.y)).toBeLessThanOrEqual(1)
 
   const [headerBox, streamBox, railBox, viewport] = await Promise.all([
     page.locator('.stream-header').boundingBox(), stream.boundingBox(), rail.boundingBox(), page.evaluate(() => document.documentElement.scrollWidth),

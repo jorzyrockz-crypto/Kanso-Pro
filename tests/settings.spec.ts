@@ -114,7 +114,7 @@ test('the disclosure follows normal keyboard order, Escape, outside dismissal, a
   await expect(bottom(page).getByRole('link', { name: 'Timeline', exact: true })).toBeFocused()
   await expect(trigger(page)).toHaveAttribute('aria-expanded', 'false')
   await openProfile(page)
-  await page.getByRole('heading', { name: 'Journey Stream', exact: true }).click()
+  await page.getByRole('heading', { name: 'Timeline', exact: true }).click()
   await expect(trigger(page)).toHaveAttribute('aria-expanded', 'false')
   expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).not.toBe('hidden')
   await openProfile(page)

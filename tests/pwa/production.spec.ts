@@ -177,7 +177,7 @@ test('a freshly updated app returns to the Timeline with the release card over a
   await expect(page).toHaveURL('/')
   const release = page.getByRole('dialog', { name: 'Kanso Pro · Planning Space', exact: true })
   await expect(release).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Timeline', exact: true })).toBeVisible()
   await expect(page.locator('.about-updates-backdrop')).toHaveCSS('backdrop-filter', /blur/)
   await release.getByRole('button', { name: 'Close About and what’s new', exact: true }).click()
   await expect(release).toHaveCount(0)

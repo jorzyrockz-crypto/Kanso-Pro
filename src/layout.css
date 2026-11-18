@@ -236,33 +236,28 @@
   .app-footer > span { padding-left: 0.75rem; border-left: 1px solid var(--theme-border, #c5dce9); }
   .toast-region { bottom: calc(var(--bottom-bar-height) + 0.75rem); }
 
-  /* Keep the streamlined Journey controls consistent on tablets: one primary filter
-     menu plus scope, pinned-notice, and Sources doors instead of an overflowing pill rail. */
+  /* Timeline filters stay compact on tablets: card type and unified source/scope menus,
+     while the pinned-notice action remains in the header identity row. */
   @media (min-width: 681px) and (max-width: 1080px) {
-    .timeline-page .stream-controls { justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
+    .timeline-page .stream-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: .5rem; }
     .timeline-page .filter-bar { display: none; }
-    .timeline-page .stream-filter-menu { display: block; flex: 1 1 9.5rem; min-width: 8rem; max-width: 14rem; }
+    .timeline-page .stream-filter-menu, .timeline-page .stream-reference-controls { display: block; width: 100%; min-width: 0; max-width: none; margin: 0; }
     .timeline-page .stream-filter-menu .stream-dropdown-trigger { width: 100%; border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
     .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
     .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
-    .timeline-page .stream-sources-menu .stream-dropdown-trigger { min-width: 0; padding-right: .4375rem; padding-left: .5rem; }
-    .timeline-page .stream-sources-menu .source-summary-label { display: none; }
-    .timeline-page .stream-sources-menu .source-summary-label-compact { display: inline; }
-    .timeline-page .stream-sources-menu .source-summary-shown { display: none; }
-    .timeline-page .stream-reference-controls { margin-left: auto; }
+    .timeline-page .stream-sources-menu .stream-dropdown-trigger { width: 100%; min-width: 0; padding-right: .625rem; padding-left: .625rem; }
   }
 
-  /* On phones, preserve full labels and touch targets by giving the two menus their own
-     first row; the scope and optional pinned-notice action remain reachable below. */
+  /* On phones, preserve full labels and touch targets in one fluid filter/source row. */
   @media (max-width: 680px) {
-    .timeline-page .stream-controls { flex-wrap: wrap; align-items: center; }
-    .timeline-page .stream-filter-menu { order: 1; flex: 1 1 9rem; }
-    .timeline-page .stream-reference-controls { order: 2; flex: 1 1 9rem; }
-    .timeline-page .team-scope-toggle { order: 3; }
-    .timeline-page .space-update-control { order: 4; }
-    .timeline-page .stream-filter-menu .stream-dropdown-trigger { border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
+    .timeline-page .stream-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: .5rem; }
+    /* Let the open source picker occupy a full grid row. It therefore reveals the
+       planning signals below it instead of floating over—and obscuring—them. */
+    .timeline-page .stream-filter-menu, .timeline-page .stream-reference-controls, .timeline-page .stream-sources-menu { display: contents; }
+    .timeline-page .stream-filter-menu .stream-dropdown-trigger { width: 100%; border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
     .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
     .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
+    .timeline-page .stream-sources-menu .stream-dropdown-trigger { width: 100%; min-width: 0; }
   }
 
   /* Desktop turns the Timeline into a planning desk: the story remains central, while live priorities stay close by. */
@@ -275,17 +270,13 @@
 
     /* The planning desk narrows the Stream column even on a wide display. Replace the
        five inline pills with one active-filter menu, then reserve the row for context. */
-    .timeline-page .stream-controls { justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
+    .timeline-page .stream-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: .5rem; }
     .timeline-page .filter-bar { display: none; }
-    .timeline-page .stream-filter-menu { display: block; flex: 1 1 8.5rem; min-width: 7.5rem; max-width: 12rem; }
+    .timeline-page .stream-filter-menu, .timeline-page .stream-reference-controls { display: block; width: 100%; min-width: 0; max-width: none; margin: 0; }
     .timeline-page .stream-filter-menu .stream-dropdown-trigger { width: 100%; border-color: var(--theme-action, #152138); background: var(--theme-action, #152138); color: #fff; }
     .timeline-page .stream-filter-menu .stream-dropdown-trigger:hover, .timeline-page .stream-filter-menu .stream-dropdown-trigger[aria-expanded='true'] { border-color: var(--theme-action-hover, #27354f); background: var(--theme-action-hover, #27354f); color: #fff; }
     .timeline-page .stream-filter-menu .stream-dropdown-count { background: rgb(255 255 255 / 19%); color: #fff; }
-    .timeline-page .stream-sources-menu .stream-dropdown-trigger { min-width: 0; padding-right: .4375rem; padding-left: .5rem; }
-    .timeline-page .stream-sources-menu .source-summary-label { display: none; }
-    .timeline-page .stream-sources-menu .source-summary-label-compact { display: inline; }
-    .timeline-page .stream-sources-menu .source-summary-shown { display: none; }
-    .timeline-page .stream-reference-controls { margin-left: auto; }
+    .timeline-page .stream-sources-menu .stream-dropdown-trigger { width: 100%; min-width: 0; padding-right: .625rem; padding-left: .625rem; }
     .timeline-layout { display: contents; }
     .timeline-page .timeline { grid-column: 1; grid-row: 3; min-width: 0; padding: 2rem 0 1.5rem; }
     .timeline-page .desktop-planning-rail { position: sticky; top: calc(var(--hdr-h) + .875rem); grid-column: 2; grid-row: 1 / span 3; align-self: start; display: flex; min-width: 0; flex-direction: column; gap: .75rem; margin-top: 1.75rem; padding: .9375rem; border: 1px solid var(--theme-border, #d6e6f0); border-radius: 1.25rem; background: var(--theme-glass, rgb(255 255 255 / 82%)); box-shadow: 0 .75rem 2rem rgb(31 79 111 / 9%); backdrop-filter: blur(1.125rem) saturate(1.12); -webkit-backdrop-filter: blur(1.125rem) saturate(1.12); }
@@ -474,7 +465,7 @@
   .journal-hero h2, .journal-hero.hero-note h2 { color: var(--theme-text-primary, #355169); font-family: var(--sans); font-size: clamp(.875rem, 1.4vw, 1.125rem); font-weight: 800; letter-spacing: -.02rem; }
   .journal-hero p { display: -webkit-box; margin-top: .1875rem; overflow: hidden; color: var(--theme-text-secondary, #63798b); font-size: .59375rem; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
   .journal-hero .hero-stat { min-width: auto; padding: .4375rem .625rem; border-color: var(--theme-border, #dce8ee); border-radius: .6875rem; background: var(--theme-surface-muted, #f6fbfd); }
-  .journal-hero .hero-stat > span { color: var(--theme-text-secondary, #6b8495); font-size: .4375rem; }
+  .journal-hero .hero-stat > span { color: #4d687b; font-size: .4375rem; }
   .journal-hero .hero-stat > strong { color: var(--theme-text-primary, #36536a); font-size: 1rem; }
   .journal-composer-surface .journal-title-row { margin-top: 1rem; border-bottom-color: var(--theme-border, #e5edf1); }
   .journal-composer-surface .journal-title-input { color: var(--theme-text-primary, #283f50); font-family: var(--sans); font-size: clamp(1.25rem, 2.8vw, 2rem); font-weight: 750; line-height: 1.25; }

@@ -66,7 +66,7 @@ test('automatic, manually illustrated, and unillustrated events persist on the t
     await page.getByLabel('Card title', { exact: false }).fill(title)
     await picker(page).getByRole('radio', { name: selection, exact: true }).check()
     await page.getByRole('button', { name: 'Add to Timeline', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Journey Stream', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Timeline', exact: true })).toBeVisible()
     const card = page.locator('.journey-card').filter({ has: page.getByRole('heading', { name: title, exact: true }) })
     await expect(card).toHaveAttribute('data-occasion', theme)
     await expect(card).not.toContainText('PH HOLIDAY')
