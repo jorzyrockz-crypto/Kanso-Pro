@@ -43,7 +43,7 @@ export function EventContextMenu({ card, dispatch, currentMember, canEdit, onPre
       <header className="event-context-heading"><div><span>Event actions</span><h2 id={headingId}>{card.title || 'Untitled event'}</h2></div><button ref={closeRef} type="button" className="event-context-close" aria-label="Close event actions" onClick={onClose}><X size="1rem" aria-hidden="true" /></button></header>
       <div className="event-context-rsvp" role="group" aria-label={`Respond to ${card.title || 'this event'}`}>
         <button type="button" disabled={!canEdit} className={acknowledgement === 'going' ? 'is-active' : ''} aria-pressed={acknowledgement === 'going'} onClick={() => choose('going')}><Check size=".875rem" aria-hidden="true" />Going{acknowledgementCount(card.acknowledgements, 'going') ? ` · ${acknowledgementCount(card.acknowledgements, 'going')}` : ''}</button>
-        <button type="button" disabled={!canEdit} className={acknowledgement === 'noted' ? 'is-active' : ''} aria-pressed={acknowledgement === 'noted'} onClick={() => choose('noted')}>Noted{acknowledgementCount(card.acknowledgements, 'noted') ? ` · ${acknowledgementCount(card.acknowledgements, 'noted')}` : ''}</button>
+        <button type="button" disabled={!canEdit} className={acknowledgement === 'noted' ? 'is-active' : ''} aria-pressed={acknowledgement === 'noted'} onClick={() => choose('noted')}><Eye size=".875rem" aria-hidden="true" />Noted{acknowledgementCount(card.acknowledgements, 'noted') ? ` · ${acknowledgementCount(card.acknowledgements, 'noted')}` : ''}</button>
       </div>
       <div className="event-context-options">
         <button type="button" onClick={() => { onClose(); onPreview() }}><Eye size=".9375rem" aria-hidden="true" />Preview event</button>

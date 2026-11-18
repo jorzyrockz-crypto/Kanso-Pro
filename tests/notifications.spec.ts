@@ -61,6 +61,30 @@ test('no initial flood or permission prompt; due reminders group, badge, link an
   expect(firebase.unexpectedRequests).toEqual([])
 })
 
+test('a newly due planner reminder briefly nudges only its Journey Stream card', async ({ page, context }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await mockFirebase(context)
+  const state = createInitialState()
+  const source = state.cards.find((card): card is TaskCard => card.type === 'task')!
+  const dueTask = { ...source, id: 'nudge-task', title: 'Nudge me at nine', date: '2026-11-14', reminder: '09:00', subtasks: [{ id: 'nudge-step', title: 'One action', done: false }] }
+  state.cards = [dueTask]
+  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: STORAGE_KEY, value: JSON.stringify(state) })
+  await page.clock.install({ time: new Date('2026-11-14T00:59:00Z') })
+  await page.goto('/')
+
+  const dueCard = page.locator('[data-card-id="nudge-task"]')
+  await expect(dueCard).toBeVisible()
+  await expect(dueCard).not.toHaveClass(/is-reminder-alert/)
+  await page.clock.fastForward(60_001)
+  await expect(dueCard).toHaveClass(/is-reminder-alert/)
+  await expect(dueCard).toHaveCSS('animation-name', 'reminder-card-nudge')
+  await expect(page.locator('.is-reminder-alert')).toHaveCount(1)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(dueCard).toHaveCSS('animation-name', 'none')
+  await page.clock.fastForward(801)
+  await expect(dueCard).not.toHaveClass(/is-reminder-alert/)
+})
+
 test('the bell opens a dismissible notification menu with a deeper settings route', async ({ page, context }) => {
   await mockFirebase(context)
   await page.setViewportSize({ width: 320, height: 740 })

@@ -5,6 +5,7 @@ import type { NotificationPreferences, NotificationState, PlannerNotification } 
 
 const permissionNow = () => { try { return 'Notification' in window ? Notification.permission : 'unsupported' as const } catch { return 'unsupported' as const } }
 type BadgeNavigator = Partial<Pick<Navigator, 'setAppBadge' | 'clearAppBadge'>>
+const REMINDER_ATTENTION_DURATION = 800
 
 /** Local workspace notifications deliberately share the same browser/origin scope as cards, not an account. */
 export function useNotifications(cards: JourneyCard[]) {
@@ -17,7 +18,22 @@ export function useNotifications(cards: JourneyCard[]) {
   const [permission, setPermission] = useState(permissionNow)
   const [feedback, setFeedback] = useState('')
   const [announcement, setAnnouncement] = useState<{ id: string; message: string; href: string; notificationId?: string } | null>(null)
+  const [reminderAttentionIds, setReminderAttentionIds] = useState<string[]>([])
+  const reminderAttentionTimer = useRef<number | null>(null)
   const phoneSupported = import.meta.env.PROD && window.isSecureContext && 'Notification' in window && 'serviceWorker' in navigator
+
+  const showReminderAttention = useCallback((cardIds: string[]) => {
+    if (!cardIds.length) return
+    setReminderAttentionIds(current => [...new Set([...current, ...cardIds])])
+    if (reminderAttentionTimer.current !== null) window.clearTimeout(reminderAttentionTimer.current)
+    reminderAttentionTimer.current = window.setTimeout(() => {
+      reminderAttentionTimer.current = null
+      setReminderAttentionIds([])
+    }, REMINDER_ATTENTION_DURATION)
+  }, [])
+  useEffect(() => () => {
+    if (reminderAttentionTimer.current !== null) window.clearTimeout(reminderAttentionTimer.current)
+  }, [])
 
   const change = useCallback((mutate: (current: NotificationState) => NotificationState | Promise<NotificationState>) => {
     const run = async () => {
@@ -53,6 +69,7 @@ export function useNotifications(cards: JourneyCard[]) {
     const pending = next.items.filter(item => !item.read && next.pendingPhone.includes(item.id))
     if (visible) {
       const arriving = [...new Map([...pending, ...result.incoming].map(item => [item.id, item])).values()]
+      showReminderAttention(result.attentionCardIds)
       if (arriving.length) setAnnouncement({ id: arriving.map(item => item.id).join('|'), message: arriving.length === 1 ? arriving[0].title : `${arriving.length} new planner notifications`, href: arriving.length === 1 ? arriving[0].href : '/notifications', notificationId: arriving.length === 1 ? arriving[0].id : undefined })
       next = { ...next, pendingPhone: [] }
     } else if (next.preferences.phone && permissionNow() === 'granted') {
@@ -73,7 +90,7 @@ export function useNotifications(cards: JourneyCard[]) {
       }
     } else next = { ...next, pendingPhone: [] }
     return next
-  }), [change, phoneSupported])
+  }), [change, phoneSupported, showReminderAttention])
 
   useEffect(() => { void evaluate() }, [cards, evaluate])
   useEffect(() => {
@@ -134,6 +151,6 @@ export function useNotifications(cards: JourneyCard[]) {
     } as NotificationOptions)).catch(() => {})
   }, [change, phoneSupported, state.preferences.phone])
 
-  return { state, unread, storageAvailable, permission, phoneSupported, feedback, announcement, preferences, phone, markRead, addUpdate, addCollaboration }
+  return { state, unread, storageAvailable, permission, phoneSupported, feedback, announcement, reminderAttentionIds, preferences, phone, markRead, addUpdate, addCollaboration }
 }
 export type NotificationsController = ReturnType<typeof useNotifications>

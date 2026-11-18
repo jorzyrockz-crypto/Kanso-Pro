@@ -1,8 +1,8 @@
-import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, ChevronDown, ChevronRight, FileText, Flag, Folder, Landmark, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronDown, ChevronRight, Eye, FileText, Flag, Folder, Landmark, Mail, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react'
-import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, SpaceMember, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
+import type { ComposerOptions, DayEntry, EventCard, Filter, GapEntry, JourneyAction, JourneyCard, NoteCard, ProjectCard, RolloverCandidate, SpaceActivity, SpaceMember, TaskCard, TimelineEntry, TimelineItem, TimelineSourceEntry } from '../types'
 import { addDays, daysBetween, formatDate, formatTime, gapLabel, progress, shortDate, TYPE_CONFIG } from '../lib/journey'
 import { Avatar, ProgressBar, TypeIcon } from './Common'
 import { destinationPath } from '../lib/navigation'
@@ -12,7 +12,7 @@ import { legislatedActivityIllustration } from '../lib/legislatedActivityVisuals
 import { TimelineCardPreview } from './TimelineCardPreview'
 import { EventContextMenu } from './EventContextMenu'
 import { QuickReactions } from './QuickReactions'
-import { toggleReaction } from '../lib/collaboration'
+import { acknowledgementCount, toggleReaction } from '../lib/collaboration'
 
 function useReveal() {
   const ref = useRef<HTMLElement>(null)
@@ -67,10 +67,11 @@ function EventCardSurface({ card, onPreview, onContextMenu }: { card: EventCard;
     onClick={(event) => { if (longPressTriggered.current) { event.preventDefault(); longPressTriggered.current = false; return } onPreview() }} />
 }
 
-function CardFrame({ card, className = '', highlight, children, artwork, dispatch, currentMember, canEdit, onPreview, onContextMenu }: {
+function CardFrame({ card, className = '', highlight, reminderAttention, children, artwork, dispatch, currentMember, canEdit, onPreview, onContextMenu }: {
   card: JourneyCard
   className?: string
   highlight?: boolean
+  reminderAttention?: boolean
   children: ReactNode
   artwork?: ReactNode
   dispatch?: Dispatch<JourneyAction>
@@ -83,7 +84,7 @@ function CardFrame({ card, className = '', highlight, children, artwork, dispatc
   const previewableEvent = card.type === 'event' && onPreview && onContextMenu
   return (
     <article id={`card-${card.id}`} data-card-id={card.id} data-card-type={card.type} data-occasion={card.type === 'event' ? resolveOccasion(card) : undefined}
-      className={`journey-card card-${card.type} ${className} ${highlight ? 'is-highlighted' : ''}`}>
+      className={`journey-card card-${card.type} ${className} ${highlight ? 'is-highlighted' : ''} ${reminderAttention ? 'is-reminder-alert' : ''}`}>
       {artwork}
       {previewableEvent ? <EventCardSurface card={card} onPreview={onPreview} onContextMenu={onContextMenu} /> : <Link className="card-open" to={destination} aria-label={`Open ${card.title || 'Untitled reflection'} details`} />}
       <div className="card-content">{children}{dispatch && currentMember && <QuickReactions reactions={card.reactions} memberName={currentMember.name} disabled={!canEdit} label={`Reactions to ${card.title || 'this update'}`} onReact={(emoji) => dispatch({ type: 'update-card', card: { ...card, reactions: toggleReaction(card.reactions, emoji, currentMember.name) } })} />}</div>
@@ -91,21 +92,31 @@ function CardFrame({ card, className = '', highlight, children, artwork, dispatc
   )
 }
 
-function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch, currentMember, canEdit }: { card: EventCard; highlight: boolean; onPreview: () => void; onContextMenu: () => void; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
+function EventAcknowledgementIndicator({ card, memberName }: { card: EventCard; memberName: string }) {
+  const response = card.acknowledgements?.find((entry) => entry.member === memberName)?.response
+  if (!response) return null
+  const going = response === 'going'
+  const count = acknowledgementCount(card.acknowledgements, response)
+  const label = `You marked this event as ${going ? 'going' : 'noted'}${count > 1 ? `. ${count} people responded ${going ? 'going' : 'noted'}.` : '.'}`
+  const Icon = going ? Check : Eye
+  return <span className={`badge event-acknowledgement-indicator is-${response}`} role="status" aria-label={label} title={label}><Icon size=".6875rem" aria-hidden="true" />{going ? 'Going' : 'Noted'}</span>
+}
+
+function EventJourneyCard({ card, highlight, reminderAttention, onPreview, onContextMenu, dispatch, currentMember, canEdit }: { card: EventCard; highlight: boolean; reminderAttention: boolean; onPreview: () => void; onContextMenu: () => void; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
   const theme = resolveOccasion(card)
   if (theme !== 'none') return (
-    <CardFrame card={card} highlight={highlight} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
+    <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
       <div className="card-topline">
         <span className="badge occasion-event-badge">{card.holiday ? <Flag size="0.6875rem" /> : <CalendarDays size="0.6875rem" />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
         <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
       </div>
-      <span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span>
+      <div className="event-status-line"><span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
       <div className="occasion-event-copy"><h3>{card.title}</h3>{card.context && <p className="card-caption">{card.context}</p>}</div>
       <div className="card-footer occasion-event-footer"><span><CalendarDays size="0.6875rem" />Connected to Calendar</span><span className="footer-link">Open Schedule<ArrowRight size="0.75rem" /></span></div>
     </CardFrame>
   )
   if (card.holiday) return (
-    <CardFrame card={card} highlight={highlight} className="holiday-card" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
+    <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className="holiday-card" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
       <div className="card-topline">
         <span className="badge holiday-badge"><Flag size="0.75rem" />PH HOLIDAY</span>
         <div className="person-actions">
@@ -113,7 +124,7 @@ function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch,
           <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1rem" /></button>
         </div>
       </div>
-      <span className="badge all-day-badge"><CalendarDays size="0.6875rem" />ALL DAY</span>
+      <div className="event-status-line"><span className="badge all-day-badge"><CalendarDays size="0.6875rem" />ALL DAY</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
       <h3>{card.title}</h3>
       <p className="card-caption truncate">{card.context}</p>
       <div className="card-footer holiday-footer">
@@ -123,9 +134,9 @@ function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch,
     </CardFrame>
   )
   return (
-    <CardFrame card={card} highlight={highlight} className="standard-event-card" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
+    <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className="standard-event-card" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
       <div className="card-topline event-topline">
-        <span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span>
+        <div className="event-topline-status"><span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
         <div className="person-actions">
           <span className="person-pill"><Avatar name={card.owner} /><span>{card.owner}</span></span>
           <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
@@ -140,10 +151,10 @@ function EventJourneyCard({ card, highlight, onPreview, onContextMenu, dispatch,
   )
 }
 
-function TaskJourneyCard({ card, dispatch, highlight, currentMember, canEdit }: { card: TaskCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; currentMember: SpaceMember; canEdit: boolean }) {
+function TaskJourneyCard({ card, dispatch, highlight, reminderAttention, currentMember, canEdit }: { card: TaskCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; reminderAttention: boolean; currentMember: SpaceMember; canEdit: boolean }) {
   const { done, total } = progress(card.subtasks)
   return (
-    <CardFrame card={card} highlight={highlight} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
+    <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
       <div className="card-topline task-topline">
         <span className="badge type-badge"><TypeIcon type="task" size={12} />Task list</span>
         {card.reminder && <span className="reminder-pill"><Bell size="0.6875rem" />{formatTime(card.reminder)}</span>}
@@ -163,9 +174,9 @@ function TaskJourneyCard({ card, dispatch, highlight, currentMember, canEdit }: 
   )
 }
 
-function NoteJourneyCard({ card, highlight, dispatch, currentMember, canEdit }: { card: NoteCard; highlight: boolean; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
+function NoteJourneyCard({ card, highlight, reminderAttention, dispatch, currentMember, canEdit }: { card: NoteCard; highlight: boolean; reminderAttention: boolean; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
   return (
-    <CardFrame card={card} highlight={highlight} className="journal-paper" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
+    <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className="journal-paper" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
       <div className="card-topline note-topline">
         <span className="badge type-badge"><TypeIcon type="note" size={11} />{card.category === 'Space Update' ? 'Space Update' : 'Journal Note'}</span>
         <span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size="0.625rem" />Pinned</>}</span>
@@ -194,12 +205,12 @@ function projectDueState(card: ProjectCard, percent: number) {
   return { text: `${days}d left`, tone: 'is-upcoming' }
 }
 
-function ProjectJourneyCard({ card, highlight, dispatch, currentMember, canEdit }: { card: ProjectCard; highlight: boolean; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
+function ProjectJourneyCard({ card, highlight, reminderAttention, dispatch, currentMember, canEdit }: { card: ProjectCard; highlight: boolean; reminderAttention: boolean; dispatch: Dispatch<JourneyAction>; currentMember: SpaceMember; canEdit: boolean }) {
   const { done, total, percent } = progress(card.subtasks)
   const nextMilestone = card.subtasks.find((item) => !item.done)
   const due = projectDueState(card, percent)
   return (
-    <CardFrame card={card} highlight={highlight} className={`project-stream-card ${card.featured ? 'featured-project-card' : 'sprint-card'}`} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
+    <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className={`project-stream-card ${card.featured ? 'featured-project-card' : 'sprint-card'}`} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
       <div className="card-topline project-stream-topline">
         <span className="badge type-badge"><Zap size="0.6875rem" />Project</span>
         <span className={`timeline-project-due ${due.tone}`}>{due.text}</span>
@@ -212,12 +223,12 @@ function ProjectJourneyCard({ card, highlight, dispatch, currentMember, canEdit 
   )
 }
 
-function JourneyCardView({ card, dispatch, highlight, onPreview, onEventActions, currentMember, canEdit }: { card: JourneyCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; onPreview: () => void; onEventActions: (card: EventCard) => void; currentMember: SpaceMember; canEdit: boolean }) {
+function JourneyCardView({ card, dispatch, highlight, reminderAttention, onPreview, onEventActions, currentMember, canEdit }: { card: JourneyCard; dispatch: Dispatch<JourneyAction>; highlight: boolean; reminderAttention: boolean; onPreview: () => void; onEventActions: (card: EventCard) => void; currentMember: SpaceMember; canEdit: boolean }) {
   switch (card.type) {
-    case 'event': return <EventJourneyCard card={card} highlight={highlight} onPreview={onPreview} onContextMenu={() => onEventActions(card)} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} />
-    case 'task': return <TaskJourneyCard card={card} dispatch={dispatch} highlight={highlight} currentMember={currentMember} canEdit={canEdit} />
-    case 'note': return <NoteJourneyCard card={card} highlight={highlight} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} />
-    case 'project': return <ProjectJourneyCard card={card} highlight={highlight} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} />
+    case 'event': return <EventJourneyCard card={card} highlight={highlight} reminderAttention={reminderAttention} onPreview={onPreview} onContextMenu={() => onEventActions(card)} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} />
+    case 'task': return <TaskJourneyCard card={card} dispatch={dispatch} highlight={highlight} reminderAttention={reminderAttention} currentMember={currentMember} canEdit={canEdit} />
+    case 'note': return <NoteJourneyCard card={card} highlight={highlight} reminderAttention={reminderAttention} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} />
+    case 'project': return <ProjectJourneyCard card={card} highlight={highlight} reminderAttention={reminderAttention} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} />
   }
 }
 
@@ -249,7 +260,7 @@ function TimelineSourceCard({ entry, onPreview }: { entry: TimelineSourceEntry; 
   </article>
 }
 
-function DayRow({ entry, today, dispatch, highlightId, onPreview, onEventActions, currentMember, canEdit }: { entry: DayEntry; today: string; dispatch: Dispatch<JourneyAction>; highlightId: string | null; onPreview: (item: TimelineItem) => void; onEventActions: (card: EventCard) => void; currentMember: SpaceMember; canEdit: boolean }) {
+function DayRow({ entry, today, dispatch, highlightId, reminderAttentionIds, onPreview, onEventActions, currentMember, canEdit }: { entry: DayEntry; today: string; dispatch: Dispatch<JourneyAction>; highlightId: string | null; reminderAttentionIds: ReadonlySet<string>; onPreview: (item: TimelineItem) => void; onEventActions: (card: EventCard) => void; currentMember: SpaceMember; canEdit: boolean }) {
   const ref = useReveal()
   const first = entry.cards[0]
   const firstIsSource = isTimelineSourceEntry(first)
@@ -265,7 +276,7 @@ function DayRow({ entry, today, dispatch, highlightId, onPreview, onEventActions
       })}
       <div className="card-column card-col-left">{itemsForSide('left').map((card) => isTimelineSourceEntry(card)
         ? <TimelineSourceCard key={card.id} entry={card} onPreview={() => onPreview(card)} />
-        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} onPreview={() => onPreview(card)} onEventActions={onEventActions} currentMember={currentMember} canEdit={canEdit} />
+        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} reminderAttention={reminderAttentionIds.has(card.id)} onPreview={() => onPreview(card)} onEventActions={onEventActions} currentMember={currentMember} canEdit={canEdit} />
       )}</div>
       <div className={`date-node-wrapper ${isToday ? 'is-today' : ''}`}>
         <Link className={`date-node ${isToday ? 'date-today' : ''} ${!firstIsSource && first.type === 'project' ? 'date-project' : isMonday ? 'date-monday' : ''}`} data-date={entry.date}
@@ -277,7 +288,7 @@ function DayRow({ entry, today, dispatch, highlightId, onPreview, onEventActions
       </div>
       <div className="card-column card-col-right">{itemsForSide('right').map((card) => isTimelineSourceEntry(card)
         ? <TimelineSourceCard key={card.id} entry={card} onPreview={() => onPreview(card)} />
-        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} onPreview={() => onPreview(card)} onEventActions={onEventActions} currentMember={currentMember} canEdit={canEdit} />
+        : <JourneyCardView key={card.id} card={card} dispatch={dispatch} highlight={highlightId === card.id} reminderAttention={reminderAttentionIds.has(card.id)} onPreview={() => onPreview(card)} onEventActions={onEventActions} currentMember={currentMember} canEdit={canEdit} />
       )}</div>
     </section>
   )
@@ -351,6 +362,41 @@ function DesktopRailItem({ card, detail, trailing }: { card: Exclude<JourneyCard
   </Link>
 }
 
+function SpineActivityEnvelope({ activity, arrivalVersion, onOpen }: { activity: SpaceActivity[]; arrivalVersion: number; onOpen: (activity: SpaceActivity[]) => void }) {
+  const count = activity.length
+  const label = `${count} new teammate ${count === 1 ? 'activity' : 'activities'}. Open activity tray.`
+  return <div className="spine-activity-stop">
+    <button type="button" className={`spine-activity-envelope ${arrivalVersion ? 'is-arriving' : ''}`} onClick={() => onOpen(activity)} aria-label={label} title={label}>
+      <span className="spine-activity-envelope-icon"><Mail size="1.0625rem" aria-hidden="true" /></span>
+      <span className="spine-activity-new" aria-hidden="true">New</span>
+      {count > 1 && <span className="spine-activity-count" aria-hidden="true">{count > 9 ? '9+' : count}</span>}
+    </button>
+  </div>
+}
+
+function SpineActivityTray({ activity, onClose }: { activity: SpaceActivity[]; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    closeRef.current?.focus({ preventScroll: true })
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
+  const count = activity.length
+  return <section className="spine-activity-tray" role="dialog" aria-labelledby="spine-activity-tray-title">
+    <header className="spine-activity-tray-heading">
+      <span className="spine-activity-tray-icon"><Mail size="1rem" aria-hidden="true" /></span>
+      <div><span>Team activity</span><h2 id="spine-activity-tray-title">{count} new {count === 1 ? 'update' : 'updates'}</h2></div>
+      <button ref={closeRef} type="button" className="icon-button spine-activity-tray-close" onClick={onClose} aria-label="Close new activity tray"><X size=".9375rem" /></button>
+    </header>
+    <ol className="spine-activity-list">{activity.map((entry) => <li key={entry.id}>
+      <Link to={entry.href} onClick={onClose}><span className={`spine-activity-kind activity-${entry.kind}`}><Bell size=".8125rem" aria-hidden="true" /></span><span><strong>{entry.title}</strong><small>{entry.detail}</small><time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</time></span><ArrowRight size=".8125rem" aria-hidden="true" /></Link>
+    </li>)}</ol>
+  </section>
+}
+
 function DesktopPlanningRail({ cards, today, rolloverCandidates, dispatch, onCompose }: { cards: JourneyCard[]; today: string; rolloverCandidates: RolloverCandidate[]; dispatch: Dispatch<JourneyAction>; onCompose: (options?: ComposerOptions) => void }) {
   const scheduledCards = cards.filter((card) => !card.backlog && !card.quiet)
   const actionableCards = scheduledCards.filter((card): card is Exclude<JourneyCard, NoteCard> => card.type !== 'note')
@@ -420,7 +466,7 @@ function DawnRollover({ candidates, today, filter, dispatch }: { candidates: Rol
   </section>
 }
 
-export function Timeline({ cards, entries, filter, onCompose, dispatch, onDeleteCard, highlightId, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture, currentMember, canEdit }: {
+export function Timeline({ cards, entries, filter, onCompose, dispatch, onDeleteCard, highlightId, reminderAttentionIds, spineActivity, spineActivityArrivalVersion, spineActivitySpaceId, onOpenSpineActivity, containerRef, openGaps, onToggleGap, rolloverCandidates, rolloverDate, months, canLoadPast, canLoadFuture, onLoadPast, onLoadFuture, currentMember, canEdit }: {
   cards: JourneyCard[]
   entries: TimelineEntry[]
   filter: Filter
@@ -428,6 +474,11 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
   dispatch: Dispatch<JourneyAction>
   onDeleteCard: (card: JourneyCard) => void
   highlightId: string | null
+  reminderAttentionIds: string[]
+  spineActivity: SpaceActivity[]
+  spineActivityArrivalVersion: number
+  spineActivitySpaceId: string
+  onOpenSpineActivity: (ids: string[]) => void
   containerRef: RefObject<HTMLElement | null>
   openGaps: string[]
   onToggleGap: (key: string) => void
@@ -443,18 +494,26 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
 }) {
   const [preview, setPreview] = useState<TimelineItem | null>(null)
   const [eventActions, setEventActions] = useState<EventCard | null>(null)
+  const [spineActivityTray, setSpineActivityTray] = useState<SpaceActivity[] | null>(null)
   const previewItems = useMemo(() => entries.flatMap((entry) => entry.cards), [entries])
+  const reminderAttentionCardIds = useMemo(() => new Set(reminderAttentionIds), [reminderAttentionIds])
   const openPreview = useCallback((item: TimelineItem) => setPreview(item), [])
   const closePreview = useCallback(() => setPreview(null), [])
   const openEventActions = useCallback((card: EventCard) => { setPreview(null); setEventActions(card) }, [])
   const closeEventActions = useCallback(() => setEventActions(null), [])
+  useEffect(() => setSpineActivityTray(null), [spineActivitySpaceId])
+  const openSpineActivity = useCallback((activity: SpaceActivity[]) => {
+    setSpineActivityTray(activity)
+    onOpenSpineActivity(activity.map((entry) => entry.id))
+  }, [onOpenSpineActivity])
+  const closeSpineActivity = useCallback(() => setSpineActivityTray(null), [])
   const entriesForMonth = (month: string) => entries.filter((entry) => (entry.kind === 'day' ? entry.date : entry.start).startsWith(month))
   const renderEntry = (entry: TimelineEntry) => {
     if (entry.kind === 'gap') {
       const key = `${entry.start}-${entry.end}`
       return <QuietDays key={`${key}-${filter}`} entry={entry} onCompose={onCompose} expanded={openGaps.includes(key)} onToggle={() => onToggleGap(key)} highlightId={highlightId} />
     }
-    return <DayRow key={entry.date} entry={entry} today={rolloverDate} dispatch={dispatch} highlightId={highlightId} onPreview={openPreview} onEventActions={openEventActions} currentMember={currentMember} canEdit={canEdit} />
+    return <DayRow key={entry.date} entry={entry} today={rolloverDate} dispatch={dispatch} highlightId={highlightId} reminderAttentionIds={reminderAttentionCardIds} onPreview={openPreview} onEventActions={openEventActions} currentMember={currentMember} canEdit={canEdit} />
   }
   const firstMonth = months[0]
   const lastMonth = months.at(-1)
@@ -462,6 +521,7 @@ export function Timeline({ cards, entries, filter, onCompose, dispatch, onDelete
     <div className="timeline-layout">
       <section ref={containerRef} id="journey-stream" className="timeline" aria-label="Journey timeline">
         <div className="timeline-spine" aria-hidden="true" /><div className="timeline-glow" aria-hidden="true" />
+        {spineActivityTray ? <SpineActivityTray activity={spineActivityTray} onClose={closeSpineActivity} /> : spineActivity.length > 0 && <SpineActivityEnvelope key={`${spineActivitySpaceId}-${spineActivityArrivalVersion}`} activity={spineActivity} arrivalVersion={spineActivityArrivalVersion} onOpen={openSpineActivity} />}
         <DawnRollover candidates={rolloverCandidates} today={rolloverDate} filter={filter} dispatch={dispatch} />
         {firstMonth && <TimelineBoundary key={`past-${firstMonth}`} direction="past" month={firstMonth} canLoad={canLoadPast} onLoad={onLoadPast} />}
         {months.map((month, index) => {

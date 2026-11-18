@@ -17,6 +17,7 @@ test('Journal opens directly into its task/project-style workspace and creates t
   const entries = context.getByRole('region', { name: 'Journal entries', exact: true })
   await expect(entries.getByPlaceholder('Search entries, tags, or categories')).toBeVisible()
   await expect(page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'View on timeline', exact: true })).toBeVisible()
   await expect(page.getByLabel('Note title', { exact: true })).toHaveValue('Classroom Observation Reflections & Peer Feedback')
   await expect(page.locator('.studio-back-to-notes')).toHaveCount(0)
 
@@ -30,6 +31,7 @@ test('Journal opens directly into its task/project-style workspace and creates t
   await reflection.fill('This note stays on this device.')
   await page.getByRole('button', { name: 'Checklist', exact: true }).click()
   await expect(reflection.locator('input[type="checkbox"]')).toHaveCount(1)
+  await page.locator('.studio-note-details > summary').click()
   await page.getByLabel('Tags, separated by commas', { exact: true }).fill('private, journal')
   await page.getByLabel('Note category', { exact: true }).selectOption('Personal')
   await expect(entries.getByRole('link', { name: 'Open Text journal entry: A local journal note', exact: true })).toBeVisible()
@@ -73,8 +75,8 @@ test('Journal keeps the active editor first on phones with a compact entry switc
   await expect(reflection).toBeVisible()
   await expect(page.locator('.studio-note-details')).not.toHaveAttribute('open', '')
   await expect(page.locator('.studio-media-disclosure')).not.toHaveAttribute('open', '')
-  expect(await title.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(await toolbar.evaluate((element) => element.getBoundingClientRect().top))
-  expect(await toolbar.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(await reflection.evaluate((element) => element.getBoundingClientRect().top))
+  expect(await title.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(await reflection.evaluate((element) => element.getBoundingClientRect().top))
+  expect(await reflection.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(await toolbar.evaluate((element) => element.getBoundingClientRect().top))
 
   await page.locator('.studio-note-details > summary').click()
   await expect(page.getByLabel('Tags, separated by commas', { exact: true })).toBeVisible()
@@ -94,6 +96,41 @@ test('Journal keeps the active editor first on phones with a compact entry switc
   await expect(page.getByLabel('Your reflection', { exact: true })).toBeFocused()
 })
 
+test('Journal composer stays fluid across phone, tablet, laptop, and desktop widths', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') })
+  await page.goto('/journal')
+
+  const sizes = [
+    { width: 320, height: 640 }, { width: 375, height: 740 }, { width: 390, height: 844 },
+    { width: 480, height: 820 }, { width: 768, height: 900 }, { width: 834, height: 960 },
+    { width: 1024, height: 900 }, { width: 1280, height: 900 }, { width: 1440, height: 900 }, { width: 1564, height: 960 },
+  ]
+  const title = page.getByLabel('Note title', { exact: true })
+  const reflection = page.getByRole('textbox', { name: 'Your reflection', exact: true })
+  const dock = page.locator('.journal-composer-dock')
+  const toolbar = page.getByRole('toolbar', { name: 'Rich text formatting', exact: true })
+
+  for (const size of sizes) {
+    await page.setViewportSize(size)
+    await expect(title).toBeVisible()
+    await expect(reflection).toBeVisible()
+    await expect(dock).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    for (const control of [title, reflection, toolbar]) {
+      await control.scrollIntoViewIfNeeded()
+      const box = await control.boundingBox()
+      expect(box).not.toBeNull()
+      expect(box!.x).toBeGreaterThanOrEqual(-1)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(size.width + 1)
+    }
+
+    const reflectionBox = await reflection.boundingBox()
+    const dockBox = await dock.boundingBox()
+    expect(reflectionBox!.y + reflectionBox!.height).toBeLessThanOrEqual(dockBox!.y)
+  }
+})
+
 test('Journal keeps shared-note mentions progressive on phones without removing member mentions', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
@@ -102,6 +139,7 @@ test('Journal keeps shared-note mentions progressive on phones without removing 
   await page.getByRole('option', { name: /Curriculum Planning/ }).click()
   await page.goto('/journal')
 
+  await expect(page.getByText('Shared Space Note', { exact: true })).toBeVisible()
   const mentions = page.locator('.studio-mention-details')
   await expect(mentions).not.toHaveAttribute('open', '')
   await mentions.locator('summary').click()
@@ -117,6 +155,7 @@ test('Journal aligns its hero and desktop work/context split with Tasks and Proj
   await page.goto('/journal')
   const journalHero = page.locator('.journal-hero')
   await expect(journalHero).toBeVisible()
+  expect(await journalHero.getByRole('heading').evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))).toBeLessThan(22)
   const journalBox = await journalHero.boundingBox()
   const journalEditor = page.locator('.journal-editor-panel')
   const journalContext = page.getByRole('complementary', { name: 'Journal context', exact: true })

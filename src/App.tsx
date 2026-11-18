@@ -10,6 +10,7 @@ import { cardAssignedTo } from './lib/spaces'
 import { useWorkspaceSync } from './lib/useWorkspaceSync'
 import { useSpacePresence } from './lib/useSpacePresence'
 import { useActivityUnread } from './lib/useActivityUnread'
+import { useSpineActivityEnvelope } from './lib/useSpineActivityEnvelope'
 import { removeJournalAttachment } from './lib/journalAttachments'
 import { googleSyncUser } from './lib/workspaceSync'
 import { calendarSourceEntriesForMonths, useCalendarSources } from './lib/calendarSources'
@@ -325,6 +326,7 @@ export default function App() {
   const notifications = useNotifications(state.cards)
   const location = useLocation()
   const unreadActivity = useActivityUnread(space.id, teamActivity, member.name, location.pathname)
+  const spineActivity = useSpineActivityEnvelope(space.id, space.kind === 'shared', teamActivity, member.name)
   useSpacePresence(account.user, space, member, pwa.online, presenceStatus(location.pathname))
   const navigate = useNavigate()
   const navigationType = useNavigationType()
@@ -670,7 +672,7 @@ export default function App() {
         <Route path="/" element={<main id="main-content" tabIndex={-1} className={`timeline-page app-shell ${state.bezel ? 'ipad-frame-active' : ''}`} aria-labelledby="page-title">
           <StreamHeader calendarSources={calendarSources.sources} count={scopedWorkCards.length} filter={filter} scope={teamScope} memberName={member.name} shared={space.kind === 'shared'} cloudSyncEnabled={workspaceSync.enabled} month={`${timelineMonth}-01`} onFilter={changeFilter} onScopeChange={setTeamScope} onSourceEnabled={calendarSources.setSourceEnabled} onSpaceNotice={postSpaceNotice} canManageNotice={canManageNotice} hasNotice={!!space.notice} />
           {space.kind === 'shared' && space.notice && <PinnedSpaceNotice notice={space.notice} acknowledgementId={account.user?.email?.trim().toLocaleLowerCase() || member.id} canManage={canManageNotice} onAcknowledge={acknowledgeSpaceNotice} onClear={clearSpaceNotice} />}
-          <Timeline cards={scopedWorkCards} entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
+          <Timeline cards={scopedWorkCards} entries={entries} filter={filter} onCompose={openComposer} dispatch={dispatch} onDeleteCard={deleteJourneyCard} highlightId={highlightId} reminderAttentionIds={notifications.reminderAttentionIds} spineActivity={spineActivity.unopened} spineActivityArrivalVersion={spineActivity.arrivalVersion} spineActivitySpaceId={space.id} onOpenSpineActivity={spineActivity.open} containerRef={timelineRef} openGaps={openGaps} onToggleGap={toggleGap}
             rolloverCandidates={overdueCards} rolloverDate={today} months={timelineMonths} canLoadPast={timelineWindow.start > TIMELINE_MIN_MONTH} canLoadFuture={timelineWindow.end < TIMELINE_MAX_MONTH} onLoadPast={() => extendTimeline('past')} onLoadFuture={() => extendTimeline('future')} currentMember={member} canEdit={canEdit} />
         </main>} />
         {(['calendar', 'tasks', 'project', 'journal'] as Workspace[]).map((page) => <Route key={page} path={`${WORKSPACE_PATHS[page]}/:cardId?`}

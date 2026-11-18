@@ -14,6 +14,7 @@ describe('local planner reminder boundaries', () => {
   it('silently baselines existing overdue plans, including on repeated evaluations', () => {
     const first = reconcileReminders(emptyNotifications(), [event, task, project], after)
     expect(first.incoming).toEqual([])
+    expect(first.attentionCardIds).toEqual([])
     expect(first.state.initialized).toBe(true)
     expect(reconcileReminders(first.state, [event, task, project], new Date(2026, 10, 20)).incoming).toEqual([])
   })
@@ -21,6 +22,7 @@ describe('local planner reminder boundaries', () => {
     const first = reconcileReminders(emptyNotifications(), [event, task, project], before)
     const next = reconcileReminders(first.state, [event, task, project], after)
     expect(next.incoming.map(item => item.kind)).toEqual(['event', 'task', 'project'])
+    expect(next.attentionCardIds).toEqual(['event-test', 'task-test', 'project-test'])
     expect(next.incoming.map(item => item.href)).toEqual(['/calendar/event-test', '/tasks/task-test', '/projects/project-test'])
     expect(reconcileReminders(next.state, [event, task, project], after).incoming).toEqual([])
   })

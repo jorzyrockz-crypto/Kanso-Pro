@@ -311,6 +311,9 @@
     :root[data-theme='dark'] .pinned-space-notice-ack { border-color: #4b7894; color: #b7e5fb; background: #1d4058; }
     :root[data-theme='dark'] .pinned-space-notice-ack.is-acknowledged { border-color: #397963; color: #a7e8cb; background: #183e36; }
     :root[data-theme='dark'] .quick-reactions > button.is-reacted, :root[data-theme='dark'] .event-acknowledgements > button.is-active, :root[data-theme='dark'] .calendar-quick-add > div button.is-active { border-color: #4f8eae; background: #193d53; color: #98d7f7; }
+    :root[data-theme='dark'] .event-acknowledgement-indicator { border-color: #397963; background: #183e36; color: #a7e8cb; }
+    :root[data-theme='dark'] .event-acknowledgement-indicator.is-noted { border-color: #4f8eae; background: #193d53; color: #98d7f7; }
+    :root[data-theme='dark'] .illustrated-event-card .event-acknowledgement-indicator { border-color: rgb(255 255 255 / 22%); background: rgb(8 20 37 / 55%); color: #e4f6ff; }
     :root[data-theme='dark'] .space-update-form input, :root[data-theme='dark'] .calendar-quick-add input, :root[data-theme='dark'] .mention-chips > button, :root[data-theme='dark'] .studio-mention-row > button { border-color: #405e75; background: #1a3348; color: #e0ebf4; }
   }
   @media (max-width: 960px) and (min-width: 761px), (max-width: 420px) {

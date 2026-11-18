@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { ChangeEvent, ClipboardEvent, Dispatch, DragEvent, MouseEvent, ReactNode } from 'react'
 import { getJournalAttachment, JournalAttachmentError, saveJournalAttachment } from '../lib/journalAttachments'
-import { blobAsDataUrl, JournalImageError, optimizeJournalImage } from '../lib/journalImages'
+import { blobAsDataUrl, journalImageUploadErrorMessage, optimizeJournalImage } from '../lib/journalImages'
 import { initialJournalRichText, journalRichTextToPlainText, journalRichTextWordCount, sanitizeJournalRichText } from '../lib/journalRichText'
 import { formatDate, makeId, shortDate } from '../lib/journey'
 import type { Destination, JournalAttachment, JournalNoteKind, JourneyAction, JourneyCard, NoteCard, Space, SpaceMember } from '../types'
@@ -118,7 +118,7 @@ function localDate() {
 
 function MetadataFields({ note, dispatch, canEdit }: { note: NoteCard; dispatch: Dispatch<JourneyAction>; canEdit: boolean }) {
   // In the compact Journal layout the writing surface should appear first; supporting fields remain one tap away.
-  const [open, setOpen] = useState(() => !window.matchMedia('(max-width: 1080px)').matches)
+  const [open, setOpen] = useState(false)
   const update = (changes: Omit<Extract<JourneyAction, { type: 'update-note' }>, 'type' | 'id' | 'updatedAt'>) => dispatch({ type: 'update-note', id: note.id, ...changes, updatedAt: new Date().toISOString() })
   return <details className="studio-note-details" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}><summary><span>Entry details</span><small>Tags, category & reminder</small><ChevronDown size=".8125rem" aria-hidden="true" /></summary><div className="journal-metadata-fields">
     <label><Tag size=".75rem" />Tags<input aria-label="Tags, separated by commas" disabled={!canEdit} value={note.tags.join(', ')} placeholder="e.g. personal, ideas" onChange={(event) => update({ tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12) })} /></label>
@@ -252,16 +252,16 @@ function StudioRecorder({ note, onSaved, onClose }: { note: NoteCard; onSaved: (
   </section>
 }
 
-function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, canEdit, space }: { note: NoteCard; firestoreUserId: string | null; onAddAttachment: (attachment: JournalAttachment) => void; onEmbed: (attachment: JournalAttachment) => void; canEdit: boolean; space: Pick<Space, 'id' | 'kind'> }) {
+function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, canEdit, space, composer = false }: { note: NoteCard; firestoreUserId: string | null; onAddAttachment: (attachment: JournalAttachment) => void; onEmbed: (attachment: JournalAttachment) => void; canEdit: boolean; space: Pick<Space, 'id' | 'kind'>; composer?: boolean }) {
   const fileInput = useRef<HTMLInputElement>(null)
-  // Keep the full tray visible in the desktop workspace; compact layouts use a one-line disclosure until it is needed.
-  const [open, setOpen] = useState(() => note.noteKind === 'voice' || !window.matchMedia('(max-width: 1080px)').matches)
+  // The composer keeps media quiet until invited; a voice entry opens its recorder immediately.
+  const [open, setOpen] = useState(() => note.noteKind === 'voice' || (!composer && !window.matchMedia('(max-width: 1080px)').matches))
   const [recorderOpen, setRecorderOpen] = useState(note.noteKind === 'voice')
-  const [message, setMessage] = useState('')
+  const [feedback, setFeedback] = useState<{ text: string; error: boolean } | null>(null)
   const [dropActive, setDropActive] = useState(false)
   const addImage = async (file: File) => {
-    setMessage('')
-    if (!firestoreUserId) { setMessage('Sign in with Google before adding a Firestore image journal entry.'); return }
+    setFeedback(null)
+    if (!firestoreUserId) { setFeedback({ text: 'Sign in with Google before adding a Firestore image journal entry.', error: true }); return }
     try {
       const optimized = await optimizeJournalImage(file)
       const attachment: JournalAttachment = { id: makeId('image'), kind: 'image', storage: 'firestore', name: file.name || 'Journal image', mimeType: optimized.blob.type || 'image/webp', size: optimized.blob.size, width: optimized.width, height: optimized.height }
@@ -269,8 +269,11 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
       const { writeJournalImage } = await import('../lib/firestore')
       await writeJournalImage(firestoreUserId, attachment, dataUrl, space)
       onAddAttachment(attachment)
-      setMessage(`Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`)
-    } catch (error) { setMessage(error instanceof JournalImageError ? error.message : 'The image could not be saved to private Firestore storage.') }
+      setFeedback({ text: `Photo optimized to ${Math.ceil(optimized.blob.size / 1024)} KB and attached to this private Firestore journal entry.`, error: false })
+    } catch (error) {
+      console.warn('Unable to save journal image.', error)
+      setFeedback({ text: journalImageUploadErrorMessage(error), error: true })
+    }
   }
   const chooseImage = () => fileInput.current?.click()
   const onFile = (event: ChangeEvent<HTMLInputElement>) => {
@@ -283,10 +286,10 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
     setDropActive(false)
     const file = [...event.dataTransfer.files].find((candidate) => candidate.type.startsWith('image/'))
     if (file) void addImage(file)
-    else setMessage('Drop an image file to add it to this journal entry.')
+    else setFeedback({ text: 'Drop an image file to add it to this journal entry.', error: true })
   }
   const attachments = allAttachments(note)
-  return <section className="studio-media-tools" aria-label="Capture tray">
+  return <section className={`studio-media-tools ${composer ? 'is-composer' : ''}`} aria-label="Capture tray">
     <details className="studio-media-disclosure" open={open} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}>
       <summary><span><span className="eyebrow">Capture</span><strong>Voice memo & photo</strong></span><ChevronDown size=".875rem" aria-hidden="true" /></summary>
       <div className="studio-media-content">
@@ -297,7 +300,7 @@ function StudioMediaTools({ note, firestoreUserId, onAddAttachment, onEmbed, can
           <ImagePlus size="1rem" /><span>{firestoreUserId ? 'Drop a photo here, or use Add photo. Images are optimized before private Firestore storage.' : 'Google sign-in is required for private Firestore photo journal entries.'}</span>
         </div>
         {attachments.length > 0 && <div className="studio-attachment-list">{attachments.map((attachment) => <AttachmentTile key={attachment.id} attachment={attachment} firestoreUserId={firestoreUserId} onEmbed={onEmbed} space={space} />)}</div>}
-        {message && <p className="journal-attachment-feedback" role="status">{message}</p>}
+        {feedback && <p className={feedback.error ? 'journal-attachment-error' : 'journal-attachment-feedback'} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
       </div>
     </details>
   </section>
@@ -367,13 +370,15 @@ function StudioRichEditor({ note, dispatch, firestoreUserId, canEdit, space, mem
     })
   }
   return <>
-    <div className={`studio-toolbar ${canEdit ? '' : 'is-readonly'}`} role="toolbar" aria-label="Rich text formatting" aria-disabled={!canEdit}>
-      <StudioTool label="Bold" onClick={() => command('bold')}><Bold size=".8125rem" /></StudioTool><StudioTool label="Italic" onClick={() => command('italic')}><Italic size=".8125rem" /></StudioTool><StudioTool label="Underline" onClick={() => command('underline')}><Underline size=".8125rem" /></StudioTool><StudioTool label="Highlight" onClick={() => command('hiliteColor', '#fff0a8')}><Highlighter size=".8125rem" /></StudioTool><span className="studio-toolbar-divider" aria-hidden="true" />
-      <StudioTool label="Heading 1" onClick={() => formatBlock('h1')}><Heading1 size=".8125rem" /></StudioTool><StudioTool label="Heading 2" onClick={() => formatBlock('h2')}><Heading2 size=".8125rem" /></StudioTool><StudioTool label="Quote" onClick={() => formatBlock('blockquote')}><Quote size=".8125rem" /></StudioTool><StudioTool label="Bulleted list" onClick={() => command('insertUnorderedList')}><List size=".8125rem" /></StudioTool><StudioTool label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered size=".8125rem" /></StudioTool><StudioTool label="Checklist" onClick={addChecklist}><ListChecks size=".8125rem" /></StudioTool><StudioTool label="Code block" onClick={() => formatBlock('pre')}><Code2 size=".8125rem" /></StudioTool><StudioTool label="Add link" onClick={addLink}><Link2 size=".8125rem" /></StudioTool><StudioTool label="Clear formatting" onClick={() => { command('removeFormat'); formatBlock('p') }}><Eraser size=".8125rem" /></StudioTool>
-    </div>
-    {space.kind === 'shared' && <details className="studio-mention-details" open={mentionsOpen} onToggle={(event) => setMentionsOpen((event.currentTarget as HTMLDetailsElement).open)}><summary><span>Notify people</span><small>Mention a Space member</small><ChevronDown size=".8125rem" aria-hidden="true" /></summary><div className="studio-mention-row" aria-label="Mention a Space member"><span>Notify</span>{members.filter((member) => member.name !== currentMember.name).slice(0, 5).map((member) => <button type="button" disabled={!canEdit} key={member.id} onClick={() => mention(member.name)}>@{member.name}</button>)}</div></details>}
     <div ref={editor} id="journal-body" className="studio-rich-editor" contentEditable={canEdit} role="textbox" aria-label="Your reflection" aria-multiline="true" data-placeholder="Write your reflection, capture a decision, or build a checklist…" suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: storedRichText }} onInput={commit} onBlur={commit} onPaste={onPaste} onDrop={onEditorDrop} onClick={onEditorClick} />
-    <StudioMediaTools note={note} firestoreUserId={firestoreUserId} onAddAttachment={addAttachment} onEmbed={embed} canEdit={canEdit} space={space} />
+    <div className="journal-composer-dock" aria-label="Journal editor actions">
+      <div className={`studio-toolbar ${canEdit ? '' : 'is-readonly'}`} role="toolbar" aria-label="Rich text formatting" aria-disabled={!canEdit}>
+        <StudioTool label="Bold" onClick={() => command('bold')}><Bold size=".8125rem" /></StudioTool><StudioTool label="Italic" onClick={() => command('italic')}><Italic size=".8125rem" /></StudioTool><StudioTool label="Underline" onClick={() => command('underline')}><Underline size=".8125rem" /></StudioTool><StudioTool label="Highlight" onClick={() => command('hiliteColor', '#fff0a8')}><Highlighter size=".8125rem" /></StudioTool><span className="studio-toolbar-divider" aria-hidden="true" />
+        <StudioTool label="Heading 1" onClick={() => formatBlock('h1')}><Heading1 size=".8125rem" /></StudioTool><StudioTool label="Heading 2" onClick={() => formatBlock('h2')}><Heading2 size=".8125rem" /></StudioTool><StudioTool label="Quote" onClick={() => formatBlock('blockquote')}><Quote size=".8125rem" /></StudioTool><StudioTool label="Bulleted list" onClick={() => command('insertUnorderedList')}><List size=".8125rem" /></StudioTool><StudioTool label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered size=".8125rem" /></StudioTool><StudioTool label="Checklist" onClick={addChecklist}><ListChecks size=".8125rem" /></StudioTool><StudioTool label="Code block" onClick={() => formatBlock('pre')}><Code2 size=".8125rem" /></StudioTool><StudioTool label="Add link" onClick={addLink}><Link2 size=".8125rem" /></StudioTool><StudioTool label="Clear formatting" onClick={() => { command('removeFormat'); formatBlock('p') }}><Eraser size=".8125rem" /></StudioTool>
+      </div>
+      {space.kind === 'shared' && <details className="studio-mention-details" open={mentionsOpen} onToggle={(event) => setMentionsOpen((event.currentTarget as HTMLDetailsElement).open)}><summary><span>Notify people</span><small>Mention a Space member</small><ChevronDown size=".8125rem" aria-hidden="true" /></summary><div className="studio-mention-row" aria-label="Mention a Space member"><span>Notify</span>{members.filter((member) => member.name !== currentMember.name).slice(0, 5).map((member) => <button type="button" disabled={!canEdit} key={member.id} onClick={() => mention(member.name)}>@{member.name}</button>)}</div></details>}
+      <StudioMediaTools note={note} firestoreUserId={firestoreUserId} onAddAttachment={addAttachment} onEmbed={embed} canEdit={canEdit} space={space} composer />
+    </div>
   </>
 }
 
@@ -389,8 +394,8 @@ function JournalEditor({ note, dispatch, storageAvailable, cloudSaveState, fires
   }
   useEffect(() => { resizeTitle(titleInput.current) }, [note.id, note.title])
   return <section className="journal-detail journal-editor-detail" aria-label="Active journal entry">
-    <div className="journal-detail-topbar"><span>{shared ? 'Space Note' : noteLabel(note.noteKind ?? 'text')}</span><SaveIndicator available={storageAvailable} shared={shared} cloud={cloudSaveState} />{canEdit && <CardDeleteAction card={note} onDelete={() => onDelete(note)} />}</div>
-    <section className="journal-editor journal-paper" aria-label={shared ? 'Space Notes studio' : 'Journal entry studio'}>
+    <div className="journal-detail-topbar journal-compose-topbar"><span className="journal-compose-kind"><FileText size=".8125rem" aria-hidden="true" />{shared ? 'Shared Space Note' : noteLabel(note.noteKind ?? 'text')}</span><div className="journal-compose-status"><SaveIndicator available={storageAvailable} shared={shared} cloud={cloudSaveState} />{canEdit && <CardDeleteAction card={note} onDelete={() => onDelete(note)} />}</div></div>
+    <section className="journal-editor journal-composer-surface" aria-label={shared ? 'Space Notes studio' : 'Journal entry studio'}>
       <div className="journal-editor-meta"><span>{formatDate(note.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span><span>{shared ? `${note.authoredBy ? `Started by ${note.authoredBy} · ` : ''}${note.lastEditedBy ? `last edited by ${note.lastEditedBy}` : 'shared with this Space'}` : note.updatedAt ? 'Saved in your workspace' : 'Private to this browser'}</span></div>
       <label htmlFor="journal-title" className="sr-only">Note title</label><textarea ref={titleInput} id="journal-title" className="journal-title-input" rows={1} disabled={!canEdit} value={note.title} maxLength={160} placeholder={`Untitled ${shared ? 'Space Note' : noteLabel(note.noteKind ?? 'text').toLowerCase()}`} onInput={(event) => resizeTitle(event.currentTarget)} onChange={(event) => update({ title: event.target.value })} />
       <MetadataFields note={note} dispatch={dispatch} canEdit={canEdit} />
