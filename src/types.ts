@@ -117,6 +117,8 @@ interface BaseCard {
   quiet?: boolean
   /** Parked cards remain in their workspace but do not appear in the scheduled Timeline. */
   backlog?: boolean
+  /** Kept in the desktop Planning Desk as a personal, cross-workspace priority. */
+  pinned?: boolean
   isCustom?: boolean
   /** Display attribution for shared-space cards. Personal cards may omit it. */
   authoredBy?: string

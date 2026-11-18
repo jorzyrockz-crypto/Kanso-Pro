@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronDown, ChevronRight, Eye, FileText, Flag, Folder, Landmark, Mail, MoreHorizontal, Pin, Plus, School, Users, X, Zap } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Bell, CalendarDays, Check, ChevronDown, ChevronRight, Eye, FileText, Flag, Folder, Landmark, Mail, MoreHorizontal, Pin, PinOff, Plus, School, Users, X, Zap } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react'
@@ -92,6 +92,15 @@ function CardFrame({ card, className = '', highlight, reminderAttention, childre
   )
 }
 
+function CardPinToggle({ card, dispatch, canEdit }: { card: JourneyCard; dispatch: Dispatch<JourneyAction>; canEdit: boolean }) {
+  const pinned = card.pinned === true
+  const action = pinned ? 'Unpin' : 'Pin'
+  const label = `${action} ${card.title || 'this card'} ${pinned ? 'from' : 'to'} At a glance`
+  return <button type="button" className={`card-pin-toggle interactive ${pinned ? 'is-pinned' : ''}`} aria-label={label} aria-pressed={pinned} title={canEdit ? label : 'Only editors can pin cards'} disabled={!canEdit} onClick={() => dispatch({ type: 'update-card', card: { ...card, pinned: !pinned } })}>
+    {pinned ? <PinOff size=".8125rem" aria-hidden="true" /> : <Pin size=".8125rem" aria-hidden="true" />}
+  </button>
+}
+
 function EventAcknowledgementIndicator({ card, memberName }: { card: EventCard; memberName: string }) {
   const response = card.acknowledgements?.find((entry) => entry.member === memberName)?.response
   if (!response) return null
@@ -108,7 +117,7 @@ function EventJourneyCard({ card, highlight, reminderAttention, onPreview, onCon
     <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className={`illustrated-event-card occasion-surface occasion-${theme}`} artwork={<OccasionArtwork theme={theme} />} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit} onPreview={onPreview} onContextMenu={onContextMenu}>
       <div className="card-topline">
         <span className="badge occasion-event-badge">{card.holiday ? <Flag size="0.6875rem" /> : <CalendarDays size="0.6875rem" />}{card.holiday ? 'PH HOLIDAY' : occasionLabel(theme)}</span>
-        <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
+        <div className="card-top-actions"><CardPinToggle card={card} dispatch={dispatch} canEdit={canEdit} /><button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button></div>
       </div>
       <div className="event-status-line"><span className="occasion-event-time">{card.allDay ? 'All day' : formatTime(card.time)}</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
       <div className="occasion-event-copy"><h3>{card.title}</h3>{card.context && <p className="card-caption">{card.context}</p>}</div>
@@ -121,6 +130,7 @@ function EventJourneyCard({ card, highlight, reminderAttention, onPreview, onCon
         <span className="badge holiday-badge"><Flag size="0.75rem" />PH HOLIDAY</span>
         <div className="person-actions">
           <span className="person-pill holiday-person"><Avatar name="You" />You</span>
+          <CardPinToggle card={card} dispatch={dispatch} canEdit={canEdit} />
           <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1rem" /></button>
         </div>
       </div>
@@ -139,6 +149,7 @@ function EventJourneyCard({ card, highlight, reminderAttention, onPreview, onCon
         <div className="event-topline-status"><span className="event-time">{card.allDay ? 'ALL DAY' : formatTime(card.time, true)}</span><EventAcknowledgementIndicator card={card} memberName={currentMember.name} /></div>
         <div className="person-actions">
           <span className="person-pill"><Avatar name={card.owner} /><span>{card.owner}</span></span>
+          <CardPinToggle card={card} dispatch={dispatch} canEdit={canEdit} />
           <button type="button" className="icon-button card-menu interactive" onClick={onContextMenu} aria-label={`Event actions for ${card.title}`}><MoreHorizontal size="1.0625rem" /></button>
         </div>
       </div>
@@ -157,7 +168,7 @@ function TaskJourneyCard({ card, dispatch, highlight, reminderAttention, current
     <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
       <div className="card-topline task-topline">
         <span className="badge type-badge"><TypeIcon type="task" size={12} />Task list</span>
-        {card.reminder && <span className="reminder-pill"><Bell size="0.6875rem" />{formatTime(card.reminder)}</span>}
+        <div className="card-top-actions">{card.reminder && <span className="reminder-pill"><Bell size="0.6875rem" />{formatTime(card.reminder)}</span>}<CardPinToggle card={card} dispatch={dispatch} canEdit={canEdit} /></div>
       </div>
       <h3>{card.title}</h3>
       <div className="timeline-checklist">
@@ -179,7 +190,7 @@ function NoteJourneyCard({ card, highlight, reminderAttention, dispatch, current
     <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className="journal-paper" dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
       <div className="card-topline note-topline">
         <span className="badge type-badge"><TypeIcon type="note" size={11} />{card.category === 'Space Update' ? 'Space Update' : 'Journal Note'}</span>
-        <span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size="0.625rem" />Pinned</>}</span>
+        <div className="card-top-actions"><span className="note-time">{formatTime(card.time)}{card.time && card.pinned && ' · '}{card.pinned && <><Pin size="0.625rem" />Pinned</>}</span><CardPinToggle card={card} dispatch={dispatch} canEdit={canEdit} /></div>
       </div>
       <h3>{card.title || 'Untitled reflection'}</h3>
       <p className={`note-excerpt ${card.body ? '' : 'muted'}`}>{card.body || 'A fresh page, ready for a thought.'}</p>
@@ -213,7 +224,7 @@ function ProjectJourneyCard({ card, highlight, reminderAttention, dispatch, curr
     <CardFrame card={card} highlight={highlight} reminderAttention={reminderAttention} className={`project-stream-card ${card.featured ? 'featured-project-card' : 'sprint-card'}`} dispatch={dispatch} currentMember={currentMember} canEdit={canEdit}>
       <div className="card-topline project-stream-topline">
         <span className="badge type-badge"><Zap size="0.6875rem" />Project</span>
-        <span className={`timeline-project-due ${due.tone}`}>{due.text}</span>
+        <div className="card-top-actions"><span className={`timeline-project-due ${due.tone}`}>{due.text}</span><CardPinToggle card={card} dispatch={dispatch} canEdit={canEdit} /></div>
       </div>
       <h3>{card.title}</h3>
       <p className="project-next-milestone"><Flag size="0.6875rem" aria-hidden="true" />{nextMilestone ? `Next: ${nextMilestone.title}` : 'All milestones completed'}</p>
@@ -354,7 +365,7 @@ function plannedDate(card: JourneyCard) {
   return card.type === 'project' ? card.dueDate : card.date
 }
 
-function DesktopRailItem({ card, detail, trailing }: { card: Exclude<JourneyCard, NoteCard>; detail: string; trailing?: ReactNode }) {
+function DesktopRailItem({ card, detail, trailing }: { card: JourneyCard; detail: string; trailing?: ReactNode }) {
   return <Link className={`desktop-rail-item rail-item-${card.type}`} to={destinationPath({ page: TYPE_CONFIG[card.type].workspace, cardId: card.id })}>
     <span className="desktop-rail-item-icon"><TypeIcon type={card.type} size={15} /></span>
     <span className="desktop-rail-item-copy"><strong>{card.title}</strong><small>{detail}</small></span>
@@ -402,15 +413,21 @@ function DesktopPlanningRail({ cards, today, rolloverCandidates, filter }: { car
   const actionableCards = scheduledCards.filter((card): card is Exclude<JourneyCard, NoteCard> => card.type !== 'note')
   const todayCard = actionableCards.find((card) => card.date === today || (card.type === 'project' && card.dueDate === today))
   const upcomingCard = actionableCards.filter((card) => plannedDate(card) > today).sort((first, second) => plannedDate(first).localeCompare(plannedDate(second)))[0]
+  const pinnedCards = cards.filter((card) => card.pinned === true).slice(0, 2)
   const triageCards = rolloverCandidates.filter((card) => filter === 'all' || card.type === filter)
   const taskDetail = (card: TaskCard) => {
     const { done, total } = progress(card.subtasks)
     return `${total - done} action${total - done === 1 ? '' : 's'} left · ${shortDate(card.date)}`
   }
   const todayDetail = (card: Exclude<JourneyCard, NoteCard>) => card.type === 'task' ? taskDetail(card) : card.type === 'project' ? `Project due · ${progress(card.subtasks).percent}% complete` : formatTime(card.time) || 'All-day event'
+  const pinnedDetail = (card: JourneyCard) => card.type === 'note' ? `Journal · ${shortDate(card.date)}` : card.type === 'task' ? taskDetail(card) : card.type === 'project' ? `Due ${shortDate(card.dueDate)} · ${progress(card.subtasks).percent}% complete` : `${shortDate(card.date)} · ${formatTime(card.time) || 'All-day event'}`
 
   return <aside className="desktop-planning-rail" aria-label="Desktop planning summary">
     <div className="desktop-rail-heading"><span className="desktop-rail-heading-mark" aria-hidden="true"><CalendarDays size="1.125rem" /></span><div><span className="eyebrow">Planning desk</span><h2>At a glance</h2><p>Your next few decisions, without leaving the flow.</p></div></div>
+    {pinnedCards.length > 0 && <section className="desktop-rail-section desktop-pinned-card-section" aria-labelledby="desktop-pinned-title">
+      <div className="desktop-rail-section-heading"><span className="desktop-rail-section-icon desktop-rail-pinned"><Pin size=".75rem" /></span><div><span>Pinned</span><h3 id="desktop-pinned-title">Kept close</h3></div></div>
+      <div className="desktop-rail-list">{pinnedCards.map((card) => <DesktopRailItem key={card.id} card={card} detail={pinnedDetail(card)} />)}</div>
+    </section>}
     <section className="desktop-rail-section" aria-labelledby="desktop-today-title">
       <div className="desktop-rail-section-heading"><span className="desktop-rail-section-icon"><CalendarDays size=".8125rem" /></span><div><span>Now</span><h3 id="desktop-today-title">{formatDate(today, { weekday: 'long', month: 'short', day: 'numeric' })}</h3></div></div>
       {todayCard ? <div className="desktop-rail-list"><DesktopRailItem card={todayCard} detail={todayDetail(todayCard)} /></div> : <p className="desktop-rail-empty">Nothing is scheduled for today. Keep the space open.</p>}

@@ -11,11 +11,13 @@ test('desktop Timeline keeps a planning desk beside the Journey Stream', async (
   await expect(rail).toBeVisible()
   await expect(rail.locator('.desktop-rail-heading-mark')).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'At a glance', exact: true })).toBeVisible()
+  await expect(rail.getByRole('heading', { name: 'Kept close', exact: true })).toBeVisible()
+  await expect(rail.getByRole('link', { name: /Classroom Observation Reflections/ })).toBeVisible()
   await expect(rail.getByRole('heading', { name: 'Next commitment', exact: true })).toBeVisible()
   expect(await rail.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain('gradient')
   expect(await rail.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none')
   await expect(rail.getByRole('heading', { name: 'Carry forward', exact: true })).toBeVisible()
-  await expect(rail.locator('.desktop-rail-section')).toHaveCount(3)
+  await expect(rail.locator('.desktop-rail-section')).toHaveCount(4)
   const reviewRollover = rail.getByRole('link', { name: /carried forward/i })
   await expect(reviewRollover).toHaveAttribute('href', '#dawn-rollover')
   await expect(rail.getByRole('button', { name: /Move .* to today/ })).toHaveCount(0)
@@ -60,7 +62,22 @@ test('Planning Desk limits its pinned summary to one now item, one next item, an
   await expect(today.getByRole('link', { name: /Finalize Advisory Class Record/ })).toHaveCount(1)
   await expect(next.getByRole('link')).toHaveCount(1)
   await expect(attention.getByRole('link', { name: /carried forward/i })).toHaveCount(1)
-  await expect(rail.locator('.desktop-rail-section')).toHaveCount(3)
+  await expect(rail.locator('section[aria-labelledby="desktop-pinned-title"]').getByRole('link', { name: /Classroom Observation Reflections/ })).toHaveCount(1)
+  await expect(rail.locator('.desktop-rail-section')).toHaveCount(4)
+})
+
+test('a Journey card can be pinned to At a glance and stays there after a reload', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 844 })
+  await page.goto('/')
+  const title = 'Finalize Advisory Class Record & Parent Slips'
+  const pin = page.getByRole('button', { name: `Pin ${title} to At a glance`, exact: true })
+  await pin.click()
+  await expect(page.getByRole('button', { name: `Unpin ${title} from At a glance`, exact: true })).toHaveAttribute('aria-pressed', 'true')
+  const pinned = page.getByRole('complementary', { name: 'Desktop planning summary', exact: true }).locator('section[aria-labelledby="desktop-pinned-title"]')
+  await expect(pinned.getByRole('link', { name: new RegExp(title) })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('button', { name: `Unpin ${title} from At a glance`, exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(pinned.getByRole('link', { name: new RegExp(title) })).toBeVisible()
 })
 
 test('Timeline project cards keep progress, next milestone, due state, and an open-project link together', async ({ page }) => {

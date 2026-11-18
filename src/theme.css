@@ -157,6 +157,8 @@
     :root[data-theme='dark'] .month-observances-toggle small { color: #aabed0; }
     :root[data-theme='dark'] .project-stream-card { border-color: #4f4a75; background: linear-gradient(145deg, #242740, #1b2d3b); }
     :root[data-theme='dark'] .project-stream-card .type-badge { border-color: #605a8f; background: #342f56; color: #d8d0ff; }
+    :root[data-theme='dark'] .card-pin-toggle { border-color: #405e75; color: #b8d8ec; background: #1a3449; }
+    :root[data-theme='dark'] .card-pin-toggle:hover, :root[data-theme='dark'] .card-pin-toggle.is-pinned { border-color: #5792b4; color: #ccecff; background: #1d4a63; }
     :root[data-theme='dark'] .timeline-project-due { background: #373454; color: #d3cbff; }
     :root[data-theme='dark'] .timeline-project-due.is-today { background: #4c4028; color: #ffd98b; }
     :root[data-theme='dark'] .timeline-project-due.is-overdue { background: #4a303b; color: #ffc0d0; }
@@ -198,6 +200,8 @@
     :root[data-theme='dark'] .desktop-rail-section-icon, :root[data-theme='dark'] .desktop-rail-item-icon { color: #9ad8fa; background: #1d435d; }
     :root[data-theme='dark'] .desktop-rail-focus, :root[data-theme='dark'] .rail-item-task .desktop-rail-item-icon { color: #9ce5c4; background: #1b403a; }
     :root[data-theme='dark'] .desktop-rail-project, :root[data-theme='dark'] .rail-item-project .desktop-rail-item-icon { color: #cec2ff; background: #382f55; }
+    :root[data-theme='dark'] .desktop-rail-pinned, :root[data-theme='dark'] .rail-item-note .desktop-rail-item-icon { color: #f5b3ca; background: #442d3d; }
+    :root[data-theme='dark'] .desktop-pinned-card-section { border-color: #674759; background: linear-gradient(135deg, rgb(56 38 52 / 89%), rgb(31 40 53 / 82%)); }
     :root[data-theme='dark'] .desktop-rail-item:hover { background: #1c4059; }
     :root[data-theme='dark'] .desktop-rail-item > svg { color: #8fa8bc; }
     :root[data-theme='dark'] .desktop-rail-progress { color: #d1c8ff; background: #3a3159; }
