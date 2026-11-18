@@ -22,12 +22,14 @@ it('uses the actual titlebar capability, browser banner, or guest touch toast', 
 })
 
 describe('service-worker notification click boundaries', () => {
-  async function click(url: string, existing = true) {
+  async function click(url: string, existing = true, base = '/') {
     const listeners: Record<string, (event: unknown) => void> = {}
-    const client = { focused: true, focus: vi.fn(async () => {}), postMessage: vi.fn() }
+    const client = { url: `https://kanso.test${base}`, focused: true, frameType: 'top-level', focus: vi.fn(async () => {}), postMessage: vi.fn() }
     const openWindow = vi.fn(async () => {})
     const self = { location: { origin: 'https://kanso.test' }, clients: { matchAll: async () => existing ? [client] : [], openWindow }, addEventListener: (name: string, callback: (event: unknown) => void) => { listeners[name] = callback } }
-    runInNewContext(readFileSync('src/service-worker.js', 'utf8').replace('__PRECACHE_URLS__', '[]'), { self, URL })
+    const worker = readFileSync('src/service-worker.js', 'utf8')
+      .replace('__CACHE_PREFIX__', 'kanso-pro-shell-test-').replace('__APP_BASE_PATH__', base).replace('__APP_INDEX_URL__', `${base}index.html`).replace('__PRECACHE_URLS__', '[]')
+    runInNewContext(worker, { self, URL })
     let work = Promise.resolve()
     const close = vi.fn()
     listeners.notificationclick({ notification: { data: { url, id: 'reminder-id' }, close }, waitUntil: (value: Promise<void>) => { work = value } })
@@ -44,6 +46,10 @@ describe('service-worker notification click boundaries', () => {
   it('opens a safe local page when the app has no live window', async () => {
     const { openWindow } = await click('/notifications', false)
     expect(openWindow).toHaveBeenCalledWith('https://kanso.test/notifications#notification=reminder-id')
+  })
+  it('keeps project-site notification URLs inside the app directory', async () => {
+    const { openWindow } = await click('/tasks/due-card', false, '/Kanso-Pro/')
+    expect(openWindow).toHaveBeenCalledWith('https://kanso.test/Kanso-Pro/tasks/due-card#notification=reminder-id')
   })
   it.each(['https://evil.test/tasks/a', '//evil.test/notifications', '/api/private'])('will not open %s', async url => {
     const { client, openWindow } = await click(url)

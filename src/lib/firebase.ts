@@ -21,7 +21,10 @@ export const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-0HB4V20HF5',
 }
 
-export const firebaseApp = getApps().some((entry) => entry.name === '[DEFAULT]') ? getApp() : initializeApp(firebaseConfig)
+// Firebase Auth includes the app name in its browser persistence key. A named app keeps
+// this planner's session separate from another project that happens to share the host.
+export const FIREBASE_APP_NAME = 'kanso-pro'
+export const firebaseApp = getApps().some((entry) => entry.name === FIREBASE_APP_NAME) ? getApp(FIREBASE_APP_NAME) : initializeApp(firebaseConfig, FIREBASE_APP_NAME)
 let auth: Auth
 try {
   // No popup iframe or Google scripts are initialized until the user chooses Google.

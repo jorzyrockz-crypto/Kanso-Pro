@@ -215,9 +215,9 @@ The initial eight cards reproduce the **November 2026 sample journey**. Six card
 
 This is a **local-first workspace with Firebase Authentication**, not a cloud-synced planning service. “Live Flow” means the pages share live card state on this device. Authentication stores account identity/session information in Firebase; it does not synchronize workspace content. There is no external calendar import, remote team collaboration, push notification server, or Google Sheets synchronization. Seeded calendar source descriptions and team names are sample planning metadata. Local reminders use the device clock while the app can run; they are not guaranteed closed-app device alarms.
 
-Changes are stored in `localStorage` under `kanso-pro:journey:v1`. Existing data under `chronos-flow:journey:v1` is read automatically when there is no valid Kanso Pro save, so the rebrand preserves earlier edits and preferences. The old key is left untouched. A valid Kanso Pro save takes precedence on subsequent visits.
+Changes are stored in `localStorage` under `kanso-pro:journey:v1`. Every Kanso-owned Web Storage key, the journal-attachment IndexedDB database, Firebase app instance, and offline-cache prefix is similarly Kanso-specific. Existing data under `chronos-flow:journey:v1` is read automatically when there is no valid Kanso Pro save, so the rebrand preserves earlier edits and preferences. The old key is left untouched. A valid Kanso Pro save takes precedence on subsequent visits.
 
-Data remains in the current browser profile and site origin; it is not encrypted or synchronized across devices. Deploying the app does not add cloud storage or copy preview data to the production domain. Clearing site data resets the sample. Avoid storing sensitive information in a shared browser profile; signing out does not hide or partition these local cards.
+Data remains in the current browser profile and site origin; it is not encrypted or synchronized across devices. Deploying the app does not add cloud storage or copy preview data to the production domain. Clearing site data resets the sample. Avoid storing sensitive information in a shared browser profile; signing out does not hide or partition these local cards. Browser storage is fundamentally origin-scoped, not path-scoped: Kanso’s names prevent accidental collisions with sibling GitHub Pages projects, but a separate origin is required when untrusted same-origin code must not be able to read its data.
 
 ## Structure
 
@@ -304,8 +304,16 @@ The page stays usable when authentication or device persistence is unavailable. 
 
 The [implemented Settings specification](docs/settings-plan.md) records the reference review, interaction contract, acceptance checks, and verification scope.
 
-## Deploy to Vercel later
+## Deploy to Vercel or GitHub Pages
 
-The app builds to a static `dist/` directory. `vercel.json` supplies Vite build settings and an SPA fallback to `index.html`, so refreshing a URL such as `/projects/proj-reading` loads the app instead of a hosting 404. Vercel serves existing static assets before the fallback.
+The app builds to a static `dist/` directory. Root-hosted Vercel builds keep the default base path (`/`); `vercel.json` supplies the SPA fallback to `index.html`, so refreshing a URL such as `/projects/proj-reading` loads the app instead of a hosting 404. Vercel serves existing static assets before the fallback.
 
-Guest/local planning requires no backend. Account access uses the supplied Firebase project and requires its Authentication provider/domain setup; no environment variables are required unless overriding the default web configuration. Authorize the exact production hostname for Google sign-in when it is assigned. Other static hosts can also publish `dist/`, but must rewrite non-file page requests (including `/sign-in`, `/account`, and `/settings`) to `index.html`. There is no deployment included in this repository change.
+For a GitHub Pages **project site** such as `https://<owner>.github.io/Kanso-Pro/`, build with the project directory explicitly:
+
+```sh
+VITE_APP_BASE_PATH=/Kanso-Pro/ npm run build
+```
+
+This build keeps public assets, React routing, the manifest identity/start URL/scope, notification icons, and the service worker under `/Kanso-Pro/`. The worker is registered as `/Kanso-Pro/sw.js` with scope `/Kanso-Pro/`; its generated cache namespace also includes an identifier derived from that path, so it neither controls sibling project sites nor shares their offline shell cache. The build rejects URL-like, query/hash, and traversal values for `VITE_APP_BASE_PATH`. Do not broaden the worker scope and do not add `localStorage.clear()` as part of deployment or sign-out.
+
+Guest/local planning requires no backend. Account access uses the supplied Firebase project and requires its Authentication provider/domain setup; no environment variables are required unless overriding the default web configuration. Authorize the exact production hostname for Google sign-in when it is assigned. Other static hosts can also publish `dist/`, but must rewrite non-file page requests (including `/sign-in`, `/account`, and `/settings`) to `index.html`; for a project site, apply that fallback inside the project directory. There is no deployment included in this repository change.

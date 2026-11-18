@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { appBasePath } from './appBase'
 import { currentBuild, DISMISSED_UPDATE_KEY, isNewBuild, OPEN_UPDATE_INTERVAL, SEEN_BUILD_KEY, shouldCheckOnResume } from './updates'
 import releases from './whats-new.json'
 
@@ -131,7 +132,8 @@ export function usePwa() {
     document.addEventListener('visibilitychange', visible)
     window.addEventListener('focus', visible)
     navigator.serviceWorker.addEventListener('controllerchange', controlled)
-    void navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).then(value => {
+    const scope = appBasePath()
+    void navigator.serviceWorker.register(`${scope}sw.js`, { scope, updateViaCache: 'none' }).then(value => {
       if (disposed) return
       registered = value; registration.current = value
       value.addEventListener('updatefound', found); found(); void refresh()

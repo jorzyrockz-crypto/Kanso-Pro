@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JourneyCard, SpaceActivity } from '../types'
+import { appAssetPath } from './appBase'
 import { addNotifications, emptyNotifications, NOTIFICATIONS_KEY, parseNotifications, quietNow, reconcileReminders, safeNotificationPath } from './notifications'
 import type { NotificationPreferences, NotificationState, PlannerNotification } from './notifications'
 
@@ -7,7 +8,7 @@ const permissionNow = () => { try { return 'Notification' in window ? Notificati
 type BadgeNavigator = Partial<Pick<Navigator, 'setAppBadge' | 'clearAppBadge'>>
 const REMINDER_ATTENTION_DURATION = 800
 
-/** Local workspace notifications deliberately share the same browser/origin scope as cards, not an account. */
+/** Local workspace notifications use Kanso's namespaced browser storage, not an account. */
 export function useNotifications(cards: JourneyCard[]) {
   const [state, setState] = useState(() => { try { return parseNotifications(localStorage.getItem(NOTIFICATIONS_KEY)) ?? emptyNotifications() } catch { return emptyNotifications() } })
   const memory = useRef(state)
@@ -81,7 +82,7 @@ export function useNotifications(cards: JourneyCard[]) {
           const registration = await navigator.serviceWorker.getRegistration()
           if (registration?.active) {
             // Lock-screen text intentionally omits card titles, account details, and private notes.
-            const options = (item: PlannerNotification | null): NotificationOptions => ({ body: item ? 'A plan needs your attention. Open Kanso Pro to view it.' : `${ready.length} planner reminders are ready to review.`, icon: '/icons/icon-192.png', badge: '/icons/icon-96.png', tag: item ? `kanso-pro-${item.id}` : 'kanso-pro-reminder-summary', data: { url: item?.href ?? '/notifications', id: item?.id }, renotify: false } as NotificationOptions)
+            const options = (item: PlannerNotification | null): NotificationOptions => ({ body: item ? 'A plan needs your attention. Open Kanso Pro to view it.' : `${ready.length} planner reminders are ready to review.`, icon: appAssetPath('icons/icon-192.png'), badge: appAssetPath('icons/icon-96.png'), tag: item ? `kanso-pro-${item.id}` : 'kanso-pro-reminder-summary', data: { url: item?.href ?? '/notifications', id: item?.id }, renotify: false } as NotificationOptions)
             if (pending.length || ready.length > 3) await registration.showNotification('Kanso Pro · Reminder summary', options(null))
             else for (const item of ready) await registration.showNotification('Kanso Pro · Planner reminder', options(item))
             next = { ...next, pendingPhone: [] }
@@ -147,7 +148,7 @@ export function useNotifications(cards: JourneyCard[]) {
     }
     if (!state.preferences.phone || permissionNow() !== 'granted' || !phoneSupported) return
     void navigator.serviceWorker.getRegistration().then((registration) => registration?.showNotification('Kanso Pro · Space activity', {
-      body: 'A teammate updated your Space. Open Kanso Pro to review it.', icon: '/icons/icon-192.png', badge: '/icons/icon-96.png', tag: `kanso-pro-${item.id}`, data: { url: item.href, id: item.id }, renotify: false,
+      body: 'A teammate updated your Space. Open Kanso Pro to review it.', icon: appAssetPath('icons/icon-192.png'), badge: appAssetPath('icons/icon-96.png'), tag: `kanso-pro-${item.id}`, data: { url: item.href, id: item.id }, renotify: false,
     } as NotificationOptions)).catch(() => {})
   }, [change, phoneSupported, state.preferences.phone])
 

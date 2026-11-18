@@ -5,6 +5,7 @@ import '@fontsource-variable/plus-jakarta-sans'
 import '@fontsource-variable/newsreader/standard.css'
 import '@fontsource-variable/newsreader/standard-italic.css'
 import App from './App'
+import { appBasePath } from './lib/appBase'
 import './styles.css'
 import './layout.css'
 import './occasions.css'
@@ -19,7 +20,7 @@ import './collaboration.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={appBasePath()}>
       <App />
     </BrowserRouter>
   </React.StrictMode>,

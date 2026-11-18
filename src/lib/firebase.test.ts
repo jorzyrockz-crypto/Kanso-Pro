@@ -5,7 +5,7 @@ const sdk = vi.hoisted(() => {
   const user = { uid: 'fake-uid', displayName: 'Ada Reyes', email: 'ada@example.test', photoURL: 'https://profiles.example.test/ada.png', emailVerified: false, providerData: [{ providerId: 'password' }, { providerId: 'password' }], refreshToken: 'private-test-token' }
   const auth: { currentUser: typeof user | null; languageCode: string | null } = { currentUser: user, languageCode: null }
   return {
-    user, auth, app: { name: '[DEFAULT]' },
+    user, auth, app: { name: 'kanso-pro' },
     getApps: vi.fn(), getApp: vi.fn(), initializeApp: vi.fn(), initializeAuth: vi.fn(), getAuth: vi.fn(),
     onIdTokenChanged: vi.fn(), getIdTokenResult: vi.fn(), createUserWithEmailAndPassword: vi.fn(), signInWithEmailAndPassword: vi.fn(),
     signInWithPopup: vi.fn(), signOut: vi.fn(), updateProfile: vi.fn(), sendPasswordResetEmail: vi.fn(),
@@ -42,7 +42,7 @@ describe('Firebase account adapter', () => {
   it('uses the supplied project and resilient persistence without eagerly adding an OAuth resolver', async () => {
     const client = await import('./firebase')
     expect(client.firebaseConfig).toMatchObject({ projectId: 'russapps-kanso-pro', authDomain: 'russapps-kanso-pro.firebaseapp.com', appId: '1:422480569925:web:c6f9969250fec1b3dda52c' })
-    expect(sdk.initializeApp).toHaveBeenCalledWith(client.firebaseConfig)
+    expect(sdk.initializeApp).toHaveBeenCalledWith(client.firebaseConfig, client.FIREBASE_APP_NAME)
     expect(sdk.initializeAuth).toHaveBeenCalledWith(sdk.app, { persistence: ['indexed-db', 'local', 'memory'] })
     expect(sdk.auth.languageCode).toBe('en')
     expect(sdk.signInWithPopup).not.toHaveBeenCalled()
@@ -56,12 +56,12 @@ describe('Firebase account adapter', () => {
     expect(client.firebaseConfig.apiKey).toBe('another-public-web-key')
   })
 
-  it('reuses the default app/auth when hot-reloaded, but does not swallow other initialization errors', async () => {
+  it('reuses the named app/auth when hot-reloaded, but does not swallow other initialization errors', async () => {
     sdk.getApps.mockReturnValue([sdk.app])
     sdk.initializeAuth.mockImplementation(() => { throw { code: 'auth/already-initialized' } })
     await import('./firebase')
     expect(sdk.initializeApp).not.toHaveBeenCalled()
-    expect(sdk.getApp).toHaveBeenCalledOnce()
+    expect(sdk.getApp).toHaveBeenCalledWith('kanso-pro')
     expect(sdk.getAuth).toHaveBeenCalledWith(sdk.app)
     vi.resetModules()
     const error = { code: 'auth/invalid-api-key' }
