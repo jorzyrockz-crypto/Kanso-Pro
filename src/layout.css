@@ -310,6 +310,12 @@
     /* Wider workspaces use the same left-hand work / right-hand context rhythm as the desktop Timeline. */
     .workspace-page { max-width: 78rem; }
     .workspace-tasks, .workspace-project, .workspace-journal { max-width: 76rem; }
+    /* Projects are an active work surface: let their name lead like the Journal editor title,
+       without changing the selector, progress, or action stack that follows it. */
+    .hero-project { align-items: flex-start; gap: 1rem; padding: clamp(1.125rem, 2vw, 1.375rem); }
+    .hero-project .hero-eyebrows { margin-bottom: .4rem; }
+    .hero-project h2 { font-size: clamp(1.625rem, 2.35vw, 2.125rem); line-height: 1.18; letter-spacing: -.045rem; }
+    .hero-project p { margin-top: .25rem; line-height: 1.55; }
     .workspace-desktop-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, .4fr); align-items: start; gap: 1.375rem; }
     .workspace-desktop-aside { position: sticky; top: calc(var(--hdr-h) + 1rem); align-self: start; gap: 1rem; }
     .project-workspace-aside, .task-workspace-aside { order: 0; }

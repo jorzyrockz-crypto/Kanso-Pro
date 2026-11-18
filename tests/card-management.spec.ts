@@ -67,6 +67,25 @@ test('Calendar events and task cards can be edited without replacing task checkl
   await expect(page.getByRole('checkbox').nth(1)).not.toBeChecked()
 })
 
+test('Project hero gives its title editorial scale while retaining the existing actions', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/projects/proj-tos')
+
+  const hero = page.locator('.hero-project')
+  const title = hero.getByRole('heading', { level: 2 })
+  await expect(title).toBeVisible()
+  expect(await title.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(30)
+  expect(await title.evaluate((element) => Number.parseFloat(getComputedStyle(element).lineHeight))).toBeLessThan(38)
+  await expect(hero.getByRole('link', { name: 'Edit project', exact: true })).toBeVisible()
+  await expect(hero.getByRole('button', { name: 'Export / Print summary', exact: true })).toBeVisible()
+  await expect(hero.getByRole('button', { name: 'Delete project', exact: true })).toBeVisible()
+
+  const heroBox = await hero.boundingBox()
+  const titleBox = await title.boundingBox()
+  expect(titleBox!.y).toBeGreaterThan(heroBox!.y)
+  expect(titleBox!.y + titleBox!.height).toBeLessThan(heroBox!.y + heroBox!.height)
+})
+
 test('Project tracking keeps the next milestone visible and preserves milestones when project details change', async ({ page }) => {
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('region', { name: 'Project pulse', exact: true })).toContainText('Draft 40-item multiple choice questionnaire')
