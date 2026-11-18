@@ -93,6 +93,7 @@ export function reconcileReminders(state: NotificationState, cards: JourneyCard[
   const ids = new Set(cards.map(card => card.id))
   const seen = Object.fromEntries(Object.entries(state.seen).filter(([id]) => ids.has(id)))
   const incoming: PlannerNotification[] = []
+  const attentionCardIds: string[] = []
   const retainedIds = new Set(state.items.map(item => item.id))
   for (const card of cards) {
     const reminder = reminderFor(card)
@@ -111,6 +112,7 @@ export function reconcileReminders(state: NotificationState, cards: JourneyCard[
       href: destinationPath({ page: card.type === 'event' ? 'calendar' : card.type === 'task' ? 'tasks' : 'project', cardId: card.id }),
       createdAt: now.getTime(), read: false,
     })
+    attentionCardIds.push(card.id)
   }
-  return { state: addNotifications({ ...state, seen, initialized: true }, incoming), incoming }
+  return { state: addNotifications({ ...state, seen, initialized: true }, incoming), incoming, attentionCardIds }
 }
