@@ -202,8 +202,9 @@ test('all section anchors focus their headings and remain reachable above the bo
 
 test('Light, Dark, and Auto replace the frame switch and synchronize without changing the journey', async ({ page, context }) => {
   await page.goto('/settings')
-  await expect(page.getByRole('switch')).toHaveCount(0)
+  await expect(page.locator('#appearance').getByRole('switch')).toHaveCount(0)
   await expect(page.getByRole('group', { name: 'Color mode', exact: true }).getByRole('radio')).toHaveCount(3)
+  await expect(page.getByRole('group', { name: 'Background gradient', exact: true }).getByRole('radio')).toHaveCount(4)
   await expect(page.getByRole('radio', { name: 'Auto', exact: true })).toBeChecked()
   const before = await saved(page)
   await darkMode(page).check()

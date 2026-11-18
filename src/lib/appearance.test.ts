@@ -1,21 +1,33 @@
 import { runInNewContext } from 'node:vm'
 import { describe, expect, it, vi } from 'vitest'
-import { APPEARANCE_STORAGE_KEY, COLOR_SCHEME_QUERY, appearanceBootstrapScript, parseColorMode, resolveColorScheme, serializeColorMode } from './appearance'
-import type { ColorMode } from './appearance'
+import { APPEARANCE_STORAGE_KEY, COLOR_SCHEME_QUERY, appearanceBootstrapScript, appearanceThemeColor, parseAppearancePreferences, parseColorMode, resolveColorScheme, serializeAppearancePreferences, serializeColorMode } from './appearance'
+import type { AppearancePreferences, BackgroundGradient, ColorMode } from './appearance'
 
 const modes: ColorMode[] = ['light', 'dark', 'auto']
+const backgrounds: BackgroundGradient[] = ['sky', 'dawn', 'lagoon', 'twilight']
+
+const defaultAppearance = (mode: ColorMode): AppearancePreferences => ({ mode, background: 'sky' })
 
 describe('device appearance preferences', () => {
-  it.each(modes)('round-trips only the version and %s mode, outside the journey schema', (mode) => {
+  it.each(modes)('keeps version-one color-mode values compatible and maps them to Sky', (mode) => {
     const raw = serializeColorMode(mode)
     expect(JSON.parse(raw)).toEqual({ version: 1, mode })
     expect(parseColorMode(raw)).toBe(mode)
+    expect(parseAppearancePreferences(raw)).toEqual(defaultAppearance(mode))
   })
-  it.each([null, '', 'dark', 'null', '[]', '1', 'true', '{}', '{invalid', '{"version":2,"mode":"dark"}', '{"mode":"light"}', '{"version":1,"mode":"system"}', '{"version":1,"mode":"DARK"}', '{"version":1,"mode":true}', '{"version":1,"mode":"<script>"}'])('rejects malformed or unsupported values: %s', (raw) => {
-    expect(parseColorMode(raw)).toBeNull()
+  it.each(modes.flatMap((mode) => backgrounds.map((background) => ({ mode, background }))))('round-trips version-two $mode / $background preferences outside the journey schema', (preferences) => {
+    const raw = serializeAppearancePreferences(preferences)
+    expect(JSON.parse(raw)).toEqual({ version: 2, ...preferences })
+    expect(parseAppearancePreferences(raw)).toEqual(preferences)
+  })
+  it.each([null, '', 'dark', 'null', '[]', '1', 'true', '{}', '{invalid', '{"version":2,"mode":"dark"}', '{"version":2,"mode":"dark","background":"custom"}', '{"version":2,"mode":"DARK","background":"sky"}', '{"version":2,"mode":true,"background":"sky"}', '{"version":1,"mode":"system"}', '{"version":1,"mode":"<script>"}'])('rejects malformed or unsupported values: %s', (raw) => {
+    expect(parseAppearancePreferences(raw)).toBeNull()
   })
   it.each(modes.flatMap((mode) => [true, false].map((systemDark) => ({ mode, systemDark }))))('resolves $mode with systemDark=$systemDark', ({ mode, systemDark }) => {
     expect(resolveColorScheme(mode, systemDark)).toBe(mode === 'auto' ? systemDark ? 'dark' : 'light' : mode)
+  })
+  it.each(backgrounds.flatMap((background) => (['light', 'dark'] as const).map((scheme) => ({ background, scheme }))))('provides a browser theme color for $scheme $background', ({ scheme, background }) => {
+    expect(appearanceThemeColor(scheme, background)).toMatch(/^#[\da-f]{6}$/i)
   })
 })
 
@@ -33,17 +45,23 @@ describe('the synchronous before-paint script', () => {
     if (!missingMedia) expect(media).toHaveBeenCalledWith(COLOR_SCHEME_QUERY)
     return { dataset, meta }
   }
-  it.each(modes.flatMap((mode) => [true, false].map((systemDark) => ({ mode, systemDark }))))('applies saved $mode with systemDark=$systemDark before React', ({ mode, systemDark }) => {
+  it.each(modes.flatMap((mode) => [true, false].map((systemDark) => ({ mode, systemDark }))))('applies saved legacy $mode with Sky before React', ({ mode, systemDark }) => {
     const { dataset, meta } = boot(serializeColorMode(mode), systemDark)
     const scheme = resolveColorScheme(mode, systemDark)
-    expect(dataset).toEqual({ colorMode: mode, theme: scheme })
-    expect(meta.setAttribute).toHaveBeenCalledWith('content', scheme === 'dark' ? '#0c1724' : '#eaf5fc')
+    expect(dataset).toEqual({ colorMode: mode, theme: scheme, background: 'sky' })
+    expect(meta.setAttribute).toHaveBeenCalledWith('content', appearanceThemeColor(scheme, 'sky'))
   })
-  it.each([null, 'not JSON', '{"version":9,"mode":"light"}'])('defaults to Auto without mutating journey data for %s', (raw) => {
-    expect(boot(raw, true).dataset).toEqual({ colorMode: 'auto', theme: 'dark' })
+  it('applies a saved gradient before React without waiting for the application bundle', () => {
+    const preferences: AppearancePreferences = { mode: 'auto', background: 'twilight' }
+    const { dataset, meta } = boot(serializeAppearancePreferences(preferences), true)
+    expect(dataset).toEqual({ colorMode: 'auto', theme: 'dark', background: 'twilight' })
+    expect(meta.setAttribute).toHaveBeenCalledWith('content', appearanceThemeColor('dark', 'twilight'))
+  })
+  it.each([null, 'not JSON', '{"version":9,"mode":"light"}', '{"version":2,"mode":"light","background":"neon"}'])('defaults to Auto and Sky without mutating journey data for %s', (raw) => {
+    expect(boot(raw, true).dataset).toEqual({ colorMode: 'auto', theme: 'dark', background: 'sky' })
   })
   it('survives blocked storage, missing media queries, and absent optional browser metadata', () => {
-    expect(boot(null, true, true).dataset).toEqual({ colorMode: 'auto', theme: 'dark' })
-    expect(boot(null, false, true, true, true).dataset).toEqual({ colorMode: 'auto', theme: 'light' })
+    expect(boot(null, true, true).dataset).toEqual({ colorMode: 'auto', theme: 'dark', background: 'sky' })
+    expect(boot(null, false, true, true, true).dataset).toEqual({ colorMode: 'auto', theme: 'light', background: 'sky' })
   })
 })

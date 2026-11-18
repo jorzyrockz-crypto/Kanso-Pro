@@ -25,19 +25,20 @@
     -moz-osx-font-smoothing: grayscale;
     --serif: 'Newsreader Variable', Georgia, serif;
     --sky: #29b6f6;
+    --appearance-background: radial-gradient(ellipse at 18% 12%, rgb(186 230 253 / 45%) 0%, transparent 45%), radial-gradient(ellipse at 85% 28%, rgb(207 250 254 / 48%) 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, rgb(224 242 254 / 65%) 0%, transparent 55%), linear-gradient(180deg, #ebf6fc 0%, #e5f4f9 48%, #eef8fc 100%);
+    --appearance-month-background: linear-gradient(160deg, var(--month-adaptive-canvas, var(--month-canvas)), var(--theme-blue-soft, #edf7fb) 72%, var(--month-adaptive-canvas, var(--month-canvas)));
     --card-shadow: 0 14px 34px -8px rgb(14 65 108 / 8%), 0 4px 12px -2px rgb(14 65 108 / 4%);
     --hover-shadow: 0 22px 44px -10px rgb(14 65 108 / 15%), 0 6px 16px -3px rgb(14 65 108 / 7%);
   }
   body {
     min-width: 20rem;
     min-height: 100dvh;
-    background:
-      radial-gradient(ellipse at 18% 12%, rgb(186 230 253 / 45%) 0%, transparent 45%),
-      radial-gradient(ellipse at 85% 28%, rgb(207 250 254 / 48%) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 80%, rgb(224 242 254 / 65%) 0%, transparent 55%),
-      linear-gradient(180deg, #ebf6fc 0%, #e5f4f9 48%, #eef8fc 100%);
+    background: var(--appearance-background);
   }
   #root { min-height: 100dvh; }
+  @media (forced-colors: active) {
+    :root, body { background: Canvas; }
+  }
   ::selection { background: var(--theme-blue-soft, #bae6fd); color: var(--theme-text-primary, #0c4a6e); }
   :focus-visible { outline: 3px solid var(--theme-focus, #38bdf8); outline-offset: 4px; }
   ::-webkit-scrollbar { width: 0.3125rem; height: 0.3125rem; }

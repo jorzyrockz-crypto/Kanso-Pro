@@ -1,30 +1,33 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
-import { APPEARANCE_STORAGE_KEY, COLOR_SCHEME_QUERY, applyColorScheme, parseColorMode, resolveColorScheme, serializeColorMode } from './appearance'
-import type { ColorMode } from './appearance'
+import { APPEARANCE_STORAGE_KEY, COLOR_SCHEME_QUERY, DEFAULT_BACKGROUND, applyAppearance, parseAppearancePreferences, resolveColorScheme, serializeAppearancePreferences } from './appearance'
+import type { AppearancePreferences, BackgroundGradient, ColorMode } from './appearance'
 
 function systemPrefersDark() {
   try { return window.matchMedia(COLOR_SCHEME_QUERY).matches } catch { return false }
 }
 
+const defaultAppearance = (): AppearancePreferences => ({ mode: 'auto', background: DEFAULT_BACKGROUND })
+
 /** One controller for the whole app, including guest/auth routes. No account dependency. */
 export function useAppearance() {
-  const [mode, setMode] = useState<ColorMode>(() => {
-    try { return parseColorMode(localStorage.getItem(APPEARANCE_STORAGE_KEY)) ?? 'auto' } catch { return 'auto' }
+  const [preferences, setPreferences] = useState<AppearancePreferences>(() => {
+    try { return parseAppearancePreferences(localStorage.getItem(APPEARANCE_STORAGE_KEY)) ?? defaultAppearance() } catch { return defaultAppearance() }
   })
   const [systemDark, setSystemDark] = useState(systemPrefersDark)
   const [storageAvailable, setStorageAvailable] = useState(true)
+  const { mode, background } = preferences
   const scheme = resolveColorScheme(mode, systemDark)
 
-  useLayoutEffect(() => { applyColorScheme(mode, systemDark) }, [mode, systemDark])
+  useLayoutEffect(() => { applyAppearance(mode, background, systemDark) }, [mode, background, systemDark])
 
   useEffect(() => {
     try {
-      const next = serializeColorMode(mode)
+      const next = serializeAppearancePreferences(preferences)
       // Do not echo identical same-origin storage events back to other tabs.
       if (localStorage.getItem(APPEARANCE_STORAGE_KEY) !== next) localStorage.setItem(APPEARANCE_STORAGE_KEY, next)
       setStorageAvailable(true)
     } catch { setStorageAvailable(false) }
-  }, [mode])
+  }, [preferences])
 
   useEffect(() => {
     let media: MediaQueryList | undefined
@@ -42,8 +45,8 @@ export function useAppearance() {
       if (event.key !== APPEARANCE_STORAGE_KEY && event.key !== null) return
       // Ignore sessionStorage events and tolerate browsers that block the getter.
       try { if (event.storageArea && event.storageArea !== localStorage) return } catch { return }
-      const next = event.newValue === null ? 'auto' : parseColorMode(event.newValue)
-      if (next) setMode(next)
+      const next = event.newValue === null ? defaultAppearance() : parseAppearancePreferences(event.newValue)
+      if (next) setPreferences(next)
     }
     window.addEventListener('storage', sync)
     return () => {
@@ -56,7 +59,10 @@ export function useAppearance() {
     }
   }, [])
 
-  return { mode, scheme, setMode, storageAvailable }
+  const setMode = (nextMode: ColorMode) => setPreferences((current) => current.mode === nextMode ? current : { ...current, mode: nextMode })
+  const setBackground = (nextBackground: BackgroundGradient) => setPreferences((current) => current.background === nextBackground ? current : { ...current, background: nextBackground })
+
+  return { mode, background, scheme, setMode, setBackground, storageAvailable }
 }
 
 export type AppearanceController = ReturnType<typeof useAppearance>

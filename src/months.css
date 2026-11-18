@@ -1,7 +1,7 @@
 @layer layout {
   /* A static, page-wide wash. It never sits above content or receives input. */
   .application { position: relative; isolation: isolate; }
-  .month-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; user-select: none; background: radial-gradient(ellipse at 90% 20%, var(--month-adaptive-wash, var(--month-wash)), transparent 58%), radial-gradient(ellipse at 6% 80%, var(--month-adaptive-wash, var(--month-wash)), transparent 55%), linear-gradient(160deg, var(--month-adaptive-canvas, var(--month-canvas)), var(--theme-blue-soft, #edf7fb) 72%, var(--month-adaptive-canvas, var(--month-canvas))); }
+  .month-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; user-select: none; background: radial-gradient(ellipse at 90% 20%, var(--month-adaptive-wash, var(--month-wash)), transparent 58%), radial-gradient(ellipse at 6% 80%, var(--month-adaptive-wash, var(--month-wash)), transparent 55%), var(--appearance-month-background, var(--appearance-background)); }
   .month-artwork { display: block; aspect-ratio: 1; pointer-events: none; user-select: none; }
   .month-backdrop > .month-artwork { position: absolute; width: clamp(22.5rem, 44vw, 40.625rem); height: auto; opacity: .4; }
   .month-backdrop-right { top: calc(var(--hdr-h) + 0.3125rem); right: clamp(-5.625rem, -4vw, -1.875rem); }

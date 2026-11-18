@@ -14,6 +14,7 @@ import { DeviceWorkspaceSummary } from './DeviceWorkspace'
 import { MonthArtwork, monthPalette } from './MonthArtwork'
 import { PageHeader } from './PageHeader'
 import { ColorModePicker } from './ColorModePicker'
+import { GradientBackgroundPicker } from './GradientBackgroundPicker'
 import { AccountAvatar } from './AccountAvatar'
 import type { AppearanceController } from '../lib/useAppearance'
 import { KansoMark } from './AppHeader'
@@ -143,7 +144,8 @@ export function SettingsPage({ account, state, storageAvailable, appearance, pwa
 
         <SettingsSection id="appearance" title="Appearance" description="A familiar place, with room for a little personality.">
           <ColorModePicker appearance={appearance} />
-          <div className="settings-month-preview" data-settings-month={month} style={monthPalette(scene)}><div><span className="settings-month-label"><Sparkles size="0.8125rem" aria-hidden="true" />Automatic · {scene.name} {month.slice(0, 4)}</span><h3>{scene.title}.</h3><p>Sign-in follows your device’s current month. Timeline and Calendar follow the month you’re viewing.</p></div><MonthArtwork month={month} side="right" className="settings-month-art" /></div>
+          <GradientBackgroundPicker appearance={appearance} />
+          <div className="settings-month-preview" data-settings-month={month} style={monthPalette(scene)}><div><span className="settings-month-label"><Sparkles size="0.8125rem" aria-hidden="true" />Automatic · {scene.name} {month.slice(0, 4)}</span><h3>{scene.title}.</h3><p>Sign-in follows your device’s current month. Timeline and Calendar follow the month you’re viewing above your selected canvas.</p></div><MonthArtwork month={month} side="right" className="settings-month-art" /></div>
         </SettingsSection>
 
         <SettingsSection id="calendar" title="Calendar sources" description="Show reference dates alongside your plans, without turning them into personal cards.">
@@ -153,14 +155,14 @@ export function SettingsPage({ account, state, storageAvailable, appearance, pwa
         <SettingsSection id="workspace" title="Device workspace & backup" description="Your plans live here. Keep a copy somewhere you trust.">
           <DeviceWorkspaceSummary state={state} storageAvailable={storageAvailable} />
           <div className="settings-backup-row"><div><strong>A copy of your whole journey.</strong><p>Events, task lists, projects, notes, and your Tablet frame preference.</p></div><button className="button settings-secondary" type="button" onClick={exportWorkspace}><Download size="0.9375rem" aria-hidden="true" />Export device backup</button></div>
-          <p className="settings-caption">Downloads a JSON file without sign-in tokens or passwords. Color mode and Calendar-source preferences stay separate and are not included. Imported PDFs are never included. Keep the backup private. This is not cloud sync, and we can’t verify where you save the file.</p>
+          <p className="settings-caption">Downloads a JSON file without sign-in tokens or passwords. Appearance and Calendar-source preferences stay separate and are not included. Imported PDFs are never included. Keep the backup private. This is not cloud sync, and we can’t verify where you save the file.</p>
           {feedback && <p ref={feedbackRef} tabIndex={-1} className={`account-feedback settings-backup-feedback ${feedback.error ? 'is-error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{!feedback.error && <Check size="0.9375rem" aria-hidden="true" />}{feedback.message}</p>}
         </SettingsSection>
 
         <SettingsSection id="privacy" title="Privacy & storage" description="A clear picture of what stays here, and what signing in does.">
           <div className="settings-privacy-callout"><ShieldCheck size="1.375rem" aria-hidden="true" /><div><strong>Local does not mean locked.</strong><p>Anyone using this browser profile can access its cards, even while signed out. Use a separate browser profile on shared devices.</p></div></div>
           <dl className="settings-data-list">
-            <div><dt><HardDrive size="1rem" aria-hidden="true" />Saved in this browser</dt><dd>Your cards, edits, color mode, Timeline frame preference, and Calendar-source choices. Imported memorandum PDFs are read in memory only; Kanso keeps extracted dates, not the PDF. Clearing site data can erase browser-stored data. When storage is blocked, changes last only for the session.</dd></div>
+            <div><dt><HardDrive size="1rem" aria-hidden="true" />Saved in this browser</dt><dd>Your cards, edits, appearance preferences, Timeline frame preference, and Calendar-source choices. Imported memorandum PDFs are read in memory only; Kanso keeps extracted dates, not the PDF. Clearing site data can erase browser-stored data. When storage is blocked, changes last only for the session.</dd></div>
             <div><dt><Mail size="1rem" aria-hidden="true" />Your account & session</dt><dd>Firebase manages your identity and sign-in session. Guests and email/password sessions remain device-local; only a Google-issued Firebase session can sync eligible workspace data online.</dd></div>
             <div><dt><Laptop size="1rem" aria-hidden="true" />A different device or address</dt><dd>A new browser profile, device, or website address starts with its own local workspace. Google-synced Space data can reappear after Google sign-in; export device-only plans before changing hosts.</dd></div>
           </dl>
