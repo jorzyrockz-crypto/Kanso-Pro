@@ -109,6 +109,29 @@ test('Project hero condenses its actions into one accessible icon row on phones'
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
+test('Workspace plans keep primary cards ahead of their context on phones and tablets', async ({ page }) => {
+  const workspaces = [
+    { path: '/tasks/task-grades', primary: '.checklist-panel', context: 'Task list context' },
+    { path: '/projects/proj-tos', primary: '.checklist-panel', context: 'Project context' },
+    { path: '/journal/note-lesson', primary: '.journal-editor-panel', context: 'Journal context' },
+  ]
+
+  for (const size of [{ width: 605, height: 900 }, { width: 834, height: 1024 }]) {
+    await page.setViewportSize(size)
+    for (const workspace of workspaces) {
+      await page.goto(workspace.path)
+      const primary = page.locator(workspace.primary)
+      const context = page.getByRole('complementary', { name: workspace.context, exact: true })
+      await expect(primary).toBeVisible()
+      await expect(context).toBeVisible()
+      const primaryBox = await primary.boundingBox()
+      const contextBox = await context.boundingBox()
+      expect(contextBox!.y).toBeGreaterThan(primaryBox!.y + primaryBox!.height)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    }
+  }
+})
+
 test('Project tracking keeps the next milestone visible and preserves milestones when project details change', async ({ page }) => {
   await page.goto('/projects/proj-tos')
   await expect(page.getByRole('region', { name: 'Project pulse', exact: true })).toContainText('Draft 40-item multiple choice questionnaire')
