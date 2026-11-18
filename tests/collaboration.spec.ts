@@ -127,6 +127,9 @@ test('a shared Space keeps one replaceable Pinned Space Notice outside the Journ
   await expect(notice).toContainText('Please review the family-conference plan before lunch.')
   await expect(notice).toContainText(/Pinned by You · Today at/)
   await expect(page.getByText('Space update', { exact: true })).toHaveCount(0)
+  const [headerBox, noticeBox, timelineBox] = await Promise.all([page.locator('.stream-header').boundingBox(), notice.boundingBox(), page.locator('#journey-stream').boundingBox()])
+  expect(noticeBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height)
+  expect(noticeBox!.y + noticeBox!.height).toBeLessThanOrEqual(timelineBox!.y)
 
   await page.getByRole('button', { name: 'Edit notice', exact: true }).click()
   await page.getByPlaceholder('Share one concise notice…').fill('Family-conference plan is confirmed for Friday.')
