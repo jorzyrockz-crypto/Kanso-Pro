@@ -1,4 +1,4 @@
-import { Check, Copy, Crown, Trash2, UserPlus, UsersRound, X } from 'lucide-react'
+import { Check, ChevronDown, Copy, Crown, Trash2, UserPlus, UsersRound, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { FormEvent } from 'react'
@@ -25,6 +25,7 @@ export function WorkspaceSettingsDialog({ open, onClose, space, currentMember, c
   const descriptionId = useId()
   const dialogRef = useRef<HTMLElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const appearanceSummaryRef = useRef<HTMLElement>(null)
   const [name, setName] = useState(space.name)
   const [color, setColor] = useState<SpaceColor>(space.color ?? defaultSpaceColor(space.kind))
   const [icon, setIcon] = useState<SpaceIcon>(spaceAppearance(space).icon)
@@ -33,6 +34,7 @@ export function WorkspaceSettingsDialog({ open, onClose, space, currentMember, c
   const [inviteRole, setInviteRole] = useState<SpaceRole>('editor')
   const [copied, setCopied] = useState(false)
   const [memberNotice, setMemberNotice] = useState('')
+  const [appearanceOpen, setAppearanceOpen] = useState(false)
   const isOwner = currentMember.role === 'owner'
   const canConfigure = canEdit && isOwner
   const memberManagementAvailable = space.kind === 'shared' && canConfigure
@@ -48,6 +50,7 @@ export function WorkspaceSettingsDialog({ open, onClose, space, currentMember, c
     setInviteRole('editor')
     setCopied(false)
     setMemberNotice('')
+    setAppearanceOpen(false)
   }, [open, space.id, space.name, space.color, space.icon])
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export function WorkspaceSettingsDialog({ open, onClose, space, currentMember, c
     const focusedBeforeOpen = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const focusTimer = window.setTimeout(() => titleInputRef.current?.focus({ preventScroll: true }), 0)
+    const focusTimer = window.setTimeout(() => appearanceSummaryRef.current?.focus({ preventScroll: true }), 0)
     const keyboard = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
       if (event.key !== 'Tab') return
@@ -73,11 +76,12 @@ export function WorkspaceSettingsDialog({ open, onClose, space, currentMember, c
       document.removeEventListener('keydown', keyboard)
       if (focusedBeforeOpen?.isConnected) focusedBeforeOpen.focus({ preventScroll: true })
     }
-  }, [open, onClose])
+  }, [open, onClose, space.kind])
 
   if (!open) return null
 
   const visualPreview = { ...space, color, icon }
+  const activeIconLabel = spaceIcons.find((candidate) => candidate.id === icon)?.label ?? 'Workspace icon'
   const save = (event: FormEvent) => {
     event.preventDefault()
     if (!canConfigure || !name.trim()) return
@@ -118,15 +122,19 @@ export function WorkspaceSettingsDialog({ open, onClose, space, currentMember, c
       </header>
 
       <form className="workspace-settings-content" onSubmit={save}>
-        <section className="workspace-settings-section" aria-labelledby={`${headingId}-identity`}>
-          <div className="workspace-settings-section-title"><span className="eyebrow" id={`${headingId}-identity`}>Identity</span><p>{canConfigure ? 'Choose a title, color, and icon for this workspace.' : 'Only a Workspace Owner can change its identity and membership.'}</p></div>
-          <label className="workspace-title-field">Workspace title<input ref={titleInputRef} value={name} maxLength={80} required disabled={!canConfigure} onChange={(event) => setName(event.target.value)} /></label>
-          <fieldset className="workspace-choice-field"><legend>Workspace color</legend><div className="workspace-color-options">{(Object.entries(spaceColors) as [SpaceColor, typeof spaceColors[SpaceColor]][]).map(([candidate, detail]) => <button key={candidate} type="button" className={color === candidate ? 'is-selected' : ''} aria-pressed={color === candidate} aria-label={`${detail.label} workspace color`} disabled={!canConfigure} onClick={() => setColor(candidate)}><i style={{ background: detail.accent }} /><span>{detail.label}</span>{color === candidate && <Check size=".75rem" aria-hidden="true" />}</button>)}</div></fieldset>
-          <fieldset className="workspace-choice-field"><legend>Workspace icon</legend><div className="workspace-icon-options">{spaceIcons.map((candidate) => <button key={candidate.id} type="button" className={icon === candidate.id ? 'is-selected' : ''} aria-label={`${candidate.label} workspace icon`} aria-pressed={icon === candidate.id} disabled={!canConfigure} onClick={() => setIcon(candidate.id)}><SpaceGlyph space={{ kind: space.kind, color, icon: candidate.id }} size="1rem" /><span>{candidate.label}</span></button>)}</div></fieldset>
+        <section className="workspace-settings-section workspace-appearance-section">
+          <details className="workspace-appearance-disclosure" open={appearanceOpen} onToggle={(event) => setAppearanceOpen(event.currentTarget.open)}>
+            <summary ref={appearanceSummaryRef}><span><strong>Workspace appearance</strong><small>{canConfigure ? 'Name, color & icon' : 'Owner-only settings'}</small></span><span className="workspace-appearance-current" style={spaceAccentStyle(visualPreview)}><i><SpaceGlyph space={visualPreview} size=".8125rem" /></i>{activeIconLabel}<ChevronDown size=".875rem" aria-hidden="true" /></span></summary>
+            <div className="workspace-appearance-content">
+              <label className="workspace-title-field">Workspace title<input ref={titleInputRef} value={name} maxLength={80} required disabled={!canConfigure} onChange={(event) => setName(event.target.value)} /></label>
+              <fieldset className="workspace-choice-field"><legend>Workspace color</legend><div className="workspace-color-options">{(Object.entries(spaceColors) as [SpaceColor, typeof spaceColors[SpaceColor]][]).map(([candidate, detail]) => <button key={candidate} type="button" className={color === candidate ? 'is-selected' : ''} aria-pressed={color === candidate} aria-label={`${detail.label} workspace color`} disabled={!canConfigure} onClick={() => setColor(candidate)}><i style={{ background: detail.accent }} /><span>{detail.label}</span>{color === candidate && <Check size=".75rem" aria-hidden="true" />}</button>)}</div></fieldset>
+              <fieldset className="workspace-choice-field"><legend>Workspace icon</legend><div className="workspace-icon-options">{spaceIcons.map((candidate) => <button key={candidate.id} type="button" className={icon === candidate.id ? 'is-selected' : ''} aria-label={`${candidate.label} workspace icon`} aria-pressed={icon === candidate.id} disabled={!canConfigure} onClick={() => setIcon(candidate.id)}><SpaceGlyph space={{ kind: space.kind, color, icon: candidate.id }} size="1rem" /><span>{candidate.label}</span></button>)}</div></fieldset>
+            </div>
+          </details>
         </section>
 
         {space.kind === 'shared' && <section className="workspace-settings-section workspace-members-section" aria-labelledby={`${headingId}-members`}>
-          <div className="workspace-settings-section-title"><span className="eyebrow" id={`${headingId}-members`}>Members</span><p>{syncEnabled ? 'Invite colleagues by the Google email they use for this Space.' : 'Changes stay on this device until you continue with Google.'} Leads can post, replace, or clear the Pinned Space Notice.</p></div>
+          <div className="workspace-settings-section-title"><span className="eyebrow" id={`${headingId}-members`}>Members</span><p>{syncEnabled ? 'Invite by the Google email used for this Space.' : 'Changes stay on this device until you continue with Google.'} Leads manage the Pinned Space Notice.</p></div>
           {memberManagementAvailable && <><div className="workspace-invite-link"><span><strong>Invite link</strong><small>Add the colleague’s Google email first, then share this link.</small></span><button type="button" className="button button-quiet" onClick={() => void copyInviteLink()}>{copied ? <Check size=".8125rem" /> : <Copy size=".8125rem" />}{copied ? 'Copied' : 'Copy link'}</button></div><div className="workspace-member-invite">
             <label>Name<input maxLength={80} value={inviteName} placeholder="Colleague name" onChange={(event) => setInviteName(event.target.value)} /></label>
             <label>Email<input type="email" maxLength={254} value={inviteEmail} placeholder="name@school.edu" onChange={(event) => setInviteEmail(event.target.value)} /></label>
